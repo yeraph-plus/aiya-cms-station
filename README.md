@@ -166,6 +166,10 @@ yet-another-react-lightbox。
 
 ## 阶段计划
 
+> 以下为历史迭代记录（细节可能落后于现状，如详情路由已从 `[id]` 改为
+> `[slug]`——0.75.0 拍板）；当前状态以 `aiya-core/docs/ROADMAP.md` 与
+> `aiya-core/src/Api/Contract/` 为准，本节只读不更。
+
 1. **基建（已落地）**：脚手架、契约重塑（对齐后端 0.29.0：线程形 Discussion、
    `{gated, canSeeLinks, items}` 附件、评论/通知/赞助/users-me/收藏全组；Topic 与
    `tweet`/`issue` 已删）、i18n、BaseHead/JSON-LD/sitemap/robots、数据层扩展。

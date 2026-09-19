@@ -191,8 +191,8 @@
   `BaseHead.astro`、`.env.example`，dev/build 均不可运行」。**2026-09-18 复核为不成立**——
   `src/` 下 60 个 `.ts`、`BaseHead.astro`、`.env.example` 均在位，构建全程绿。
   该记载应属另一份不完整副本的审计结果，本副本无此问题。
-- **git**：`front-station/` 目前**不是 git 仓库**（无 `.git`），因此本迭代没有
-  commit 级回滚点，改动前请自行留档。
+- **git**：`front-station/` 已于 2026-09-19 初始化为 git 仓库（首提交即 0.81.0
+  契约镜像状态），此后改动有 commit 级回滚点。
 - **island 改动必须做浏览器验证（2026-09-18 教训，代价是一次空白页）**：
   Astro 的 island props 走 **JSON 序列化**，**函数会静默丢失**——SSR 期 props 是
   进程内真对象、函数可用，服务端 HTML 因此完全正常；水合后这些键变成
