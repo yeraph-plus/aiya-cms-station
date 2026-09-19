@@ -1,4 +1,4 @@
-import { AiyaApiError } from '@/lib/aiya/errors';
+import { AiyaApiError } from '@/lib/core/errors';
 import type { Dictionary } from '@/lib/i18n';
 
 export interface PageErrorCopy {

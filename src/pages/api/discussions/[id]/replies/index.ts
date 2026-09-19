@@ -1,17 +1,18 @@
 import type { APIRoute } from 'astro';
-import { errorCode, errorStatus, jsonResponse } from '@/lib/api-auth';
-import { authClient, serverClient } from '@/lib/aiya/server';
-import { readSessionToken } from '@/lib/aiya/session';
+import { errorCode, errorStatus, jsonResponse, visitorIp } from '@/lib/api-auth';
+import { authClient, serverClient } from '@/lib/core/server';
+import { readSessionToken } from '@/lib/core/session';
 import { cloakReply } from '@/lib/community';
 
 /** GET /api/discussions/{id}/replies/: public paged reply list; the island
     fetches these lazily when a thread's reply section expands. */
-export const GET: APIRoute = async ({ params, url }) => {
+export const GET: APIRoute = async ({ params, url, request, clientAddress }) => {
+  const ip = visitorIp(request, clientAddress);
   const id = Number(params.id);
   if (!Number.isInteger(id) || id < 1) return jsonResponse({ ok: false }, 400);
   const pageNum = Math.max(1, Number(url.searchParams.get('page') ?? 1) || 1);
   try {
-    const result = await serverClient().discussionReplies(id, pageNum);
+    const result = await serverClient(ip).discussionReplies(id, pageNum);
     return jsonResponse({
       ok: true,
       items: result.data.map(cloakReply),
@@ -23,7 +24,8 @@ export const GET: APIRoute = async ({ params, url }) => {
 };
 
 /** POST /api/discussions/{id}/replies/: login-only flat reply. */
-export const POST: APIRoute = async ({ cookies, params, request }) => {
+export const POST: APIRoute = async ({ cookies, params, request, clientAddress }) => {
+  const ip = visitorIp(request, clientAddress);
   const id = Number(params.id);
   if (!Number.isInteger(id) || id < 1) return jsonResponse({ ok: false }, 400);
   const token = readSessionToken(cookies);
@@ -33,7 +35,7 @@ export const POST: APIRoute = async ({ cookies, params, request }) => {
     return jsonResponse({ ok: false }, 400);
   }
   try {
-    const result = await authClient(token).addDiscussionReply(id, body.content);
+    const result = await authClient(token, ip).addDiscussionReply(id, body.content);
     return jsonResponse({ ok: true, reply: cloakReply(result.data) });
   } catch (error) {
     return jsonResponse({ ok: false, code: errorCode(error) }, errorStatus(error));

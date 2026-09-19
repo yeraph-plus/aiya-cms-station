@@ -1,6 +1,6 @@
 import { cloakPostSummaryMedia, rewriteMediaUrl } from '@/lib/media';
 import { safeContent } from '@/lib/content';
-import type { PostDetail } from '@/lib/aiya/contracts';
+import type { PostDetail } from '@/lib/core/contracts';
 
 /**
  * Detail routes are slug-keyed; Astro leaves params percent-encoded for

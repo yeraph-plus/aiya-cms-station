@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
-import { errorCode, errorStatus, jsonResponse } from '@/lib/api-auth';
-import { authClient } from '@/lib/aiya/server';
-import { readSessionToken } from '@/lib/aiya/session';
+import { errorCode, errorStatus, jsonResponse, visitorIp } from '@/lib/api-auth';
+import { authClient } from '@/lib/core/server';
+import { readSessionToken } from '@/lib/core/session';
 
 /**
  * GET /api/credits/entries?page=N: the ledger's older pages. Page 1 arrives
@@ -10,6 +10,7 @@ import { readSessionToken } from '@/lib/aiya/session';
  * backend's default window decides.
  */
 export const GET: APIRoute = async (Astro) => {
+  const ip = visitorIp(Astro.request, Astro.clientAddress);
   const token = readSessionToken(Astro.cookies);
   if (!token) return jsonResponse({ ok: false }, 401);
   const page = Number(Astro.url.searchParams.get('page') ?? 1);
@@ -17,7 +18,7 @@ export const GET: APIRoute = async (Astro) => {
   const perPageRaw = Astro.url.searchParams.get('perPage');
   const perPage = perPageRaw ? Math.min(100, Math.max(1, Number(perPageRaw) || 1)) : undefined;
   try {
-    const result = await authClient(token).creditsEntries({
+    const result = await authClient(token, ip).creditsEntries({
       page,
       ...(perPage !== undefined ? { perPage } : {}),
     });

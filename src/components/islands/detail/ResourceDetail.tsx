@@ -11,7 +11,7 @@ import {
 } from '@/components/islands/detail/parts';
 import { Card, CardContent } from '@/components/ui/card';
 import type { CommentsWindow, DetailShellProps } from '@/components/islands/detail/PostDetail';
-import type { AttachmentItem, PostSummary } from '@/lib/aiya/contracts';
+import type { AttachmentItem, PostSummary } from '@/lib/core/contracts';
 import { t, type Locale } from '@/lib/i18n';
 
 const TAG_VOCAB_LABELS = (locale: Locale): Record<string, string> => {

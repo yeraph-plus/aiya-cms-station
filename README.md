@@ -23,6 +23,8 @@ npm test                  # 单测（契约不变式 / i18n / SEO / 净化 / 门
 | `AIYA_WP_API_URL`       | 后端契约根，必须以 `/wp-json/aiya/core/v1/` 结尾                |
 | `AIYA_API_TIMEOUT_MS`   | 上游超时，默认 8000                                             |
 | `AIYA_ALLOW_LOCAL_HTTP` | 仅 loopback 允许 HTTP 的开发开关                                |
+| `AIYA_PROXY_SECRET`     | 反代桥共享秘钥（须等于 wp-config 的 `AIYA_PROXY_SECRET` 常量）  |
+| `AIYA_CLIENT_IP_HEADER` | 可选：信任的访客地址请求头（如 `X-Real-IP`），缺省 socket 地址  |
 
 **无机器身份**（2026-09-10 拍板）：前台不做管理/预览能力，内容读全部匿名——
 `serverClient()` 不持有任何 WP 账号；浏览器端仅存访客各自的 Bearer（HttpOnly
@@ -48,7 +50,7 @@ components/islands/  React 岛：`UserCenter` 已落（2026-09-11 拍板：认�
 components/ui/      shadcn 控件（已装必备件：button/input/label/textarea/
                     dialog/alert-dialog/dropdown-menu/tooltip/sonner），
                     只服务 islands/，壳不导入
-lib/aiya/         contracts.ts（zod 线上契约，后端 PHP DTO 的逐字段镜像，改后端
+lib/core/         contracts.ts（zod 线上契约，后端 PHP DTO 的逐字段镜像，改后端
                   先改这里）→ client.ts（唯一 transport：基址校验、超时、写路由
                   白名单、响应全量 safeParse、错误只透出 status+requestId+aiya_*
                   码）→ server.ts（环境变量唯一入口；island/browser 导入即构建
@@ -709,6 +711,7 @@ yet-another-react-lightbox。
    `--env-file-if-exists=.env`——此前构建产物不读 `.env`，叠加
    `?? 'mock'` 默认值会让部署静默跑成示例数据。新增
    `tests/gate.test.ts`（门禁转义/状态码/熔断 TTL/并发去重/故障分类 10 例）。
+**全量审查修复 + 五项拍板（2026-09-19）**：全量审查（安全 / 契约 / 路由 SEO / 岛屿 props）修复——详情页三岛改收 `cloakPostDetail` 服务端掩蔽（媒体 URL + 正文 HTML 一次过界；unlock 代理与评论 `bodyHtml` 同批补口；`parts.tsx` 浏览器端 rewrite 调用删除——客户端无 WP origin，改写恒 no-op）；净化器收紧（`aiya-smilie` 类名不再单独信任，src 必须落在 `/media/` 上）；死分支清理（AppShell 已兜底错误态，14 个页面的页内 `!page.ok` 分支与 `retry` 字面量地雷删除，活的越界 notFound 分支保留）；SEO 补缺（sitemap 增 `/pages/` `/categories/`、robots 补 `Sitemap:` 声明、`/categories/[slug]/page/` 302 壳、`/profile/me/` 恒 noindex、`canonicalPath` 可选化）。**拍板落地**：①首页零件全删待重规划——现为裸壳（banner + WebSite JSON-LD + sr-only h1）；②`/community/{id}/` 详情页取消（社区单页化定案，LAYOUT.md 对应行作废——LAYOUT.md 为冻结只读，偏离以本文件为准）；③移动端壳=布局层两套（desktop/ 与 mobile/ 各自成套）+ 各页岛内自适应，现 `PendingBanner` 占位待替换；④个人主页横幅不做（后端无预留），从缺口清单移除；⑤反代桥闭合见上（实现契约·过渡期代价已解除）。
 
 ## 约定
 
@@ -755,12 +758,13 @@ yet-another-react-lightbox。
    - **门禁现状（2026-09-10 拍板）**：现阶段以 CORS/Astro `security.checkOrigin`
      （已默认启用并实测拦截跨站 POST）为代理链路门禁；防伪内部密钥头与信任代理
      （X-Forwarded-For + 可信网段）**延后至部署批**（建议 0.30.x）。
-   - **过渡期代价（已接受，生产/大流量前必须解除）**：代理后 WP 侧 REMOTE_ADDR
-     恒为前端服务器——`RateLimiter`（键 = bucket|REMOTE_ADDR|window）退化为**全站
-     共享桶**（计数 like 30/60s、view 120/60s、rating 30/60s 全站合计；且 `/api/auth`
-     代理已上线，login 20/10min 等认证限流**今天就已是全站共享**），游客计数去重
-     退化为按 UA 粒度。解除方式：aiya-core 统一 `ClientIp::resolve()`（信任代理
-     开关 + 可信网段 + 内部密钥头），计数哈希 / 评论 IP / 限流三处共用。
+   - ~~**过渡期代价**~~（2026-09-19 已解除）：代理后 WP 侧 REMOTE_ADDR 恒为前端
+     服务器的退化（限流全站共享桶、游客计数去重退化为 UA 粒度）由**反代桥**闭合——
+     wp-config 定义 `AIYA_PROXY_SECRET` 常量后，aiya-core `TrustedProxy` 模块在
+     请求携带匹配 `X-Aiya-Proxy-Secret` 头时把 `X-Forwarded-For` 首段采信为访客 IP
+     （经 `aiya_core_client_ip` 过滤器，限流 / 计数哈希 / 评论 IP 三处共用；秘钥
+     不匹配或未配置回落 REMOTE_ADDR）。前端全部 `/api` 代理经 `lib/visitor-ip.ts`
+     解析访客地址并恒携秘钥头 + XFF；`AIYA_CLIENT_IP_HEADER` 可选信任边缘代理头。
    - **媒体隐身已落地（/media/ 前缀，2026-09-10 定稿）**：`lib/media.ts` 的
      `rewriteMediaUrl`/`rewriteSrcset` 只把 WP origin 的 `/wp-content/` URL 改写为
      `/media/...`（permalinks、gravatar、第三方外链原样放行）；正文 HTML 的改写

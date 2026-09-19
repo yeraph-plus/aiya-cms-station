@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AiyaApiError } from '@/lib/aiya/errors';
+import { AiyaApiError } from '@/lib/core/errors';
 import { GATE_STATUS, gateResponse, renderGateDocument } from '@/lib/gate';
 import { t } from '@/lib/i18n';
 import { createReachability, isBackendOutage } from '@/lib/reachability';

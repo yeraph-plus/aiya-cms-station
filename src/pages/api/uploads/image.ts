@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
-import { errorCode, errorStatus, jsonResponse } from '@/lib/api-auth';
-import { authClient } from '@/lib/aiya/server';
-import { readSessionToken } from '@/lib/aiya/session';
+import { errorCode, errorStatus, jsonResponse, visitorIp } from '@/lib/api-auth';
+import { authClient } from '@/lib/core/server';
+import { readSessionToken } from '@/lib/core/session';
 import { rewriteMediaUrl } from '@/lib/media';
 
 /** Mirrors the backend pic-bed gate (aiya_upload_too_large / _type). */
@@ -14,6 +14,7 @@ const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
  * inserts a single-origin src. Size is pre-checked before buffering.
  */
 export const POST: APIRoute = async (Astro) => {
+  const ip = visitorIp(Astro.request, Astro.clientAddress);
   const token = readSessionToken(Astro.cookies);
   if (!token) return jsonResponse({ ok: false }, 401);
   const declared = Astro.request.headers.get('content-length');
@@ -36,7 +37,7 @@ export const POST: APIRoute = async (Astro) => {
     return jsonResponse({ ok: false }, 400);
   }
   try {
-    const result = await authClient(token).uploadImage(file, file.name || 'upload');
+    const result = await authClient(token, ip).uploadImage(file, file.name || 'upload');
     return jsonResponse({ ok: true, url: rewriteMediaUrl(result.url) });
   } catch (error) {
     return jsonResponse({ ok: false, code: errorCode(error) }, errorStatus(error));

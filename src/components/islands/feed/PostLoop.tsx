@@ -27,7 +27,7 @@ import {
 } from '@/components/ui/pagination';
 import Spinner from '@/components/islands/Spinner';
 import { t, type Locale } from '@/lib/i18n';
-import type { Pagination, PostSummary } from '@/lib/aiya/contracts';
+import type { Pagination, PostSummary } from '@/lib/core/contracts';
 
 /** Route shapes computed by the Astro page — the island never invents URLs. */
 export interface FeedRoute {

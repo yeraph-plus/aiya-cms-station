@@ -1,12 +1,13 @@
 import type { APIRoute } from 'astro';
-import { registerRequestSchema } from '@/lib/aiya/contracts';
-import { authClient } from '@/lib/aiya/server';
-import { setSessionCookie } from '@/lib/aiya/session';
-import { errorCode, errorStatus, jsonResponse, requesterLocale } from '@/lib/api-auth';
+import { registerRequestSchema } from '@/lib/core/contracts';
+import { authClient } from '@/lib/core/server';
+import { setSessionCookie } from '@/lib/core/session';
+import { errorCode, errorStatus, jsonResponse, requesterLocale, visitorIp } from '@/lib/api-auth';
 import { aiyaErrorCopy, t } from '@/lib/i18n';
 
 /** Same-origin registration proxy; success signs the visitor in immediately. */
 export const POST: APIRoute = async (Astro) => {
+  const ip = visitorIp(Astro.request, Astro.clientAddress);
   const locale = await requesterLocale();
   const copy = t(locale);
 
@@ -22,7 +23,7 @@ export const POST: APIRoute = async (Astro) => {
   }
 
   try {
-    const session = (await authClient().register(parsed.data)).data;
+    const session = (await authClient(null, ip).register(parsed.data)).data;
     setSessionCookie(Astro.cookies, session.token, session.expiresAt);
     return jsonResponse({
       ok: true,

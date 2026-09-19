@@ -1,4 +1,4 @@
-import type { Breadcrumb, PostDetail, Site } from '@/lib/aiya/contracts';
+import type { Breadcrumb, PostDetail, Site } from '@/lib/core/contracts';
 import { toBcp47, type Locale } from '@/lib/i18n/locale';
 import { rewriteMediaUrl } from '@/lib/media';
 

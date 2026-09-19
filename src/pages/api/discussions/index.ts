@@ -1,16 +1,17 @@
 import type { APIRoute } from 'astro';
-import { errorCode, errorStatus, jsonResponse } from '@/lib/api-auth';
-import { authClient, serverClient } from '@/lib/aiya/server';
-import { readSessionToken } from '@/lib/aiya/session';
+import { errorCode, errorStatus, jsonResponse, visitorIp } from '@/lib/api-auth';
+import { authClient, serverClient } from '@/lib/core/server';
+import { readSessionToken } from '@/lib/core/session';
 import { cloakDiscussion } from '@/lib/community';
-import { discussionsQuerySchema } from '@/lib/aiya/contracts';
+import { discussionsQuerySchema } from '@/lib/core/contracts';
 
 /** GET /api/discussions/: public paged feed (board/status-sort filters ride
     as query params); items carry text-safe HTML and cloaked media URLs so
     the community island can render client-fetched pages without touching
     the WP host. A caller `perPage` rides through when present — absent
     params stay absent so the backend's default window decides. */
-export const GET: APIRoute = async ({ url, cookies }) => {
+export const GET: APIRoute = async ({ url, cookies, request, clientAddress }) => {
+  const ip = visitorIp(request, clientAddress);
   const perPageRaw = url.searchParams.get('perPage');
   const parsed = discussionsQuerySchema.safeParse({
     board: url.searchParams.get('board') ?? undefined,
@@ -24,7 +25,7 @@ export const GET: APIRoute = async ({ url, cookies }) => {
     // Forward the session so the backend derives real canEdit/canDelete/
     // canReply flags — a guest-context fetch would strip them.
     const token = readSessionToken(cookies);
-    const client = token ? authClient(token) : serverClient();
+    const client = token ? authClient(token, ip) : serverClient(ip);
     const result = await client.discussions(parsed.data);
     return jsonResponse({
       ok: true,
@@ -37,7 +38,8 @@ export const GET: APIRoute = async ({ url, cookies }) => {
 };
 
 /** POST /api/discussions/: create a thread (login-only, rate limited 5/h). */
-export const POST: APIRoute = async ({ cookies, request }) => {
+export const POST: APIRoute = async ({ cookies, request, clientAddress }) => {
+  const ip = visitorIp(request, clientAddress);
   const token = readSessionToken(cookies);
   if (!token) return jsonResponse({ ok: false }, 401);
   const body = (await request.json().catch(() => null)) as {
@@ -50,7 +52,7 @@ export const POST: APIRoute = async ({ cookies, request }) => {
     return jsonResponse({ ok: false }, 400);
   }
   try {
-    const result = await authClient(token).createDiscussion({
+    const result = await authClient(token, ip).createDiscussion({
       title: body.title,
       board: typeof body.board === 'string' ? body.board : '',
       content: body.content,

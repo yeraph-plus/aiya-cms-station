@@ -1,42 +1,18 @@
 ---
 /**
- * Home portal: latest articles / resources / community threads. There is no
- * dedicated /home aggregate endpoint, so the sections read the public lists
- * directly; each section degrades independently (allSettled) — a failing
- * feed hides its section instead of failing the whole page. The settings
- * banner is a homepage-only decoration handled by AppShell.
+ * Home portal. The former latest-posts/resources/discussions sections were
+ * removed on 2026-09-19 (owner decision): the section layout will be
+ * re-planned from scratch, so the page is the bare shell — banner (a
+ * homepage-only AppShell decoration), WebSite JSON-LD and nothing else.
+ * The settings banner is handled by AppShell.
  */
 import AppShell from '@/components/layout/AppShell.astro';
-import PostLoop from '@/components/islands/feed/PostLoop';
-import DiscussionCard from '@/components/content/DiscussionCard.astro';
 import { websiteJsonLd } from '@/lib/seo';
-import { siteOrigin } from '@/lib/aiya/server';
-import { cloakPostSummaryMedia } from '@/lib/media';
-import { t } from '@/lib/i18n';
+import { siteOrigin } from '@/lib/core/server';
 import { loadPage } from '@/lib/page.server';
 
-type Feed<T> = { ok: true; items: T[] } | { ok: false };
-
-function unwrap<T>(result: PromiseSettledResult<{ data: T[] }>, label: string): Feed<T> {
-  if (result.status === 'fulfilled') return { ok: true, items: result.value.data };
-  console.error(`[home] ${label} feed failed:`, result.reason);
-  return { ok: false };
-}
-
-const page = await loadPage(async (client) => {
-  const [posts, resources, discussions] = await Promise.allSettled([
-    client.posts({ perPage: 6 }),
-    client.resources({ perPage: 4 }),
-    client.discussions({ perPage: 5 }),
-  ]);
-  return {
-    posts: unwrap(posts, 'posts'),
-    resources: unwrap(resources, 'resources'),
-    discussions: unwrap(discussions, 'discussions'),
-  };
-}, Astro.cookies);
+const page = await loadPage(async () => undefined, Astro.cookies);
 if (!page.ok) Astro.response.status = page.error.status;
-const copy = t(page.locale);
 let origin = 'http://localhost:4321';
 try {
   origin = siteOrigin();
@@ -46,87 +22,6 @@ try {
 const jsonLd = page.ok ? [websiteJsonLd(page.site, origin)] : [];
 ---
 
-<AppShell
-  page={page}
-  title=""
-  description={page.site.description}
-  canonicalPath="/"
-  jsonLd={jsonLd}
->
+<AppShell page={page} title="" description={page.site.description} canonicalPath="/" jsonLd={jsonLd}>
   <h1 class="sr-only">{page.site.name}</h1>
-  {
-    page.ok && (
-      <>
-        {page.value.posts.ok && page.value.posts.items.length > 0 && (
-          <section aria-labelledby="home-posts">
-            <div class="mb-3 flex items-baseline justify-between">
-              <h2 id="home-posts" class="font-display text-lg font-semibold text-foreground">
-                {copy.home.latestPosts}
-              </h2>
-              <a href="/posts/" class="text-sm text-body-muted hover:text-foreground">
-                {copy.home.viewAll} →
-              </a>
-            </div>
-            <PostLoop
-              autoLoad
-              client:load
-              endpoint="/api/feed/posts/"
-              items={page.value.posts.items.map(cloakPostSummaryMedia)}
-              pagination={{ page: 1, totalPages: 1, hasNext: false, hasPrevious: false }}
-              page={1}
-              query={{}}
-              route={{ index: '/posts/' }}
-              showViewToggle={false}
-              emptyText={copy.posts.listEmpty}
-              errorText={copy.state.backendMessage}
-              locale={page.locale}
-            />
-          </section>
-        )}
-        {page.value.resources.ok && page.value.resources.items.length > 0 && (
-          <section aria-labelledby="home-resources" class="mt-10">
-            <div class="mb-3 flex items-baseline justify-between">
-              <h2 id="home-resources" class="font-display text-lg font-semibold text-foreground">
-                {copy.home.latestResources}
-              </h2>
-              <a href="/resources/" class="text-sm text-body-muted hover:text-foreground">
-                {copy.home.viewAll} →
-              </a>
-            </div>
-            <PostLoop
-              autoLoad
-              client:load
-              endpoint="/api/feed/resources/"
-              items={page.value.resources.items.map(cloakPostSummaryMedia)}
-              pagination={{ page: 1, totalPages: 1, hasNext: false, hasPrevious: false }}
-              page={1}
-              query={{}}
-              route={{ index: '/resources/' }}
-              showViewToggle={false}
-              emptyText={copy.resources.listEmpty}
-              errorText={copy.state.backendMessage}
-              locale={page.locale}
-            />
-          </section>
-        )}
-        {page.value.discussions.ok && page.value.discussions.items.length > 0 && (
-          <section aria-labelledby="home-discussions" class="mt-10">
-            <div class="mb-3 flex items-baseline justify-between">
-              <h2 id="home-discussions" class="font-display text-lg font-semibold text-foreground">
-                {copy.home.latestDiscussions}
-              </h2>
-              <a href="/community/" class="text-sm text-body-muted hover:text-foreground">
-                {copy.home.viewAll} →
-              </a>
-            </div>
-            <div class="flex flex-col gap-3">
-              {page.value.discussions.items.map((discussion) => (
-                <DiscussionCard discussion={discussion} locale={page.locale} />
-              ))}
-            </div>
-          </section>
-        )}
-      </>
-    )
-  }
 </AppShell>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Tier } from '@/lib/aiya/contracts';
+import type { Tier } from '@/lib/core/contracts';
 import {
   displayDateTime,
   displayDay,

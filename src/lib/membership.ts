@@ -1,4 +1,4 @@
-import type { Tier } from '@/lib/aiya/contracts';
+import type { Tier } from '@/lib/core/contracts';
 import { toBcp47, type Locale } from '@/lib/i18n/locale';
 
 /**

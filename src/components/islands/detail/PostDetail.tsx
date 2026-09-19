@@ -9,7 +9,7 @@ import {
   useViewPing,
 } from '@/components/islands/detail/parts';
 import { Card, CardContent } from '@/components/ui/card';
-import type { Comment, PostDetail, PostSummary, SiteComments } from '@/lib/aiya/contracts';
+import type { Comment, PostDetail, PostSummary, SiteComments } from '@/lib/core/contracts';
 import type { Locale } from '@/lib/i18n';
 
 export interface CommentsWindow {

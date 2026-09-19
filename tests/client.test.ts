@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createAiyaClient } from '@/lib/aiya/client';
-import { AiyaApiError } from '@/lib/aiya/errors';
+import { createAiyaClient } from '@/lib/core/client';
+import { AiyaApiError } from '@/lib/core/errors';
 
 const BASE = 'https://wp.example.com/wp-json/aiya/core/v1/';
 const META = { apiVersion: '1', requestId: 'abcd1234' };
@@ -58,6 +58,7 @@ const SITE_A = {
   },
   defaults: { colorMode: 'system', thumb: null, emptyImage: null, theme: { primary: '#e94f69' }, seoKeywords: '', seoDescription: '', gaId: '' },
   footer: { links: [], hitokoto: false },
+  blocks: { primary: [], secondary: [], adsTop: [], adsBottom: [], carousel: [] },
 };
 const okSite = () => okJson({ data: SITE_A, meta: META });
 
@@ -86,6 +87,27 @@ describe('transport security', () => {
     expect(() =>
       createAiyaClient({ baseUrl: 'https://user:pw@wp.example.com/wp-json/aiya/core/v1/' }),
     ).toThrow(AiyaApiError);
+  });
+});
+
+describe('proxy bridge headers', () => {
+  it('sends the secret and the resolved visitor address when configured', async () => {
+    const { client, requests } = clientWith(async () => okSite(), {
+      proxySecret: 'bridge-secret',
+      clientIp: '203.0.113.7',
+    });
+    await client.site();
+    expect(requests[0].headers.get('X-Aiya-Proxy-Secret')).toBe('bridge-secret');
+    expect(requests[0].headers.get('X-Forwarded-For')).toBe('203.0.113.7');
+  });
+
+  it('leaves the bridge headers off by default and drops malformed addresses', async () => {
+    const { client, requests } = clientWith(async () => okSite(), {
+      clientIp: 'not an ip\r\nX-Evil: 1',
+    });
+    await client.site();
+    expect(requests[0].headers.get('X-Aiya-Proxy-Secret')).toBeNull();
+    expect(requests[0].headers.get('X-Forwarded-For')).toBeNull();
   });
 });
 

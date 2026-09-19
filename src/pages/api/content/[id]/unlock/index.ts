@@ -1,8 +1,8 @@
 import type { APIRoute } from 'astro';
 import { cloakPostDetail } from '@/lib/detail';
-import { errorCode, errorStatus, jsonResponse } from '@/lib/api-auth';
-import { authClient, serverClient } from '@/lib/aiya/server';
-import { readSessionToken } from '@/lib/aiya/session';
+import { errorCode, errorStatus, jsonResponse, visitorIp } from '@/lib/api-auth';
+import { authClient, serverClient } from '@/lib/core/server';
+import { readSessionToken } from '@/lib/core/session';
 
 /**
  * POST /api/content/{id}/unlock/: password gate write. The backend plants
@@ -13,6 +13,7 @@ import { readSessionToken } from '@/lib/aiya/session';
  * so the browser bundle cannot know the upstream host.
  */
 export const POST: APIRoute = async (Astro) => {
+  const ip = visitorIp(Astro.request, Astro.clientAddress);
   const id = Number(Astro.params.id);
   if (!Number.isInteger(id) || id < 1) return jsonResponse({ ok: false }, 400);
   const body = (await Astro.request.json().catch(() => null)) as { password?: unknown } | null;
@@ -21,7 +22,7 @@ export const POST: APIRoute = async (Astro) => {
   }
   const token = readSessionToken(Astro.cookies);
   try {
-    const client = token ? authClient(token) : serverClient();
+    const client = token ? authClient(token, ip) : serverClient(ip);
     const result = await client.unlockPost(id, body.password);
     return jsonResponse({ ok: true, post: cloakPostDetail(result.data) });
   } catch (error) {

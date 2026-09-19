@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
-import { backend } from '@/lib/aiya/health';
-import { siteOrigin } from '@/lib/aiya/server';
+import { backend } from '@/lib/core/health';
+import { siteOrigin } from '@/lib/core/server';
 import { robotsTxt } from '@/lib/seo';
 
 export const GET: APIRoute = async () => {

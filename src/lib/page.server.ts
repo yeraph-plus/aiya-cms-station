@@ -1,9 +1,9 @@
 import type { AstroCookies } from 'astro';
-import type { AiyaClient } from './aiya/client';
-import type { Menu, Site, User } from './aiya/contracts';
-import { backend } from './aiya/health';
-import { currentUser, readSessionToken } from './aiya/session';
-import { authClient, serverClient } from './aiya/server';
+import type { AiyaClient } from './core/client';
+import type { Menu, Site, User } from './core/contracts';
+import { backend } from './core/health';
+import { currentUser, readSessionToken } from './core/session';
+import { authClient, serverClient } from './core/server';
 import { resolveLocale, t } from './i18n';
 import { pageError, type PageErrorCopy } from './page-error';
 import { isBackendOutage } from './reachability';
@@ -94,15 +94,12 @@ export async function loadPage<T>(
     // public reads simply stay public. No token → anonymous client.
     const token = readSessionToken(cookies);
     const client = token ? authClient(token) : serverClient();
-    const [siteResult, menuResult, footerMenuResult, user] = await Promise.all([
-      client.site(),
-      client.menu(),
-      client.secondaryMenu(),
-      currentUser(cookies),
-    ]);
+    const [siteResult, user] = await Promise.all([client.site(), currentUser(cookies)]);
     const site = siteResult.data;
-    const menu = menuResult.data;
-    const footerMenu = footerMenuResult.data;
+    // The shell's dynamic blocks ride the /site payload (0.83.0 merge):
+    // the menu consumers keep their Menu shape, sourced from site.blocks.
+    const menu: Menu = { location: 'primary', items: site.blocks.primary };
+    const footerMenu: Menu = { location: 'secondary', items: site.blocks.secondary };
     const locale = resolveLocale({ user: user?.locale ?? null, site: site.language });
     try {
       // The shell's site payload doubles as loader input — display

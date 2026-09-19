@@ -1,5 +1,5 @@
 import { defineMiddleware } from 'astro:middleware';
-import { backend } from '@/lib/aiya/health';
+import { backend } from '@/lib/core/health';
 import { gateResponse } from '@/lib/gate';
 import { normalizeLocale, t } from '@/lib/i18n';
 import { proxyMedia } from '@/lib/media-proxy';

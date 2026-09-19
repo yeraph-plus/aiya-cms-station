@@ -1,6 +1,6 @@
 import { rewriteMediaUrl } from './media';
 import { sanitizeDiscussionHtml } from './content';
-import type { Discussion, DiscussionReply } from '@/lib/aiya/contracts';
+import type { Discussion, DiscussionReply } from '@/lib/core/contracts';
 
 /**
  * Server-side projection for the community feed island: the wire DTOs carry

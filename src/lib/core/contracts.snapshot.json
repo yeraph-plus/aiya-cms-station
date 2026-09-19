@@ -1,6 +1,23 @@
 {
     "contractVersion": "1",
     "dtos": {
+        "AdSlot": [
+            {
+                "name": "url",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "label",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "image",
+                "type": "Image",
+                "nullable": false
+            }
+        ],
         "Attachment": [
             {
                 "name": "name",
@@ -116,6 +133,23 @@
                 "name": "url",
                 "type": "string",
                 "nullable": true
+            }
+        ],
+        "CarouselSlide": [
+            {
+                "name": "title",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "url",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "image",
+                "type": "Image",
+                "nullable": false
             }
         ],
         "CheckinPolicy": [
@@ -1138,6 +1172,38 @@
             {
                 "name": "footer",
                 "type": "SiteFooter",
+                "nullable": false
+            },
+            {
+                "name": "blocks",
+                "type": "SiteBlocks",
+                "nullable": false
+            }
+        ],
+        "SiteBlocks": [
+            {
+                "name": "primary",
+                "type": "array",
+                "nullable": false
+            },
+            {
+                "name": "secondary",
+                "type": "array",
+                "nullable": false
+            },
+            {
+                "name": "adsTop",
+                "type": "array",
+                "nullable": false
+            },
+            {
+                "name": "adsBottom",
+                "type": "array",
+                "nullable": false
+            },
+            {
+                "name": "carousel",
+                "type": "array",
                 "nullable": false
             }
         ],

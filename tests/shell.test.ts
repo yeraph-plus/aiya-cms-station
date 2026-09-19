@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AiyaApiError } from '@/lib/aiya/errors';
+import { AiyaApiError } from '@/lib/core/errors';
 import { t } from '@/lib/i18n';
 import { pageError } from '@/lib/page-error';
 

@@ -15,7 +15,7 @@ import {
 import { Input } from '@/components/ui/input';
 import RichEditor, { AttachmentStrip } from '@/components/islands/user-center/RichEditor';
 import { sanitizeCommentHtml } from '@/lib/content';
-import type { Comment, SiteComments } from '@/lib/aiya/contracts';
+import type { Comment, SiteComments } from '@/lib/core/contracts';
 import { displayDate } from '@/lib/format';
 import { rewriteMediaUrl } from '@/lib/media';
 import { t, type Locale } from '@/lib/i18n';

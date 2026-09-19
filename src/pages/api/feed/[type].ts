@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
-import { errorCode, errorStatus, jsonResponse } from '@/lib/api-auth';
-import { postsQuerySchema, resourcesQuerySchema } from '@/lib/aiya/contracts';
-import { serverClient } from '@/lib/aiya/server';
+import { errorCode, errorStatus, jsonResponse, visitorIp } from '@/lib/api-auth';
+import { postsQuerySchema, resourcesQuerySchema } from '@/lib/core/contracts';
+import { serverClient } from '@/lib/core/server';
 import { cloakPostSummaryMedia } from '@/lib/media';
 
 /**
@@ -12,7 +12,8 @@ import { cloakPostSummaryMedia } from '@/lib/media';
  * query schemas and the same anonymous client. Media URLs are rewritten
  * here — the browser bundle cannot know the WP origin.
  */
-export const GET: APIRoute = async ({ params, url }) => {
+export const GET: APIRoute = async ({ params, url, request, clientAddress }) => {
+  const ip = visitorIp(request, clientAddress);
   const type = params.type ?? '';
   if (type !== 'posts' && type !== 'resources' && type !== 'pages')
     return jsonResponse({ ok: false }, 404);
@@ -30,7 +31,7 @@ export const GET: APIRoute = async ({ params, url }) => {
   };
 
   try {
-    const client = serverClient();
+    const client = serverClient(ip);
     if (type === 'posts' || type === 'pages') {
       const parsed = postsQuerySchema.safeParse({
         ...common,

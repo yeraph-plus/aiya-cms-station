@@ -1,7 +1,19 @@
-import { AiyaApiError } from '@/lib/aiya/errors';
-import { serverClient } from '@/lib/aiya/server';
+import { AiyaApiError } from '@/lib/core/errors';
+import { clientIpHeader, serverClient } from '@/lib/core/server';
+import { resolveVisitorIp } from '@/lib/visitor-ip';
 import { resolveLocale, type Locale } from '@/lib/i18n';
 import { ZodError } from 'zod';
+
+/**
+ * The visitor address as this deployment resolves it (lib/visitor-ip.ts).
+ * Proxies forward it next to the shared secret so the backend's rate
+ * limiting, guest dedup and comment IP bind to the real client instead of
+ * this server. Null when nothing usable — the request then simply rides
+ * without the forwarded header.
+ */
+export function visitorIp(request: Request, clientAddress: string | null): string | null {
+  return resolveVisitorIp(request, clientAddress, clientIpHeader());
+}
 
 /**
  * Server-only helpers for the /api/auth proxy routes. Importing

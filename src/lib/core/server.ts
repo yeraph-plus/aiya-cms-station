@@ -26,13 +26,26 @@ export function siteOrigin(): string {
  * both target the same WordPress install. A missing or malformed
  * AIYA_WP_API_URL is a configuration error, and plain HTTP is accepted only
  * on loopback or with AIYA_ALLOW_LOCAL_HTTP — the client enforces both.
+ * When AIYA_PROXY_SECRET is set it authenticates the proxy bridge (the
+ * secret header + X-Forwarded-For visitor address; the backend ignores the
+ * pair unless they match its AIYA_PROXY_SECRET constant).
  */
-function liveOptions() {
+function liveOptions(clientIp?: string | null) {
   return {
     baseUrl: getSecret('AIYA_WP_API_URL') ?? '',
     timeoutMs: Number(getSecret('AIYA_API_TIMEOUT_MS') ?? 8000),
     allowLocalHttp: getSecret('AIYA_ALLOW_LOCAL_HTTP') === 'true',
+    proxySecret: getSecret('AIYA_PROXY_SECRET') ?? '',
+    clientIp: clientIp ?? null,
   };
+}
+
+/**
+ * Incoming request header this deployment trusts for the visitor address
+ * (`X-Real-IP`, `CF-Connecting-IP`, …). Empty = the socket address stands.
+ */
+export function clientIpHeader(): string {
+  return getSecret('AIYA_CLIENT_IP_HEADER') ?? '';
 }
 
 /**
@@ -41,8 +54,8 @@ function liveOptions() {
  * capability, so content reads are exactly what any visitor would see.
  * Revisit only if preview/admin is ever added.
  */
-export function serverClient() {
-  return createAiyaClient(liveOptions());
+export function serverClient(clientIp?: string | null) {
+  return createAiyaClient(liveOptions(clientIp));
 }
 
 /**
@@ -50,7 +63,7 @@ export function serverClient() {
  * visitor's own bearer when the session carries one; without a token it is
  * equivalent to serverClient().
  */
-export function authClient(bearer?: string) {
+export function authClient(bearer?: string | null, clientIp?: string | null) {
   const token = bearer?.trim();
-  return createAiyaClient({ ...liveOptions(), ...(token ? { bearer: token } : {}) });
+  return createAiyaClient({ ...liveOptions(clientIp), ...(token ? { bearer: token } : {}) });
 }

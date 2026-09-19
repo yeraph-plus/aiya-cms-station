@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
-import { authClient, serverClient } from '@/lib/aiya/server';
-import { readSessionToken } from '@/lib/aiya/session';
-import { errorCode, errorStatus, jsonResponse } from '@/lib/api-auth';
+import { authClient, serverClient } from '@/lib/core/server';
+import { readSessionToken } from '@/lib/core/session';
+import { errorCode, errorStatus, jsonResponse, visitorIp } from '@/lib/api-auth';
 
 /**
  * Anonymous view-beacon proxy (`POST /api/content/{id}/view/`). Counted per
@@ -11,6 +11,7 @@ import { errorCode, errorStatus, jsonResponse } from '@/lib/api-auth';
  * error bodies stay minimal.
  */
 export const POST: APIRoute = async (Astro) => {
+  const ip = visitorIp(Astro.request, Astro.clientAddress);
   const id = Number(Astro.params.id);
   if (!Number.isInteger(id) || id < 1) {
     return jsonResponse({ views: null }, 400);
@@ -18,7 +19,7 @@ export const POST: APIRoute = async (Astro) => {
 
   const token = readSessionToken(Astro.cookies);
   try {
-    const result = token ? await authClient(token).view(id) : await serverClient().view(id);
+    const result = token ? await authClient(token, ip).view(id) : await serverClient(ip).view(id);
     return jsonResponse(result, 200);
   } catch (error) {
     return jsonResponse({ views: null, code: errorCode(error) }, errorStatus(error));

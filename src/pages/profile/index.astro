@@ -4,7 +4,7 @@
  * their own user center (/profile/me/); guests go home. The slug-less shape
  * exists only to keep the legacy entry link alive.
  */
-import { readSessionToken } from '@/lib/aiya/session';
+import { readSessionToken } from '@/lib/core/session';
 
 const target = readSessionToken(Astro.cookies) ? '/profile/me/' : '/';
 return Astro.redirect(target);

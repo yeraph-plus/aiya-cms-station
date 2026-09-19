@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
-import { errorCode, errorStatus, jsonResponse } from '@/lib/api-auth';
-import { authClient, serverClient } from '@/lib/aiya/server';
-import { readSessionToken } from '@/lib/aiya/session';
+import { errorCode, errorStatus, jsonResponse, visitorIp } from '@/lib/api-auth';
+import { authClient, serverClient } from '@/lib/core/server';
+import { readSessionToken } from '@/lib/core/session';
 import { rewriteMediaUrl } from '@/lib/media';
 import { sanitizeCommentHtml } from '@/lib/content';
 
@@ -13,7 +13,8 @@ import { sanitizeCommentHtml } from '@/lib/content';
  * origin, so client-side rewriting is a no-op and pages fetched beyond the
  * SSR window would leak the upstream host.
  */
-export const GET: APIRoute = async ({ params, url }) => {
+export const GET: APIRoute = async ({ params, url, request, clientAddress }) => {
+  const ip = visitorIp(request, clientAddress);
   const id = Number(params.id);
   if (!Number.isInteger(id) || id < 1) return jsonResponse({ ok: false }, 400);
   const pageNum = Math.max(1, Number(url.searchParams.get('page') ?? 1) || 1);
@@ -25,7 +26,7 @@ export const GET: APIRoute = async ({ params, url }) => {
   const orderRaw = url.searchParams.get('order');
   const order = orderRaw === 'desc' || orderRaw === 'asc' ? orderRaw : undefined;
   try {
-    const result = await serverClient().comments(id, {
+    const result = await serverClient(ip).comments(id, {
       page: pageNum,
       ...(perPage !== undefined ? { perPage } : {}),
       ...(order !== undefined ? { order } : {}),
@@ -50,7 +51,8 @@ export const GET: APIRoute = async ({ params, url }) => {
   }
 };
 
-export const POST: APIRoute = async ({ cookies, params, request }) => {
+export const POST: APIRoute = async ({ cookies, params, request, clientAddress }) => {
+  const ip = visitorIp(request, clientAddress);
   const id = Number(params.id);
   if (!Number.isInteger(id) || id < 1) return jsonResponse({ ok: false }, 400);
   // The bearer upgrades the write to a session identity when present;
@@ -67,7 +69,7 @@ export const POST: APIRoute = async ({ cookies, params, request }) => {
     return jsonResponse({ ok: false }, 400);
   }
   try {
-    const client = token ? authClient(token) : serverClient();
+    const client = token ? authClient(token, ip) : serverClient(ip);
     const result = await client.addComment(id, {
       body: body.body,
       ...(typeof body.parentId === 'number' ? { parentId: body.parentId } : {}),

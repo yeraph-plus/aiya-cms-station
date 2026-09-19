@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { cloakPostSummaryMedia } from '@/lib/media';
-import { errorCode, errorStatus, jsonResponse } from '@/lib/api-auth';
-import { serverClient } from '@/lib/aiya/server';
+import { errorCode, errorStatus, jsonResponse, visitorIp } from '@/lib/api-auth';
+import { serverClient } from '@/lib/core/server';
 
 /**
  * GET /api/content/{id}/related/: shared-term read neighbours (public).
@@ -11,13 +11,14 @@ import { serverClient } from '@/lib/aiya/server';
  * semantics) — the proxy never trims locally, or asking for more than the
  * default would silently return fewer rows.
  */
-export const GET: APIRoute = async ({ params, url }) => {
+export const GET: APIRoute = async ({ params, url, request, clientAddress }) => {
+  const ip = visitorIp(request, clientAddress);
   const id = Number(params.id);
   if (!Number.isInteger(id) || id < 1) return jsonResponse({ ok: false }, 400);
   const numberRaw = url.searchParams.get('number');
   const number = numberRaw ? Math.min(20, Math.max(1, Number(numberRaw) || 1)) : undefined;
   try {
-    const result = await serverClient().related(id, number === undefined ? {} : { number });
+    const result = await serverClient(ip).related(id, number === undefined ? {} : { number });
     return jsonResponse({
       ok: true,
       items: result.data.map(cloakPostSummaryMedia),

@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest';
-import { AiyaApiError } from '@/lib/aiya/errors';
-import { createAiyaClient } from '@/lib/aiya/client';
+import { AiyaApiError } from '@/lib/core/errors';
+import { createAiyaClient } from '@/lib/core/client';
 import { rewriteMediaUrl, rewriteSrcset } from '@/lib/media';
 import { proxyMedia, resolveMediaTarget } from '@/lib/media-proxy';
 import { safeContent } from '@/lib/content';

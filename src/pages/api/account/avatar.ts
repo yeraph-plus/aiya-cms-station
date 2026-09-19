@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
-import { errorCode, errorStatus, jsonResponse } from '@/lib/api-auth';
-import { authClient } from '@/lib/aiya/server';
-import { readSessionToken } from '@/lib/aiya/session';
+import { errorCode, errorStatus, jsonResponse, visitorIp } from '@/lib/api-auth';
+import { authClient } from '@/lib/core/server';
+import { readSessionToken } from '@/lib/core/session';
 
 /** Mirrors the backend's avatar gate (aiya_upload_too_large / _type). */
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
@@ -15,6 +15,7 @@ const AVATAR_MIME_PREFIXES = ['image/'];
  * buffers the whole upload.
  */
 export const POST: APIRoute = async (Astro) => {
+  const ip = visitorIp(Astro.request, Astro.clientAddress);
   const token = readSessionToken(Astro.cookies);
   if (!token) return jsonResponse({ ok: false }, 401);
   const declared = Astro.request.headers.get('content-length');
@@ -37,7 +38,7 @@ export const POST: APIRoute = async (Astro) => {
     return jsonResponse({ ok: false }, 400);
   }
   try {
-    const result = await authClient(token).uploadAvatar(file, file.name || 'avatar');
+    const result = await authClient(token, ip).uploadAvatar(file, file.name || 'avatar');
     return jsonResponse({ ok: true, user: result.data });
   } catch (error) {
     return jsonResponse({ ok: false, code: errorCode(error) }, errorStatus(error));
@@ -45,10 +46,11 @@ export const POST: APIRoute = async (Astro) => {
 };
 
 export const DELETE: APIRoute = async (Astro) => {
+  const ip = visitorIp(Astro.request, Astro.clientAddress);
   const token = readSessionToken(Astro.cookies);
   if (!token) return jsonResponse({ ok: false }, 401);
   try {
-    const result = await authClient(token).removeAvatar();
+    const result = await authClient(token, ip).removeAvatar();
     return jsonResponse({ ok: true, user: result.data });
   } catch (error) {
     return jsonResponse({ ok: false, code: errorCode(error) }, errorStatus(error));

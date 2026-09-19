@@ -1,8 +1,8 @@
 import type { AstroCookies } from 'astro';
 import type { Crumb } from '@/lib/breadcrumbs';
 import { setCrumbs } from '@/lib/breadcrumbs';
-import { AiyaApiError } from '@/lib/aiya/errors';
-import type { Image, Pagination, PostSummary } from '@/lib/aiya/contracts';
+import { AiyaApiError } from '@/lib/core/errors';
+import type { Image, Pagination, PostSummary } from '@/lib/core/contracts';
 import { iconInner } from '@/lib/icons';
 import type { Locale } from '@/lib/i18n';
 import { t } from '@/lib/i18n';
@@ -177,15 +177,15 @@ export async function loadCategoryHub(
     const probes = await Promise.all([
       // Same-origin server client only — resolution needs no cookies.
       (async () => {
-        const client = (await import('@/lib/aiya/server')).serverClient();
+        const client = (await import('@/lib/core/server')).serverClient();
         return client.terms('category', 'post');
       })(),
       (async () => {
-        const client = (await import('@/lib/aiya/server')).serverClient();
+        const client = (await import('@/lib/core/server')).serverClient();
         return client.terms('category', 'resource');
       })(),
       (async () => {
-        const client = (await import('@/lib/aiya/server')).serverClient();
+        const client = (await import('@/lib/core/server')).serverClient();
         return client.terms('category', 'page');
       })(),
     ]);

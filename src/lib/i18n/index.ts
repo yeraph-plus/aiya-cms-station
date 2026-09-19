@@ -1,4 +1,4 @@
-import { AiyaApiError } from '@/lib/aiya/errors';
+import { AiyaApiError } from '@/lib/core/errors';
 import type { Dictionary } from './dictionaries/zh_CN';
 import { en_US } from './dictionaries/en_US';
 import { zh_CN } from './dictionaries/zh_CN';

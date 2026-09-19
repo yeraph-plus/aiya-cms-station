@@ -33,7 +33,6 @@ import {
   loginRequestSchema,
   membershipResponseSchema,
   meResponseSchema,
-  menuResponseSchema,
   notificationsResponseSchema,
   orderCreateSchema,
   orderCreatedResponseSchema,
@@ -91,6 +90,13 @@ export interface ClientOptions {
   bearer?: string;
   timeoutMs?: number;
   allowLocalHttp?: boolean;
+  /** Proxy-bridge secret; when set, every request carries the internal
+      header the backend's TrustedProxy requires before it trusts the
+      forwarded visitor address. */
+  proxySecret?: string;
+  /** The visitor IP this server resolved (lib/visitor-ip.ts); rides
+      X-Forwarded-For next to the secret header. */
+  clientIp?: string | null;
   fetcher?: typeof fetch;
 }
 
@@ -159,6 +165,15 @@ export function createAiyaClient(options: ClientOptions) {
   const headers = new Headers({ Accept: 'application/json' });
   if (options.bearer) {
     headers.set('Authorization', `Bearer ${options.bearer}`);
+  }
+  // The proxy bridge rides on every request of the instance: the secret
+  // authenticates this server to the backend, the address identifies the
+  // visitor it resolved. A malformed address is dropped, not forwarded.
+  if (options.proxySecret) {
+    headers.set('X-Aiya-Proxy-Secret', options.proxySecret);
+  }
+  if (options.clientIp && /^[0-9A-Fa-f.:%]{1,45}$/.test(options.clientIp)) {
+    headers.set('X-Forwarded-For', options.clientIp);
   }
   const fetcher = options.fetcher ?? fetch;
 
@@ -243,8 +258,6 @@ export function createAiyaClient(options: ClientOptions) {
     // ---- content reads ----
     site: () => request('GET', 'site', siteResponseSchema),
     smilies: () => request('GET', 'smilies', smiliesResponseSchema),
-    menu: () => request('GET', 'menus/primary', menuResponseSchema),
-    secondaryMenu: () => request('GET', 'menus/secondary', menuResponseSchema),
     terms: (
       taxonomy: 'all' | 'category' | 'tag' = 'all',
       type: 'post' | 'page' | 'resource' = 'post',

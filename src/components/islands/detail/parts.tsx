@@ -33,7 +33,7 @@ import type {
   PostSummary,
   SiteComments,
   Term,
-} from '@/lib/aiya/contracts';
+} from '@/lib/core/contracts';
 
 /**
  * Shared sub-islands of the three detail layout shells (posts, resources,

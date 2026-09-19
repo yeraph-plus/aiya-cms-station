@@ -12,7 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import type { CreditEntry, MembershipState, Tier } from '@/lib/aiya/contracts';
+import type { CreditEntry, MembershipState, Tier } from '@/lib/core/contracts';
 import { t, type Locale } from '@/lib/i18n';
 import { displayDateTime, displayDay, paymentMethods, purchasableTiers } from '@/lib/membership';
 

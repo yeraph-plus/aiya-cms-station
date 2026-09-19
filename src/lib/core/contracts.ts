@@ -227,6 +227,47 @@ export const smiliesPackSchema = z.object({
   items: z.array(smiliesItemSchema),
 });
 
+
+export const menuItemSchema: z.ZodType<MenuItem> = z.object({
+  id,
+  label: z.string().min(1),
+  url: z.union([sitePathSchema, httpUrlSchema]),
+  target: z.enum(['self', 'blank']),
+  /** Optional Lucide icon name from the primary-menu repeater. */
+  icon: z.string().nullable(),
+  children: z.array(z.lazy(() => menuItemSchema)),
+});
+export interface MenuItem {
+  id: number;
+  label: string;
+  url: string;
+  target: 'self' | 'blank';
+  icon: string | null;
+  children: MenuItem[];
+}
+
+/** One advertisement slot (page-top / page-bottom lists): click target,
+    link text (also the banner alt) and the banner artwork. */
+export const adSlotSchema = z.object({
+  url: httpUrlSchema,
+  label: z.string(),
+  image: imageSchema,
+});
+/** One carousel slide of the front-end banner slot. */
+export const carouselSlideSchema = z.object({
+  title: z.string(),
+  url: httpUrlSchema,
+  image: imageSchema,
+});
+/** The shell's dynamic blocks: navigation menus + ad slots + carousel. */
+export const siteBlocksSchema = z.object({
+  primary: z.array(menuItemSchema),
+  secondary: z.array(menuItemSchema),
+  adsTop: z.array(adSlotSchema),
+  adsBottom: z.array(adSlotSchema),
+  carousel: z.array(carouselSlideSchema),
+});
+
 export const siteSchema = z.object({
   name: z.string().min(1),
   description: z.string(),
@@ -246,24 +287,10 @@ export const siteSchema = z.object({
       color mode for the (future) theme system and the fallback thumbnail. */
   defaults: siteDefaultsSchema,
   footer: siteFooterSchema,
+  /** The shell's dynamic slots from the backend Blocks settings page
+      (0.83.0; the /menus/* reads folded in here). */
+  blocks: siteBlocksSchema,
 });
-export const menuItemSchema: z.ZodType<MenuItem> = z.object({
-  id,
-  label: z.string().min(1),
-  url: z.union([sitePathSchema, httpUrlSchema]),
-  target: z.enum(['self', 'blank']),
-  /** Optional Lucide icon name from the primary-menu repeater. */
-  icon: z.string().nullable(),
-  children: z.array(z.lazy(() => menuItemSchema)),
-});
-export interface MenuItem {
-  id: number;
-  label: string;
-  url: string;
-  target: 'self' | 'blank';
-  icon: string | null;
-  children: MenuItem[];
-}
 export const menuSchema = z.object({
   location: z.enum(['primary', 'secondary']),
   items: z.array(menuItemSchema),
@@ -585,7 +612,6 @@ export const creditsQuerySchema = z.object({
 // ---------------------------------------------------------------------------
 
 export const siteResponseSchema = itemEnvelope(siteSchema);
-export const menuResponseSchema = itemEnvelope(menuSchema);
 export const termsResponseSchema = itemEnvelope(z.array(termSchema));
 /** Directory-scanned smilies packs (0.63.0, own read — kept off /site so
     hundreds of tokens do not ride every shell payload). */
