@@ -34,6 +34,13 @@ const site = {
     commentOrder: 'desc' as const,
     commentRegistration: true,
   },
+  blocks: {
+    primary: [],
+    secondary: [],
+    adsTop: [],
+    adsBottom: [],
+    carousel: [],
+  },
 };
 const detail = {
   id: 101,

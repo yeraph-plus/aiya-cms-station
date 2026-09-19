@@ -59,7 +59,6 @@ import {
   redeemSchema,
   searchGroupedResponseSchema,
   searchQuerySchema,
-  searchResultSchema,
   sentResponseSchema,
   siteResponseSchema,
   smiliesResponseSchema,

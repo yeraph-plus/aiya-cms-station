@@ -61,17 +61,19 @@ const fallbackSite: Site = {
     commentOrder: 'desc',
     commentRegistration: true,
   },
+  blocks: {
+    primary: [
+      { id: 1, label: '发现', url: '/', target: 'self', icon: null, children: [] },
+      { id: 2, label: '资源库', url: '/resources/', target: 'self', icon: null, children: [] },
+      { id: 3, label: '讨论', url: '/community/', target: 'self', icon: null, children: [] },
+      { id: 4, label: '文章', url: '/posts/', target: 'self', icon: null, children: [] },
+    ],
+    secondary: [],
+    adsTop: [],
+    adsBottom: [],
+    carousel: [],
+  },
 };
-const fallbackMenu: Menu = {
-  location: 'primary',
-  items: [
-    { id: 1, label: '发现', url: '/', target: 'self', icon: null, children: [] },
-    { id: 2, label: '资源库', url: '/resources/', target: 'self', icon: null, children: [] },
-    { id: 3, label: '讨论', url: '/community/', target: 'self', icon: null, children: [] },
-    { id: 4, label: '文章', url: '/posts/', target: 'self', icon: null, children: [] },
-  ],
-};
-const fallbackFooterMenu: Menu = { location: 'secondary', items: [] };
 
 /**
  * The one page assembler: fetches the shell frame (site, menu, session) in
@@ -129,8 +131,8 @@ export async function loadPage<T>(
     return {
       ok: false,
       site: fallbackSite,
-      menu: fallbackMenu,
-      footerMenu: fallbackFooterMenu,
+      menu: { location: 'primary', items: fallbackSite.blocks.primary },
+      footerMenu: { location: 'secondary', items: fallbackSite.blocks.secondary },
       user: null,
       locale,
       degraded: true,
