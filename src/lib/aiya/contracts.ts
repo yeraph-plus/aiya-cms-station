@@ -1,0 +1,850 @@
+import { z } from 'zod';
+
+/**
+ * Wire contract for the WordPress headless API (`aiya/core/v1`).
+ *
+ * This file mirrors the PHP DTOs in `wp-content/plugins/aiya-core/src/Api/Contract/`
+ * field by field — it is the single source the client validates every response
+ * against. A backend contract bump (Contract::VERSION) must land here first.
+ *
+ * Reshaped 2026-09 against backend 0.28.0: Topic domain removed (topics are a
+ * category-aggregation template, not an API resource), Discussion rebuilt in
+ * its thread form (type/status workflow, postRef, server-derived can* flags,
+ * no community likes), resource attachments switched to the gate-matrix shape,
+ * `tweet`/`issue` type values dropped (dead domains).
+ */
+export const apiVersion = '1' as const;
+
+// ---------------------------------------------------------------------------
+// Shared primitives
+// ---------------------------------------------------------------------------
+
+const id = z.number().int().positive();
+const count = z.number().int().nonnegative();
+
+/** Site-relative path only: no protocol relativity, no traversal, no encoded separators. */
+export const sitePathSchema = z
+  .string()
+  .regex(/^\/(?!\/)[^\\\s?#]*$/)
+  .refine(
+    (value) => !/%(?:2f|5c|2e)/i.test(value) && !value.split('/').includes('..'),
+    'Expected a safe site-relative path',
+  );
+
+export const httpUrlSchema = z.url({ protocol: /^https?$/ }).refine((value) => {
+  // zod does not wrap refine exceptions: an unparseable URL must reject,
+  // not throw out of safeParse.
+  try {
+    const url = new URL(value);
+    return !url.username && !url.password;
+  } catch {
+    return false;
+  }
+}, 'URLs must not contain credentials');
+
+/** ISO 8601 with a timezone offset, as every backend date field is emitted. */
+export const isoSchema = z.iso.datetime({ offset: true });
+/** The backend answers `''` (not null) wherever an optional date is absent. */
+export const isoOrEmptySchema = z.union([isoSchema, z.literal('')]);
+
+export const imageSchema = z.object({
+  url: httpUrlSchema,
+  alt: z.string(),
+  width: id.nullable(),
+  height: id.nullable(),
+});
+export const authorSchema = z.object({
+  id: count,
+  /** Public profile route key (/profile/{slug}/); system-generated nicename. */
+  slug: z.string(),
+  name: z.string(),
+  avatar: imageSchema.nullable(),
+});
+export const termSchema = z.object({
+  id,
+  taxonomy: z.enum(['category', 'tag']),
+  slug: z.string().min(1),
+  name: z.string(),
+  description: z.string(),
+  parentId: id.nullable(),
+  count,
+  /** Owning taxonomy's code name — a type may carry several tag vocabularies; group by this. */
+  vocabulary: z.string().min(1),
+  /** Free-form term meta text; the front end resolves it into an icon. */
+  icon: z.string().nullable(),
+  /** Term archive banner resolved from the media library. */
+  cover: imageSchema.nullable(),
+});
+
+export const paginationSchema = z
+  .object({
+    page: id,
+    perPage: id.max(100),
+    totalItems: count,
+    totalPages: count,
+    hasNext: z.boolean(),
+    hasPrevious: z.boolean(),
+  })
+  .refine(
+    (p) =>
+      p.totalPages === Math.ceil(p.totalItems / p.perPage) &&
+      p.hasNext === p.page < p.totalPages &&
+      p.hasPrevious === p.page > 1,
+    'Inconsistent pagination',
+  );
+
+// ---------------------------------------------------------------------------
+// Envelope (`Api/Rest/Envelope.php`, applied centrally on rest_post_dispatch)
+// ---------------------------------------------------------------------------
+
+export const envelopeMetaSchema = z.object({
+  apiVersion: z.literal(apiVersion),
+  requestId: z.string().min(1),
+});
+export const errorEnvelopeSchema = z.object({
+  error: z.object({ code: z.string().min(1), message: z.string(), status: z.number().int() }),
+  meta: envelopeMetaSchema,
+});
+
+const itemEnvelope = <T extends z.ZodType>(data: T) => z.object({ data, meta: envelopeMetaSchema });
+const listEnvelope = <T extends z.ZodType>(item: T) =>
+  itemEnvelope(z.array(item)).extend({
+    meta: envelopeMetaSchema.extend({ pagination: paginationSchema }),
+  });
+
+// ---------------------------------------------------------------------------
+// Content (posts / resources / pages share one projection; PostPresenter.php)
+// ---------------------------------------------------------------------------
+
+/** Rating pair is null for unrated items and types outside the rating scope. */
+export const postMetricsSchema = z.object({
+  views: count,
+  likes: count,
+  comments: count,
+  ratingScore: count.nullable(),
+  ratingCount: count.nullable(),
+});
+export const postSummarySchema = z.object({
+  id,
+  slug: z.string().min(1),
+  url: sitePathSchema,
+  /** Vocabularies whose front-end routes exist; `page` joined with the
+      /pages/{slug}/ route (shared projection with posts). */
+  type: z.enum(['post', 'resource', 'page']),
+  title: z.string().min(1),
+  excerpt: z.string(),
+  publishedAt: isoSchema,
+  updatedAt: isoSchema,
+  readingMinutes: count,
+  thumbnail: imageSchema.nullable(),
+  author: authorSchema,
+  categories: z.array(termSchema),
+  tags: z.array(termSchema),
+  metrics: postMetricsSchema,
+  /** Display-state keys: `sticky`, `password`, `private`, plus the visibility gates `login`/`member` — the front end owns copy and styling. */
+  badges: z.array(z.enum(['sticky', 'password', 'private', 'login', 'member'])),
+});
+export const breadcrumbSchema = z.object({ label: z.string(), url: sitePathSchema.nullable() });
+export const seoSchema = z.object({
+  title: z.string(),
+  description: z.string(),
+  noindex: z.boolean(),
+});
+export const postDetailSchema = postSummarySchema.extend({
+  /** True when the body is behind the password gate (empty content block). */
+  locked: z.boolean(),
+  /** The post's configured visibility gate: `public`, `login` or `member`. */
+  visibility: z.enum(['public', 'login', 'member']),
+  /** True when THIS viewer does not qualify past the gate (empty content block). */
+  gated: z.boolean(),
+  /** Per-post discussion switch (`comments_open`); false renders the section disabled. */
+  commentsOpen: z.boolean(),
+  /** True when the editor wrote a manual excerpt (vs the auto-generated summary text). */
+  hasManualExcerpt: z.boolean(),
+  content: z.object({ format: z.literal('html'), html: z.string() }),
+  featured: imageSchema.nullable(),
+  seo: seoSchema,
+  breadcrumbs: z.array(breadcrumbSchema),
+  previous: postSummarySchema.nullable(),
+  next: postSummarySchema.nullable(),
+});
+
+/** Brand color from the Frontend settings page; drives the whole palette. */
+export const siteThemeSchema = z.object({
+  primary: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+});
+export const siteDefaultsSchema = z.object({
+  colorMode: z.enum(['system', 'dark', 'light']),
+  thumb: imageSchema.nullable(),
+  /** Placeholder for empty lists and error cards (0.44.0). */
+  emptyImage: imageSchema.nullable(),
+  theme: siteThemeSchema,
+  /** Site-level SEO head values; empty = not configured. */
+  seoKeywords: z.string(),
+  seoDescription: z.string(),
+  /** Google Analytics measurement id; the front end renders the snippet. */
+  gaId: z.string(),
+});
+/** One compliance link row from the footer repeater. */
+export const beianLinkSchema = z.object({
+  label: z.string(),
+  url: httpUrlSchema,
+  icon: z.enum(['shield', 'police', 'custom']),
+  iconUrl: z.string(),
+});
+/** Compliance footer; hitokoto switches the front end's random sign-off. */
+export const siteFooterSchema = z.object({
+  links: z.array(beianLinkSchema),
+  hitokoto: z.boolean(),
+});
+/** WP discussion settings carried in the /site payload (comment form +
+    pagination UI inputs). Login-only posting is structural, so
+    commentRegistration is not projected. */
+export const siteCommentsSchema = z.object({
+  requireNameEmail: z.boolean(),
+  commentMaxLinks: count,
+  moderation: z.boolean(),
+  previouslyApproved: z.boolean(),
+  threadComments: z.boolean(),
+  threadCommentsDepth: count,
+  pageComments: z.boolean(),
+  commentsPerPage: count,
+  defaultCommentsPage: z.enum(['newest', 'oldest']),
+  commentOrder: z.enum(['asc', 'desc']),
+  /** "Users must be logged in to comment"; false lets guests use the native name/email composer. */
+  commentRegistration: z.boolean(),
+});
+
+/** One smilies token of a pack: the literal `::code::` body plus the image
+    the backend inlines for HTML content (0.62.0). */
+export const smiliesItemSchema = z.object({
+  code: z.string(),
+  url: httpUrlSchema,
+});
+/** One smilies pack (= one directory under WP `wp-content/smilies/`). */
+export const smiliesPackSchema = z.object({
+  slug: z.string(),
+  items: z.array(smiliesItemSchema),
+});
+
+export const siteSchema = z.object({
+  name: z.string().min(1),
+  description: z.string(),
+  language: z.string(),
+  timezone: z.string(),
+  /** Mirrors the WP site icon (Settings > General). */
+  favicon: imageSchema.nullable(),
+  /** Header banner from the Frontend settings page; null unless the
+      banner switch is on with a usable attachment (0.42.0). */
+  banner: imageSchema.nullable(),
+  /** Mirrors the WP membership setting (users_can_register): whether the
+      front end should offer sign-up. */
+  registrationOpen: z.boolean(),
+  /** WP discussion settings (Settings > Discussion mirror). */
+  comments: siteCommentsSchema,
+  /** Shell config from the backend Frontend settings page (0.29.0): default
+      color mode for the (future) theme system and the fallback thumbnail. */
+  defaults: siteDefaultsSchema,
+  footer: siteFooterSchema,
+});
+export const menuItemSchema: z.ZodType<MenuItem> = z.object({
+  id,
+  label: z.string().min(1),
+  url: z.union([sitePathSchema, httpUrlSchema]),
+  target: z.enum(['self', 'blank']),
+  /** Optional Lucide icon name from the primary-menu repeater. */
+  icon: z.string().nullable(),
+  children: z.array(z.lazy(() => menuItemSchema)),
+});
+export interface MenuItem {
+  id: number;
+  label: string;
+  url: string;
+  target: 'self' | 'blank';
+  icon: string | null;
+  children: MenuItem[];
+}
+export const menuSchema = z.object({
+  location: z.enum(['primary', 'secondary']),
+  items: z.array(menuItemSchema),
+});
+
+// ---------------------------------------------------------------------------
+// Discussion threads (Domain/Discussion, 0.26.0 thread form)
+// ---------------------------------------------------------------------------
+
+export const discussionStatusSchema = z.enum(['open', 'closed']);
+
+/** Discussion board (板块): the routing unit that replaced the type vocabulary. */
+export const discussionBoardSchema = z.object({
+  id,
+  slug: z.string().min(1),
+  name: z.string().min(1),
+  description: z.string(),
+  threads: count,
+});
+
+export const postRefSchema = z.object({
+  id,
+  type: z.enum(['post', 'resource']),
+  title: z.string(),
+  url: sitePathSchema,
+});
+
+/** Thread-embedded images: URLs mirror whatever the composer stored
+    (/media/ proxy paths included) and dimensions may be absent (0). */
+export const discussionImageSchema = imageSchema.extend({
+  url: z.string().min(1),
+  width: z.number().int().min(0).nullable(),
+  height: z.number().int().min(0).nullable(),
+});
+export const discussionSchema = z.object({
+  id,
+  url: sitePathSchema,
+  /** May be empty for content-only threads; cards fall back to a text excerpt. */
+  title: z.string(),
+  board: discussionBoardSchema.nullable(),
+  status: discussionStatusSchema,
+  author: authorSchema,
+  postRef: postRefSchema.nullable(),
+  /** Flat reply count maintained by the backend; the only interaction metric. */
+  replies: count,
+  /** #tags extracted from the thread content. */
+  tags: z.array(z.string()),
+  /** <img> elements extracted from the thread content. Composer uploads
+      store frontend-proxied /media/ paths, so the url is any non-empty
+      string (unlike the strict absolute-URL post thumbnails), and width /
+      height are 0 when the source tag declared no dimensions — the front
+      end sizes the grid. */
+  images: z.array(discussionImageSchema),
+  lastReplyAt: isoOrEmptySchema,
+  publishedAt: isoOrEmptySchema,
+  /** Server-derived (author or edit_pages admin); the front end never re-implements the rules. */
+  canEdit: z.boolean(),
+  canDelete: z.boolean(),
+  canReply: z.boolean(),
+  /** Raw thread HTML (list projection carries it for the inline feed). */
+  contentHtml: z.string(),
+});
+export const discussionReplySchema = z.object({
+  id,
+  author: authorSchema,
+  /** Backend-rendered HTML (smilies become `img.aiya-smilie`); sanitize with the discussion filter before rendering. */
+  content: z.string(),
+  images: z.array(discussionImageSchema),
+  publishedAt: isoOrEmptySchema,
+  canDelete: z.boolean(),
+});
+export const discussionDetailSchema = discussionSchema.extend({
+  /** array_merge overwrites the thread's reply count with the reply list. */
+  replies: z.array(discussionReplySchema),
+  /** Same content block as the posts projection; re-sanitized before render. */
+  content: z.object({ format: z.literal('html'), html: z.string() }),
+});
+
+// ---------------------------------------------------------------------------
+// Resource attachments (Domain/ExternalFiles, 0.27.0 gate matrix)
+// ---------------------------------------------------------------------------
+
+export const attachmentItemSchema = z.object({
+  name: z.string().min(1),
+  size: count,
+  type: z.string(),
+  /** Upstream datetime string, format owned by OpenList; display-only. */
+  modified: z.string().nullable(),
+  /** null = the viewer may not download this file. */
+  url: httpUrlSchema.nullable(),
+  ready: z.boolean(),
+});
+export const resourceAttachmentsSchema = z.object({
+  items: z.array(attachmentItemSchema),
+});
+
+// ---------------------------------------------------------------------------
+// Notifications (Domain/Notification, 0.23.0; read state lives client-side)
+// ---------------------------------------------------------------------------
+
+export const notificationSchema = z.object({
+  id,
+  type: z.literal('announcement'),
+  title: z.string(),
+  body: z.string(),
+  createdAt: isoOrEmptySchema,
+});
+
+// ---------------------------------------------------------------------------
+// Comments (Api/Rest/CommentsController; classic wp_new_comment pipeline)
+// ---------------------------------------------------------------------------
+
+export const commentAuthorSchema = z.object({
+  /** 0 for guests. */
+  id: count,
+  name: z.string(),
+  /** Raw avatar URL (or null); deliberately not the Image shape. */
+  avatar: z.string().nullable(),
+});
+export const commentSchema = z.object({
+  id,
+  parentId: id.nullable(),
+  author: commentAuthorSchema,
+  body: z.string(),
+  /** Whitelisted comment HTML with backend-injected smilies imgs;
+      render through `sanitizeCommentHtml`, never raw. */
+  bodyHtml: z.string(),
+  publishedAt: isoOrEmptySchema,
+});
+export const commentCreatedSchema = z.object({
+  created: z.literal(true),
+  id,
+  /** `held` = awaiting moderation; the UI must say so instead of vanishing. */
+  status: z.enum(['approved', 'held']),
+});
+/** The processed image facts of one community upload (post image-processor). */
+export const uploadedImageSchema = z.object({
+  width: count,
+  height: count,
+  mime: z.string(),
+  title: z.string(),
+});
+export const uploadResultSchema = z.object({
+  image: uploadedImageSchema,
+  /** WP-absolute at the API edge; the /api proxy cloaks it to /media/. */
+  url: httpUrlSchema,
+  path: z.string(),
+});
+
+// ---------------------------------------------------------------------------
+// User / auth (Domain/Identity, Api/Rest/AuthController + UserController)
+// ---------------------------------------------------------------------------
+
+export const avatarImageSchema = z.object({
+  url: z.string(),
+  thumbUrl: z.string(),
+});
+/** Owner-facing counters (posts / favorited / followers). */
+export const profileStatsSchema = z.object({
+  favorites: count,
+  contributions: count,
+  followers: count,
+});
+export type ProfileStats = z.infer<typeof profileStatsSchema>;
+export const userSchema = z.object({
+  id,
+  /** Server-generated UUID login name; never chosen, never displayed. */
+  username: z.string().min(1),
+  /** Public profile route key (/profile/{slug}/); system-generated nicename. */
+  slug: z.string().min(1),
+  nickname: z.string().min(1),
+  email: z.email(),
+  url: z.string(),
+  description: z.string(),
+  /** WP locale string; the i18n layer normalizes it into the supported set. */
+  locale: z.string(),
+  registeredAt: isoOrEmptySchema,
+  role: z.enum(['administrator', 'author', 'sponsor', 'subscriber']),
+  avatar: avatarImageSchema,
+  /** Owner-facing profile counters (posts / favorited / followers). */
+  stats: profileStatsSchema.nullable(),
+});
+export const authSessionSchema = z.object({
+  token: z.string().min(16),
+  /** Unix seconds. */
+  expiresAt: count,
+  user: userSchema,
+});
+
+// ---------------------------------------------------------------------------
+// Profile (`/profiles/{slug}`; ProfilePresenter.php)
+// ---------------------------------------------------------------------------
+
+/** Membership badge = state + expiry only; the wording is this app's i18n. */
+export const membershipBadgeSchema = z.object({
+  status: z.enum(['active', 'inactive']),
+  renewsAt: isoSchema.nullable(),
+});
+export const profileSchema = z.object({
+  id,
+  slug: z.string().min(1),
+  name: z.string().min(1),
+  role: z.enum(['administrator', 'author', 'sponsor', 'subscriber']),
+  avatar: imageSchema.nullable(),
+  bio: z.string(),
+  joinedAt: isoOrEmptySchema,
+  stats: profileStatsSchema,
+  membership: membershipBadgeSchema,
+  favorites: z.array(postSummarySchema),
+});
+
+// ---------------------------------------------------------------------------
+// Sponsorship / membership tiers (Domain/Sponsorship, 0.50.0 tier model)
+// ---------------------------------------------------------------------------
+
+export const tierSchema = z.object({
+  key: z.string().min(1),
+  name: z.string(),
+  price: z.number().nonnegative(),
+  cycleDays: z.number().int().min(1),
+  creditsPerCycle: count,
+  /** False = not purchasable; the front end drops it from buy lists. */
+  enabled: z.boolean(),
+});
+export const membershipEntitlementSchema = z.object({
+  tierKey: z.string(),
+  tierName: z.string(),
+  cycleDays: z.number().int().min(1),
+  creditsPerCycle: count,
+  cyclesTotal: count,
+  cyclesGranted: count,
+  startsAt: isoSchema,
+  endsAt: isoSchema,
+  status: z.enum(['active', 'cancelled']),
+});
+/** The site's daily check-in policy (membership settings page), projected
+    so the panel can describe the grant before taking it; the paid amount
+    itself only ever comes from the grant response. */
+export const checkinPolicySchema = z.object({
+  enabled: z.boolean(),
+  credits: count,
+  validityDays: z.number().int().min(1),
+});
+/** The 0.50.0 tier-queue view replacing the old expiration payload. */
+export const membershipStateSchema = z.object({
+  active: z.boolean(),
+  expiresAt: isoSchema.nullable(),
+  nextGrantAt: isoSchema.nullable(),
+  /** Derived credit balance, so the wallet needs no second request. */
+  balance: count,
+  queue: z.array(membershipEntitlementSchema),
+  checkin: checkinPolicySchema,
+});
+export const orderCreatedSchema = z.object({
+  orderId: z.string().min(1),
+  submitUrl: httpUrlSchema,
+});
+export const planChannelsSchema = z.object({
+  epay: z.boolean(),
+  /** Platform-push gateway: activation rides webhooks, not the cashier. */
+  afdian: z.boolean(),
+  /** Enabled channels as a list; new gateways extend without reshaping. */
+  methods: z.array(z.enum(['alipay', 'wxpay', 'usdt'])),
+});
+export const tiersPayloadSchema = z.object({
+  channels: planChannelsSchema,
+  items: z.array(tierSchema),
+});
+
+// ---------------------------------------------------------------------------
+// Engagement counters (browser-direct, IP-deduplicated backend-side)
+// ---------------------------------------------------------------------------
+
+export const likeResultSchema = z.object({ likes: count, already: z.boolean() });
+export const viewResultSchema = z.object({ views: count });
+export const ratingResultSchema = z.object({ score: count, count: count, already: z.boolean() });
+
+// ---------------------------------------------------------------------------
+// Credits (Domain/Credit, 0.47.0; cost-accounting ledger — nothing is a
+// permanent deposit, every grant bucket expires)
+// ---------------------------------------------------------------------------
+
+export const creditBalanceSchema = z.object({
+  /** Derived from open ledger buckets; never cached client-side. */
+  balance: count,
+});
+export const creditEntrySchema = z.object({
+  id,
+  /** `in` = grant bucket (remaining tracks what is left), `out` = one spend. */
+  direction: z.enum(['in', 'out']),
+  source: z.string(),
+  ref: z.string(),
+  amount: count,
+  remaining: count,
+  createdAt: isoOrEmptySchema,
+  expiresAt: isoSchema.nullable(),
+});
+export const creditGrantSchema = z.object({
+  granted: count,
+  balance: count,
+  /** Expiry of the freshly created bucket (check-in grant or code redeem). */
+  expiresAt: isoSchema,
+});
+/** Membership gift-code redemption: the tier queued, not a balance. */
+export const membershipCodeGrantSchema = z.object({
+  tierKey: z.string(),
+  tierName: z.string(),
+  cycles: count,
+});
+export const creditsQuerySchema = z.object({
+  page: z.number().int().min(1).default(1),
+  /** Optional — page size is the backend's call; only pass a number when a
+      read wants its own size (same rule as postsQuerySchema.perPage). */
+  perPage: z.number().int().min(1).max(100).optional(),
+});
+
+// ---------------------------------------------------------------------------
+// Response schemas (what client.ts validates against)
+// ---------------------------------------------------------------------------
+
+export const siteResponseSchema = itemEnvelope(siteSchema);
+export const menuResponseSchema = itemEnvelope(menuSchema);
+export const termsResponseSchema = itemEnvelope(z.array(termSchema));
+/** Directory-scanned smilies packs (0.63.0, own read — kept off /site so
+    hundreds of tokens do not ride every shell payload). */
+export const smiliesResponseSchema = itemEnvelope(z.array(smiliesPackSchema));
+export const postsResponseSchema = listEnvelope(postSummarySchema);
+export const postResponseSchema = itemEnvelope(postDetailSchema);
+export const resourcesResponseSchema = postsResponseSchema;
+export const resourceResponseSchema = postResponseSchema;
+export const pagesResponseSchema = postsResponseSchema;
+export const pageResponseSchema = postResponseSchema;
+export const profileResponseSchema = itemEnvelope(profileSchema);
+export const discussionsResponseSchema = listEnvelope(discussionSchema);
+export const discussionResponseSchema = itemEnvelope(discussionDetailSchema);
+export const discussionRepliesResponseSchema = listEnvelope(discussionReplySchema);
+export const discussionReplyResponseSchema = itemEnvelope(discussionReplySchema);
+export const discussionBoardsResponseSchema = itemEnvelope(z.array(discussionBoardSchema));
+export const deletedResponseSchema = itemEnvelope(z.object({ deleted: z.literal(true) }));
+export const resourceAttachmentsResponseSchema = itemEnvelope(resourceAttachmentsSchema);
+export const notificationsResponseSchema = itemEnvelope(
+  z.object({ items: z.array(notificationSchema) }),
+);
+export const commentsResponseSchema = listEnvelope(commentSchema);
+export const commentCreatedResponseSchema = itemEnvelope(commentCreatedSchema);
+export const meResponseSchema = itemEnvelope(userSchema);
+export const followingResponseSchema = listEnvelope(authorSchema);
+export const followStateSchema = itemEnvelope(z.object({ following: z.boolean() }));
+export const authSessionResponseSchema = itemEnvelope(authSessionSchema);
+export const doneResponseSchema = itemEnvelope(z.object({ done: z.literal(true) }));
+export const sentResponseSchema = itemEnvelope(z.object({ sent: z.literal(true) }));
+export const resetValidatedSchema = itemEnvelope(
+  z.object({ valid: z.literal(true), login: z.string() }),
+);
+export const favoritesResponseSchema = listEnvelope(postSummarySchema);
+export const favoritedResponseSchema = itemEnvelope(z.object({ favorited: z.boolean() }));
+export const tiersResponseSchema = itemEnvelope(tiersPayloadSchema);
+export const membershipResponseSchema = itemEnvelope(membershipStateSchema);
+export const orderCreatedResponseSchema = itemEnvelope(orderCreatedSchema);
+export const postDetailResponseSchema = itemEnvelope(postDetailSchema);
+/** POST content/{id}/unlock: the verified post's full detail in the same response (cookie-less unlock). */
+export const postUnlockResponseSchema = postDetailResponseSchema;
+/** GET content/{id}/related: shared-term neighbours as bare PostSummary rows. */
+export const relatedResponseSchema = itemEnvelope(z.array(postSummarySchema));
+export const afdianOrderUrlResponseSchema = itemEnvelope(z.object({ url: httpUrlSchema }));
+export const likeResponseSchema = itemEnvelope(likeResultSchema);
+export const viewResponseSchema = itemEnvelope(viewResultSchema);
+export const ratingResponseSchema = itemEnvelope(ratingResultSchema);
+export const creditBalanceResponseSchema = itemEnvelope(creditBalanceSchema);
+export const creditEntriesResponseSchema = listEnvelope(creditEntrySchema);
+export const creditCheckinResponseSchema = itemEnvelope(creditGrantSchema);
+export const creditRedeemResponseSchema = itemEnvelope(membershipCodeGrantSchema);
+
+// ---------------------------------------------------------------------------
+// Query schemas (list filters; every value must survive URL round-trips)
+// ---------------------------------------------------------------------------
+
+export const postsQuerySchema = z.object({
+  page: z.number().int().min(1).default(1),
+  /**
+   * Deliberately has NO default: page size is the backend's call (it follows
+   * the site's reading setting), so an unspecified perPage must stay absent
+   * from the request rather than be invented here. Pass a number only when a
+   * read wants its own size — the homepage window, the sitemap walk.
+   */
+  perPage: z.number().int().min(1).max(100).optional(),
+  q: z.string().max(100).default(''),
+  /** Comma-separated slug multi-select: any chosen term counts (backend IN). */
+  category: z.string().max(200).default(''),
+  /** Author nicename filter (public profile slug) for author archives. */
+  author: z.string().max(100).default(''),
+  /** Comma-separated tag slugs; any chosen tag in any vocabulary counts. */
+  tag: z.string().max(200).default(''),
+  sort: z.enum(['newest', 'oldest', 'rand']).default('newest'),
+});
+export const resourcesQuerySchema = z.object({
+  page: z.number().int().min(1).default(1),
+  /** Optional for the same reason as postsQuerySchema.perPage. */
+  perPage: z.number().int().min(1).max(100).optional(),
+  q: z.string().max(100).default(''),
+  category: z.string().max(200).default(''),
+  /** Comma-separated tag slugs; matches ANY of the resource type's five tag
+      vocabularies. */
+  tag: z.string().max(200).default(''),
+  sort: z.enum(['newest', 'oldest', 'rand']).default('newest'),
+});
+export const discussionsQuerySchema = z.object({
+  board: z.string().max(50).default(''),
+  status: z.enum(['', 'open', 'closed']).default(''),
+  /** Keyword search over thread title and body; replies are not searched. */
+  q: z.string().max(100).default(''),
+  /** Closed-form #tag# filter matched against the thread body. */
+  tag: z.string().max(50).default(''),
+  post: z.number().int().min(0).default(0),
+  user: z.number().int().min(0).default(0),
+  sort: z.enum(['last_activity', 'newest']).default('last_activity'),
+  page: z.number().int().min(1).default(1),
+  /** Optional — page size is the backend's call (same rule as
+      postsQuerySchema.perPage); only pass a number for a custom window. */
+  perPage: z.number().int().min(1).max(100).optional(),
+});
+export const commentsQuerySchema = z.object({
+  page: z.number().int().min(1).default(1),
+  /** Optional — the backend defaults follow the site's own discussion
+      settings (comments_per_page / default_comments_page), and the detail
+      pages pass them explicitly from the /site payload. */
+  perPage: z.number().int().min(1).max(100).optional(),
+  /** Display window direction; `desc` makes page 1 the newest window. */
+  order: z.enum(['asc', 'desc']).optional(),
+});
+export const favoritesQuerySchema = z.object({
+  page: z.number().int().min(1).default(1),
+  /** Optional — page size is the backend's call (postsQuerySchema rule). */
+  perPage: z.number().int().min(1).max(100).optional(),
+});
+export const termsQuerySchema = z.object({
+  /** "all" flattens every vocabulary the type maps to the contract groups. */
+  taxonomy: z.enum(['all', 'category', 'tag']).default('all'),
+  type: z.enum(['post', 'page', 'resource']).default('post'),
+});
+
+// ---------------------------------------------------------------------------
+// Request body schemas
+// ---------------------------------------------------------------------------
+
+export const loginRequestSchema = z.object({
+  email: z.email(),
+  password: z.string().min(1),
+  remember: z.boolean(),
+});
+export const registerRequestSchema = z
+  .object({
+    nickname: z.string().min(1).max(50),
+    email: z.email(),
+    password: z.string().min(8).max(200),
+    passwordConfirm: z.string(),
+  })
+  .refine((input) => input.password === input.passwordConfirm, 'Passwords must match');
+export const passwordResetRequestSchema = z.object({
+  email: z.email(),
+  /** Front-end self-declared origin; the backend allowlists scheme+host+port. */
+  domain: z.string().optional(),
+});
+export const passwordResetValidateSchema = z.object({
+  login: z.string().min(1),
+  key: z.string().min(1),
+});
+export const passwordResetSchema = z
+  .object({
+    login: z.string().min(1),
+    key: z.string().min(1),
+    password: z.string().min(8).max(200),
+    passwordConfirm: z.string(),
+  })
+  .refine((input) => input.password === input.passwordConfirm, 'Passwords must match');
+export const profileUpdateSchema = z.object({
+  nickname: z.string().min(1).max(50).optional(),
+  description: z.string().optional(),
+  url: z.string().optional(),
+  email: z.email().optional(),
+  locale: z.enum(['zh_CN', 'zh_TW', 'zh_HK', 'en_US']).optional(),
+  /** Re-authentication credential: the backend refuses an email change
+      without it (403 aiya_reauth_required). Absent for plain profile edits. */
+  currentPassword: z.string().min(1).max(200).optional(),
+});
+export const passwordChangeSchema = z
+  .object({
+    currentPassword: z.string().min(1),
+    password: z.string().min(8).max(200),
+    passwordConfirm: z.string(),
+  })
+  .refine((input) => input.password === input.passwordConfirm, 'Passwords must match');
+export const commentCreateSchema = z.object({
+  authorName: z.string().max(245).optional(),
+  authorEmail: z.email().optional(),
+  /** Restricted HTML (kses-whitelisted server-side); the visible-text cap is enforced there. */
+  body: z.string().min(1).max(20000),
+  parentId: id.optional(),
+});
+export const discussionCreateSchema = z.object({
+  /** Optional: an empty title renders as a content-only card. */
+  title: z.string().max(191).default(''),
+  board: z.string().max(50).default(''),
+  content: z.string().min(1).max(20000),
+  postId: z.number().int().min(0).default(0),
+});
+export const discussionUpdateSchema = z
+  .object({
+    title: z.string().min(1).max(191).optional(),
+    content: z.string().min(1).max(20000).optional(),
+    board: z.string().max(50).optional(),
+    status: discussionStatusSchema.optional(),
+  })
+  .refine((input) => Object.keys(input).length > 0, 'At least one field is required');
+export const discussionReplyCreateSchema = z.object({
+  content: z.string().min(1).max(10000),
+});
+export const discussionReplyUpdateSchema = z.object({
+  content: z.string().min(1).max(10000),
+});
+export const redeemSchema = z.object({
+  /** Site code ("redeem", default) or an Afdian order number ("afdian"). */
+  channel: z.enum(['redeem', 'afdian']).default('redeem'),
+  code: z.string().min(1).max(64),
+});
+export const orderCreateSchema = z.object({
+  tierKey: z.string().min(1).max(32),
+  channel: z.enum(['alipay', 'wxpay', 'usdt']),
+  cycles: z.number().int().min(1).max(60).default(1),
+});
+export const favoriteCreateSchema = z.object({ postId: id });
+
+// ---------------------------------------------------------------------------
+// Inferred types
+// ---------------------------------------------------------------------------
+
+export type EnvelopeMeta = z.infer<typeof envelopeMetaSchema>;
+export type Pagination = z.infer<typeof paginationSchema>;
+export type Image = z.infer<typeof imageSchema>;
+export type Author = z.infer<typeof authorSchema>;
+export type Term = z.infer<typeof termSchema>;
+export type Site = z.infer<typeof siteSchema>;
+export type SiteComments = z.infer<typeof siteCommentsSchema>;
+export type Menu = z.infer<typeof menuSchema>;
+export type PostSummary = z.infer<typeof postSummarySchema>;
+export type PostDetail = z.infer<typeof postDetailSchema>;
+export type PostRef = z.infer<typeof postRefSchema>;
+export type Breadcrumb = z.infer<typeof breadcrumbSchema>;
+export type DiscussionBoard = z.infer<typeof discussionBoardSchema>;
+export type DiscussionStatus = z.infer<typeof discussionStatusSchema>;
+export type Discussion = z.infer<typeof discussionSchema>;
+export type DiscussionReply = z.infer<typeof discussionReplySchema>;
+export type DiscussionDetail = z.infer<typeof discussionDetailSchema>;
+export type AttachmentItem = z.infer<typeof attachmentItemSchema>;
+export type ResourceAttachments = z.infer<typeof resourceAttachmentsSchema>;
+export type Notification = z.infer<typeof notificationSchema>;
+export type Comment = z.infer<typeof commentSchema>;
+export type AvatarImage = z.infer<typeof avatarImageSchema>;
+export type User = z.infer<typeof userSchema>;
+export type AuthSession = z.infer<typeof authSessionSchema>;
+export type Profile = z.infer<typeof profileSchema>;
+export type Tier = z.infer<typeof tierSchema>;
+export type MembershipEntitlement = z.infer<typeof membershipEntitlementSchema>;
+export type MembershipState = z.infer<typeof membershipStateSchema>;
+export type PostsQuery = z.infer<typeof postsQuerySchema>;
+export type ResourcesQuery = z.infer<typeof resourcesQuerySchema>;
+export type DiscussionsQuery = z.infer<typeof discussionsQuerySchema>;
+export type CommentsQuery = z.infer<typeof commentsQuerySchema>;
+export type LoginRequest = z.infer<typeof loginRequestSchema>;
+export type RegisterRequest = z.infer<typeof registerRequestSchema>;
+export type PasswordResetRequest = z.infer<typeof passwordResetRequestSchema>;
+export type PasswordReset = z.infer<typeof passwordResetSchema>;
+export type ProfileUpdate = z.infer<typeof profileUpdateSchema>;
+export type CommentCreate = z.infer<typeof commentCreateSchema>;
+export type DiscussionCreate = z.infer<typeof discussionCreateSchema>;
+export type DiscussionUpdate = z.infer<typeof discussionUpdateSchema>;
+export type DiscussionReplyCreate = z.infer<typeof discussionReplyCreateSchema>;
+export type DiscussionReplyUpdate = z.infer<typeof discussionReplyUpdateSchema>;
+export type OrderCreate = z.infer<typeof orderCreateSchema>;
+export type CreditBalance = z.infer<typeof creditBalanceSchema>;
+export type CreditEntry = z.infer<typeof creditEntrySchema>;
+export type CreditGrant = z.infer<typeof creditGrantSchema>;
+export type MembershipCodeGrant = z.infer<typeof membershipCodeGrantSchema>;
+export type CreditsQuery = z.infer<typeof creditsQuerySchema>;

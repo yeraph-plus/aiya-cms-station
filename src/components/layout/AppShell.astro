@@ -1,0 +1,214 @@
+---
+import BaseHead from '@/components/layout/BaseHead.astro';
+import DesktopSidebar from '@/components/layout/desktop/DesktopSidebar.astro';
+import DesktopHeader from '@/components/layout/desktop/DesktopHeader.astro';
+import Footer from '@/components/layout/Footer.astro';
+import MobileTopBar from '@/components/layout/mobile/MobileTopBar.astro';
+import MobilePendingBanner from '@/components/layout/mobile/PendingBanner.astro';
+import TabBar from '@/components/layout/mobile/TabBar.astro';
+import Icon from '@/components/layout/Icon.astro';
+import PageState from '@/components/layout/PageState.astro';
+import Breadcrumb from '@/components/layout/Breadcrumb.astro';
+import { siteOrigin } from '@/lib/aiya/server';
+import { t, toBcp47 } from '@/lib/i18n';
+import { rewriteMediaUrl } from '@/lib/media';
+import { brandThemeStyle } from '@/lib/theme';
+import { Toaster } from '@/components/ui/sonner';
+import type { PageResult } from '@/lib/page.server';
+import '@/styles/tokens.css';
+import '@/styles/shell.css';
+
+interface Props {
+  page: PageResult;
+  title: string;
+  description: string;
+  canonicalPath: string;
+  noindex?: boolean;
+  /** Absolute image URL for og:image (e.g. a post thumbnail). */
+  image?: string | null;
+  /** Open Graph type: 'article' on post/page/resource details. */
+  ogType?: 'website' | 'article';
+  jsonLd?: object[];
+}
+const {
+  page,
+  title,
+  description,
+  canonicalPath,
+  noindex = false,
+  image = null,
+  ogType = 'website',
+  jsonLd = [],
+} = Astro.props;
+const copy = t(page.locale);
+let origin = 'http://localhost:4321';
+try {
+  origin = siteOrigin();
+} catch {
+  /* degraded env: canonical falls back to localhost */
+}
+// Degraded shells and error states never get indexed.
+const noIndexFinal = noindex || !page.ok || page.degraded;
+const sessionUser = page.user
+  ? {
+      nickname: page.user.nickname,
+      avatarUrl: page.user.avatar.url ? rewriteMediaUrl(page.user.avatar.url) : null,
+      roleLabel: copy.shell.roleLabels[page.user.role],
+      slug: page.user.slug,
+      email: page.user.email,
+    }
+  : null;
+const authCopy = {
+  login: copy.shell.login,
+  register: copy.shell.register,
+  logout: copy.shell.logout,
+  profile: copy.shell.profile,
+  favorites: copy.shell.favorites,
+  followingTitle: copy.profile.followingTitle,
+  accountSettings: copy.profile.accountSettings,
+  emailLabel: copy.shell.emailLabel,
+  passwordLabel: copy.shell.passwordLabel,
+  passwordConfirmLabel: copy.shell.passwordConfirmLabel,
+  nicknameLabel: copy.shell.nicknameLabel,
+  authFailed: copy.shell.authFailed,
+  forgotPassword: copy.shell.forgotPassword,
+  welcome: copy.shell.welcome(page.site.name),
+  remember: copy.shell.remember,
+  switchToRegisterHint: copy.shell.switchToRegisterHint,
+  switchToLoginHint: copy.shell.switchToLoginHint,
+  colorMode: copy.shell.colorMode,
+  notifications: copy.shell.notifications,
+  notificationsLoading: copy.shell.notificationsLoading,
+  notificationsEmpty: copy.shell.notificationsEmpty,
+  notificationsError: copy.shell.notificationsError,
+};
+const brandStyle = brandThemeStyle(page.site.defaults.theme.primary);
+// Banner src goes through the media proxy like every WP asset.
+const bannerUrl = page.site.banner ? rewriteMediaUrl(page.site.banner.url) : null;
+// Banner underlays the nav on the homepage only.
+const isHome = Astro.url.pathname === '/';
+const showBanner = bannerUrl !== null && isHome;
+---
+
+<!doctype html>
+<html lang={toBcp47(page.locale)} data-color-mode-default={page.site.defaults.colorMode}>
+  <head>
+    <BaseHead
+      title={title}
+      description={description}
+      site={page.site}
+      locale={page.locale}
+      origin={origin}
+      canonicalPath={canonicalPath}
+      noindex={noIndexFinal}
+      image={image}
+      ogType={ogType}
+      jsonLd={jsonLd}
+    />
+  </head>
+  <body class="min-h-svh bg-background font-body text-foreground antialiased">
+    <style is:inline set:html={brandStyle}></style>
+    <a class="skip-link" href="#main-content">{copy.common.skipToContent}</a>
+    <div id="route-progress" aria-hidden="true"></div>
+    <div class="flex min-h-svh">
+      <DesktopSidebar site={page.site} menu={page.menu.items} pathname={Astro.url.pathname} />
+      <div class="flex min-w-0 flex-1 flex-col">
+        {
+          /* Page top. The settings-driven banner is a homepage-only
+            decoration: its image fills the area as a centered background,
+            underlaying the transparent nav row. Every other route — and the
+            homepage without a banner — gets the compact bar height. */
+        }
+        <div class:list={['relative shrink-0 max-[991px]:hidden', showBanner ? 'h-40' : 'h-12']}>
+          {
+            showBanner && (
+              <div
+                aria-hidden="true"
+                class="absolute inset-0 bg-cover bg-center"
+                style={`background-image: url('${bannerUrl}');`}
+              />
+            )
+          }
+          <DesktopHeader
+            searchPlaceholder={copy.shell.searchPlaceholder}
+            menuToggleLabel={copy.shell.menuToggle}
+            colorModeLabel={copy.shell.colorMode}
+            membershipLabel={copy.membership.title}
+            registrationOpen={page.site.registrationOpen}
+            user={sessionUser}
+            authCopy={authCopy}
+            localeTag={toBcp47(page.locale)}
+          />
+        </div>
+        <MobilePendingBanner text={copy.shell.mobilePending} />
+        <MobileTopBar
+          siteName={page.site.name}
+          user={sessionUser}
+          authCopy={authCopy}
+          registrationOpen={page.site.registrationOpen}
+          localeTag={toBcp47(page.locale)}
+        />
+        <main
+          id="main-content"
+          class="mx-auto w-full max-w-[1510px] flex-1 px-4 pb-10 pt-4 min-[992px]:px-[clamp(1.5rem,4vw,4.5rem)] min-[992px]:pb-12"
+        >
+          <Breadcrumb />
+          {
+            page.ok ? (
+              <slot />
+            ) : (
+              <PageState
+                image={page.site.defaults.emptyImage}
+                error
+                title={page.error.title}
+                message={page.error.message}
+                retry={canonicalPath}
+                retryLabel={copy.common.retry}
+              />
+            )
+          }
+        </main>
+        <Footer site={page.site} footerMenu={page.footerMenu.items} />
+      </div>
+    </div>
+    <TabBar menu={page.menu} pathname={Astro.url.pathname} />
+    <Toaster client:only="react" position="top-center" />
+    <button
+      type="button"
+      data-back-to-top
+      aria-label={copy.shell.backToTop}
+      title={copy.shell.backToTop}
+      class="fixed right-5 bottom-24 z-40 flex size-10 items-center justify-center rounded-full border border-border bg-surface text-foreground shadow-md hover:bg-secondary focus-visible:outline-2 focus-visible:outline-focus-blue min-[992px]:right-6 min-[992px]:bottom-6"
+    >
+      <Icon name="chevronUp" size={18} />
+    </button>
+  </body>
+</html>
+
+<script>
+  // Route-change progress bar: visible between ClientRouter navigation start
+  // and the swap; the element re-queries after each swap like the button.
+  const progress = () => document.getElementById('route-progress');
+  document.addEventListener('astro:before-preparation', () =>
+    progress()?.setAttribute('data-active', ''),
+  );
+  document.addEventListener('astro:after-swap', () => progress()?.removeAttribute('data-active'));
+  document.addEventListener('astro:page-load', () => progress()?.removeAttribute('data-active'));
+
+  // Back-to-top: slides in past 100px of scroll, hidden at the top.
+  // Document-level listeners survive ClientRouter swaps; the button element
+  // is re-queried after each swap.
+  let button = document.querySelector('[data-back-to-top]');
+  const update = () => button?.toggleAttribute('data-visible', window.scrollY > 100);
+  document.addEventListener('scroll', () => update(), { passive: true });
+  document.addEventListener('astro:after-swap', () => {
+    button = document.querySelector('[data-back-to-top]');
+    update();
+  });
+  update();
+  document.addEventListener('click', (event) => {
+    if (!(event.target instanceof Element)) return;
+    if (!event.target.closest('[data-back-to-top]')) return;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+</script>

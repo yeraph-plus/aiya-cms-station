@@ -1,0 +1,69 @@
+---
+/**
+ * /categories/ hub: the entry directory of every category across the three
+ * public types (posts / resources / pages). Rendered as the CategoryCards
+ * island — the same card the category page header reuses. Covers fall back
+ * to the site default preview image when a term has none.
+ */
+import AppShell from '@/components/layout/AppShell.astro';
+import PageState from '@/components/layout/PageState.astro';
+import CategoryCards, { type CategoryCardData } from '@/components/islands/CategoryCards';
+import { loadCategoriesIndex } from '@/lib/archive';
+import { iconInner } from '@/lib/icons';
+import { rewriteMediaUrl } from '@/lib/media';
+import { t } from '@/lib/i18n';
+import { setCrumbs } from '@/lib/breadcrumbs';
+
+const { page, title } = await loadCategoriesIndex(Astro);
+if (!page.ok) Astro.response.status = page.error.status;
+const copy = t(page.locale);
+if (page.ok) setCrumbs(Astro.locals, page.locale, [{ label: title }]);
+const typeLabel = {
+  posts: copy.posts.title,
+  resources: copy.resources.title,
+  pages: copy.pages.title,
+};
+const defaultCover = page.site.defaults.thumb
+  ? {
+      ...page.site.defaults.thumb,
+      url: rewriteMediaUrl(page.site.defaults.thumb.url),
+    }
+  : null;
+const cards: CategoryCardData[] = page.ok
+  ? page.value.map((card) => ({
+      slug: card.slug,
+      type: card.type,
+      name: card.name,
+      description: card.description,
+      cover: card.cover ? { ...card.cover, url: rewriteMediaUrl(card.cover.url) } : null,
+      count: card.count,
+      countText: copy.categories.countLabel(card.count),
+      typeLabel: typeLabel[card.type],
+      icon: card.icon ? iconInner(card.icon) : null,
+    }))
+  : [];
+---
+
+<AppShell page={page} title={title} description={page.site.description} canonicalPath="/categories/">
+  <h1 class="sr-only">{title}</h1>
+  {
+    page.ok ? (
+      cards.length > 0 ? (
+        <CategoryCards client:idle cards={cards} defaultCover={defaultCover} />
+      ) : (
+        <p class="rounded-lg border border-dashed border-border bg-surface px-6 py-8 text-center text-sm text-body-muted">
+          {copy.categories.empty}
+        </p>
+      )
+    ) : (
+      <PageState
+        image={page.site.defaults.emptyImage}
+        error
+        title={page.error.title}
+        message={page.error.message}
+        retry="/categories/"
+        retryLabel={copy.common.retry}
+      />
+    )
+  }
+</AppShell>

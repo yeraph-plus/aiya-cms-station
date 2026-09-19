@@ -1,0 +1,99 @@
+---
+/** Resource list pagination: /resources/page/[n]/ (n ≥ 2); filters ride along. */
+import AppShell from '@/components/layout/AppShell.astro';
+import PageState from '@/components/layout/PageState.astro';
+import PostLoop from '@/components/islands/feed/PostLoop';
+import { cloakPostSummaryMedia, rewriteMediaUrl } from '@/lib/media';
+import { t } from '@/lib/i18n';
+import { loadPage } from '@/lib/page.server';
+import { setCrumbs } from '@/lib/breadcrumbs';
+
+const n = Number(Astro.params.n);
+// Page 1 lives at /resources/ (with the same query); anything non-numeric 404s.
+if (!Number.isInteger(n) || n < 2) {
+  return Astro.redirect('/resources/');
+}
+// Same filter contract as /resources/ — q / category / tag / sort.
+const q = (Astro.url.searchParams.get('q') ?? '').slice(0, 100);
+const category = (Astro.url.searchParams.get('category') ?? '').slice(0, 200);
+const tag = (Astro.url.searchParams.get('tag') ?? '').slice(0, 200);
+const sort = Astro.url.searchParams.get('sort') === 'oldest' ? 'oldest' : 'newest';
+const filtered = q !== '' || category !== '' || tag !== '';
+
+const page = await loadPage(async (client) => {
+  const list = await client.resources({ page: n, q, category, tag, sort });
+  return { resources: list.data, pagination: list.meta.pagination };
+}, Astro.cookies);
+if (!page.ok) Astro.response.status = page.error.status;
+const overRange = page.ok && n > page.value.pagination.totalPages;
+if (overRange) Astro.response.status = 404;
+const copy = t(page.locale);
+if (page.ok)
+  setCrumbs(Astro.locals, page.locale, [
+    { label: copy.resources.title, href: '/resources/' },
+    { label: copy.resources.pageOf(n) },
+  ]);
+const showList = page.ok && !overRange;
+const listTitle = q !== '' ? copy.resources.searchTitle(q) : copy.resources.pageOf(n);
+const canonical = (() => {
+  const base = `/resources/page/${n}/`;
+  if (!filtered) return base;
+  const params = new URLSearchParams();
+  if (q !== '') params.set('q', q);
+  if (category !== '') params.set('category', category);
+  return `${base}?${params.toString()}`;
+})();
+---
+
+<AppShell
+  page={page}
+  title={listTitle}
+  description={copy.resources.description}
+  canonicalPath={canonical}
+  noindex={filtered || overRange}
+>
+  {
+    page.ok ? (
+      showList ? (
+        <>
+          <h1 class="sr-only">{listTitle}</h1>
+          <PostLoop
+            autoLoad
+            client:load
+            endpoint="/api/feed/resources/"
+            items={page.value.resources.map(cloakPostSummaryMedia)}
+            pagination={page.value.pagination}
+            page={n}
+            query={{ q, category, tag, sort }}
+            route={{
+              index: '/resources/',
+              pagePattern: '/resources/page/{page}/',
+              carry: ['q', 'category', 'tag', 'sort'],
+            }}
+            emptyText={copy.resources.listEmpty}
+            errorText={copy.state.backendMessage}
+            locale={page.locale}
+          />
+        </>
+      ) : (
+        <PageState
+          image={page.site.defaults.emptyImage}
+          error
+          title={copy.state.notFoundTitle}
+          message={copy.state.notFoundMessage}
+          retry="/resources/"
+          retryLabel={copy.common.retry}
+        />
+      )
+    ) : (
+      <PageState
+        image={page.site.defaults.emptyImage}
+        error
+        title={page.error.title}
+        message={page.error.message}
+        retry={`/resources/page/${n}/`}
+        retryLabel={copy.common.retry}
+      />
+    )
+  }
+</AppShell>

@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.astro/
+coverage/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+
+# Contract snapshot scratch output (sync tool workspace artifact)
+/backend-snap.json
+
+# Dev-server build artifacts and session scratch scripts
+rich-transformed.mjs
+/tmp-*.py

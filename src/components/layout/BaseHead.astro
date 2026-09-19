@@ -1,0 +1,116 @@
+---
+import { ClientRouter } from 'astro:transitions';
+import type { Site } from '@/lib/aiya/contracts';
+import { rewriteMediaUrl } from '@/lib/media';
+import type { Locale } from '@/lib/i18n/locale';
+interface Props {
+  /** Page title; empty on the homepage (bare site name, no suffix). */
+  title: string;
+  description: string;
+  site: Site;
+  locale: Locale;
+  /** Absolute http(s) origin, from siteOrigin(). */
+  origin: string;
+  canonicalPath: string;
+  noindex?: boolean;
+  /** Image URL for og:image / twitter:image (e.g. the post thumbnail);
+      relative /media/ paths are absolutized against the site origin. */
+  image?: string | null;
+  /** Open Graph type: 'article' on post/page/resource details. */
+  ogType?: 'website' | 'article';
+  /** JSON-LD objects from lib/seo; serialized inline. */
+  jsonLd?: object[];
+}
+const {
+  title,
+  description,
+  site,
+  locale,
+  origin,
+  canonicalPath,
+  noindex = false,
+  image = null,
+  ogType = 'website',
+  jsonLd = [],
+} = Astro.props;
+const canonical = new URL(canonicalPath, origin).href;
+const robots = noindex ? 'noindex, nofollow' : 'index, follow';
+// Home passes an empty title: the document is just the site name.
+const fullTitle = title === '' ? site.name : `${title} · ${site.name}`;
+// og/twitter images may be local proxy paths; scrapers need them absolute.
+const imageUrl = image !== null && image.startsWith('/') ? new URL(image, origin).href : image;
+// The WP site icon wins; the bundled favicon is the fallback.
+const faviconHref = site.favicon ? rewriteMediaUrl(site.favicon.url) : '/favicon.svg';
+---
+
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>{fullTitle}</title>
+<meta name="description" content={description} />
+{
+  // One site-level keyword line (owner-configured in /site); per-page
+  // keywords are deliberately not a thing — modern engines ignore them.
+  site.defaults.seoKeywords !== '' && (
+    <meta name="keywords" content={site.defaults.seoKeywords} />
+  )
+}
+<meta name="robots" content={robots} />
+<link rel="canonical" href={canonical} />
+<link rel="icon" type="image/svg+xml" href={faviconHref} />
+<ClientRouter />
+{
+  /* Color mode pre-paint: stored choice → site default → system. Runs
+    before first paint and again after every ClientRouter swap (the html
+    element is replaced by the swap, losing the class). */
+}
+<script is:inline data-astro-rerun>
+  (() => {
+    const stored = localStorage.getItem('aiya-color-mode');
+    const fallback = document.documentElement.dataset.colorModeDefault;
+    const mode =
+      stored === 'dark' || stored === 'light'
+        ? stored
+        : fallback === 'dark' || fallback === 'light'
+          ? fallback
+          : matchMedia('(prefers-color-scheme: dark)').matches
+            ? 'dark'
+            : 'light';
+    document.documentElement.classList.toggle('dark', mode === 'dark');
+  })();
+</script>
+<meta property="og:site_name" content={site.name} />
+<meta property="og:title" content={fullTitle} />
+<meta property="og:description" content={description} />
+<meta property="og:type" content={ogType} />
+<meta property="og:url" content={canonical} />
+<meta property="og:locale" content={locale} />
+{imageUrl && <meta property="og:image" content={imageUrl} />}
+<meta name="twitter:card" content={imageUrl ? 'summary_large_image' : 'summary'} />
+<meta name="twitter:title" content={fullTitle} />
+<meta name="twitter:description" content={description} />
+{imageUrl && <meta name="twitter:image" content={imageUrl} />}
+{
+  jsonLd.map((data) => (
+    <script is:inline type="application/ld+json" set:html={JSON.stringify(data)} />
+  ))
+}
+{
+  /* GA4: the backend carries only the measurement id (G-…); the front end
+    assembles the standard gtag.js pair. Skipped in dev so local traffic
+    never pollutes analytics. */
+}
+{
+  site.defaults.gaId !== '' && import.meta.env.PROD && (
+    <>
+      <script async src={`https://www.googletagmanager.com/gtag/js?id=${site.defaults.gaId}`} />
+      <script is:inline define:vars={{ gaId: site.defaults.gaId }}>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() {
+          dataLayer.push(arguments);
+        }
+        gtag('js', new Date());
+        gtag('config', gaId);
+      </script>
+    </>
+  )
+}

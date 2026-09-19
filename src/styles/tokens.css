@@ -1,0 +1,149 @@
+/* Design tokens (docs/DESIGN.md via the frozen prototype). Tailwind v4
+   @theme mapping; phase 2 rebuilds component styling on utilities — the
+   prototype's global.css is deliberately not carried over.
+   Color mode: every semantic color resolves through a raw custom property
+   so `.dark` on <html> (toggled by the header switch) retheme the whole
+   shell without touching utilities. */
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@plugin '@tailwindcss/typography';
+
+@custom-variant dark (&:is(.dark *));
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--foreground);
+  --color-muted: var(--secondary);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--border);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-ink: var(--ink);
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-discussion: var(--discussion);
+  --color-hairline: var(--hairline);
+  --color-body-muted: var(--body-muted);
+  --color-focus-blue: var(--focus-blue);
+  --color-error: var(--error);
+  --color-status-success: var(--status-success);
+  --color-status-warning: var(--status-warning);
+  --color-status-info: var(--status-info);
+  --color-status-danger: var(--status-danger);
+  --color-spoiler-bg: var(--spoiler-bg);
+  --color-spoiler-fg: var(--spoiler-fg);
+}
+:root {
+  --background: #f6f6f8;
+  --foreground: #303039;
+  --card: #ffffff;
+  --popover: #ffffff;
+  --popover-foreground: #303039;
+  --primary: #e94f69;
+  --primary-foreground: #ffffff;
+  --secondary: #f0f0f3;
+  --muted-foreground: #747480;
+  --accent: #ffe7ed;
+  --destructive: #b30000;
+  --border: #eeeef0;
+  --ring: #497eea;
+  --radius: 0.375rem;
+  /* Sidebar palette aligned to docs/DESIGN.md surface/ink/hairline. */
+  --sidebar: #ffffff;
+  --sidebar-foreground: #303039;
+  --sidebar-primary: #e94f69;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f0f0f3;
+  --sidebar-accent-foreground: #303039;
+  --sidebar-border: #eeeef0;
+  --sidebar-ring: #497eea;
+  /* Prototype semantic colors (ink/canvas/surface/hairline/body-muted). */
+  --ink: #303039;
+  --canvas: #f6f6f8;
+  --surface: #ffffff;
+  --discussion: #eef0f7;
+  --hairline: #eeeef0;
+  --body-muted: #747480;
+  --focus-blue: #497eea;
+  --error: #b30000;
+  /* Status ramp: alert severity accents (`<alert level>` in the backend
+     Parts markup) plus the clipboard copy confirmation. Deliberately NOT
+     redefined under `.dark` — the mid-tones read on both sheets, and the
+     spoiler relies on staying fixed to keep its black-on-black reveal. */
+  --status-success: #16a34a;
+  --status-warning: #d97706;
+  --status-info: #2563eb;
+  --status-danger: #dc2626;
+  --spoiler-bg: #18181b;
+  --spoiler-fg: #fafafa;
+}
+/* Dark palette: provisional neutral sheet on the prototype's ink hue;
+   refinement follows the (future) dark-mode design spec. The brand
+   primary stays backend-driven in both modes. */
+.dark {
+  --background: #16161b;
+  --foreground: #e8e8ee;
+  --card: #1f1f26;
+  --popover: #1f1f26;
+  --popover-foreground: #e8e8ee;
+  --primary: #e94f69;
+  --primary-foreground: #ffffff;
+  --secondary: #26262e;
+  --muted-foreground: #9b9ba7;
+  --accent: #33222b;
+  --destructive: #ff6b6b;
+  --border: #2a2a33;
+  --ring: #7da2ff;
+  --sidebar: #1f1f26;
+  --sidebar-foreground: #e8e8ee;
+  --sidebar-primary: #e94f69;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #26262e;
+  --sidebar-accent-foreground: #e8e8ee;
+  --sidebar-border: #2a2a33;
+  --sidebar-ring: #7da2ff;
+  --ink: #e8e8ee;
+  --canvas: #16161b;
+  --surface: #1f1f26;
+  --discussion: #22222c;
+  --hairline: #2a2a33;
+  --body-muted: #9b9ba7;
+  --focus-blue: #7da2ff;
+  --error: #ff7373;
+}
+@theme {
+  --font-display: Arial, 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  --font-body: Arial, 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  --font-mono: 'SFMono-Regular', Consolas, monospace;
+  --radius-media: 0.375rem;
+}
+/* shadcn's Tailwind v4 base layer (normally written by `shadcn init`):
+   bare `border` utilities default to currentColor in v4, which painted the
+   dialog/popover frames in the ink text color — route every default border
+   to the hairline token and default outlines to the soft ring. */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+}

@@ -1,0 +1,160 @@
+---
+import Icon from '@/components/layout/Icon.astro';
+import type { MenuItem, Site } from '@/lib/aiya/contracts';
+import { rewriteMediaUrl } from '@/lib/media';
+
+interface Props {
+  site: Site;
+  menu: MenuItem[];
+  pathname: string;
+}
+const { site, menu, pathname } = Astro.props;
+
+const isActive = (url: string) => (url === '/' ? pathname === '/' : pathname.startsWith(url));
+const isExternal = (url: string) => /^https?:\/\//i.test(url);
+// Settings-set icon (lucide name) wins; otherwise the icon is picked from
+// the row's URL shape.
+const iconName = (item: MenuItem): string => item.icon ?? iconFor(item.url);
+const iconFor = (url: string): string => {
+  if (isExternal(url)) return 'externalLink';
+  if (url === '/') return 'home';
+  if (url.startsWith('/resources')) return 'image';
+  if (url.startsWith('/community')) return 'messageCircle';
+  if (url.startsWith('/posts')) return 'fileText';
+  if (url.startsWith('/profile')) return 'user';
+  return 'chevronRight';
+};
+
+// Proportions ported 1:1 from the frozen prototype (global.css .nav-items):
+// min-height 44px, 14px text, 0.9rem gap, 5px radius, 0.2rem row gap.
+const linkClass =
+  'my-0.5 flex min-h-[44px] items-center gap-3.5 rounded-[5px] px-3.5 py-3 text-sm transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-focus-blue';
+const subLinkClass =
+  'flex min-h-[36px] items-center rounded-[5px] px-3 py-2 text-sm transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-focus-blue';
+---
+
+<aside
+  id="global-sidebar"
+  data-scroll-region
+  class="group sticky top-0 hidden h-dvh w-[190px] shrink-0 flex-col overflow-y-auto border-r border-sidebar-border bg-surface px-3 py-5 min-[992px]:flex data-[collapsed]:w-[76px]"
+>
+  <div class="mb-6">
+    <a
+      href="/"
+      title={site.name}
+      class="flex h-10 items-center gap-2 whitespace-nowrap px-2 text-primary transition-[padding] duration-200 group-data-[collapsed]:justify-center group-data-[collapsed]:px-0"
+    >
+      {
+        site.favicon ? (
+          <img
+            src={rewriteMediaUrl(site.favicon.url)}
+            alt=""
+            class="h-10 w-10 shrink-0 rounded-md"
+            width={40}
+            height={40}
+          />
+        ) : null
+      }
+      <span
+        class="brand-title min-w-0 overflow-hidden font-display text-2xl font-extrabold leading-none tracking-[-0.06em] group-data-[collapsed]:hidden"
+      >
+        {site.name.toLowerCase()}
+      </span>
+    </a>
+    <p class="brand-desc mt-1 h-5 overflow-hidden px-2 text-xs font-bold leading-5 text-body-muted">
+      {site.description}
+    </p>
+  </div>
+
+  <nav aria-label={site.name} class="flex-1">
+    <ul class="flex flex-col">
+      {
+        menu.map((item) =>
+          item.children.length > 0 ? (
+            <li>
+              <details open={isActive(item.url)} class="group/details">
+                <summary
+                  class:list={[
+                    linkClass,
+                    'cursor-pointer list-none [&::-webkit-details-marker]:hidden',
+                  ]}
+                  title={item.label}
+                >
+                  <Icon name={iconName(item)} size={20} strokeWidth={1.8} />
+                  <span class="sidebar-collapse-hide">{item.label}</span>
+                  <Icon
+                    name="chevronRight"
+                    size={16}
+                    strokeWidth={1.8}
+                    class="ml-auto transition-transform duration-200 group-open/details:rotate-90"
+                  />
+                </summary>
+                <ul class="flex flex-col pl-4">
+                  {item.children.map((child) => (
+                    <li>
+                      <a
+                        href={child.url}
+                        aria-current={isActive(child.url) ? 'page' : undefined}
+                        class:list={[
+                          subLinkClass,
+                          isActive(child.url)
+                            ? 'bg-secondary font-semibold text-primary'
+                            : 'text-body-muted',
+                        ]}
+                      >
+                        {child.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            </li>
+          ) : (
+            <li>
+              <a
+                href={item.url}
+                title={item.label}
+                aria-current={isActive(item.url) ? 'page' : undefined}
+                target={isExternal(item.url) ? '_blank' : undefined}
+                rel={isExternal(item.url) ? 'noreferrer' : undefined}
+                class:list={[
+                  linkClass,
+                  isActive(item.url)
+                    ? 'bg-secondary font-semibold text-primary'
+                    : 'text-foreground',
+                ]}
+              >
+                <Icon name={iconName(item)} size={20} strokeWidth={1.8} />
+                <span class="sidebar-collapse-hide">{item.label}</span>
+              </a>
+            </li>
+          ),
+        )
+      }
+    </ul>
+  </nav>
+</aside>
+
+<script>
+  // Sidebar collapse: the hamburger button in the header is the only control.
+  // Collapse hides labels instantly; expand reveals them clipped by the
+  // sidebar's overflow hidden (no squeezed text). State survives SPA swaps
+  // via localStorage + re-apply on astro:after-swap.
+  const STORAGE_KEY = 'aiya-sidebar-collapsed';
+  const apply = () => {
+    document
+      .getElementById('global-sidebar')
+      ?.toggleAttribute('data-collapsed', localStorage.getItem(STORAGE_KEY) === '1');
+  };
+  document.addEventListener('click', (event) => {
+    if (!(event.target instanceof Element)) return;
+    if (!event.target.closest('[data-sidebar-toggle]')) return;
+    const sidebar = document.getElementById('global-sidebar');
+    if (!sidebar) return;
+    const collapsed = !sidebar.hasAttribute('data-collapsed');
+    sidebar.toggleAttribute('data-collapsed', collapsed);
+    localStorage.setItem(STORAGE_KEY, collapsed ? '1' : '0');
+  });
+  document.addEventListener('astro:after-swap', apply);
+  apply();
+</script>

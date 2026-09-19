@@ -1,0 +1,95 @@
+---
+/**
+ * Membership hub: tiers, credit wallet, daily check-in, redemption and the
+ * cashier. The tier list is public (the backend publishes `/sponsorship/plans`
+ * anonymously), so guests see the pricing and a sign-in prompt rather than a
+ * redirect; the member half arrives only with a session.
+ */
+import AppShell from '@/components/layout/AppShell.astro';
+import PageState from '@/components/layout/PageState.astro';
+import MembershipPanel from '@/components/islands/membership/MembershipPanel';
+import type { CreditEntry } from '@/lib/aiya/contracts';
+import { AiyaApiError } from '@/lib/aiya/errors';
+import { readSessionToken } from '@/lib/aiya/session';
+import { t } from '@/lib/i18n';
+import { loadPage } from '@/lib/page.server';
+import { setCrumbs } from '@/lib/breadcrumbs';
+
+const hasSession = Boolean(readSessionToken(Astro.cookies));
+const guestView: { membership: null; entries: CreditEntry[]; hasMore: boolean } = {
+  membership: null,
+  entries: [],
+  hasMore: false,
+};
+
+const page = await loadPage(async (client) => {
+  const tiers = await client.tiers();
+  if (!hasSession) return { tiers: tiers.data, ...guestView };
+  try {
+    const [membership, entries] = await Promise.all([
+      client.myMembership(),
+      client.creditsEntries({ page: 1 }),
+    ]);
+    return {
+      tiers: tiers.data,
+      membership: membership.data,
+      entries: entries.data,
+      hasMore: entries.meta.pagination.hasNext,
+    };
+  } catch (error) {
+    // A stale or revoked bearer must not blank the pricing page: the public
+    // half still renders and the visitor simply gets the signed-out view.
+    // Anything else is a real failure and stays one.
+    if (error instanceof AiyaApiError && error.status === 401) {
+      return { tiers: tiers.data, ...guestView };
+    }
+    throw error;
+  }
+}, Astro.cookies);
+if (!page.ok) Astro.response.status = page.error.status;
+const copy = t(page.locale);
+if (page.ok) setCrumbs(Astro.locals, page.locale, [{ label: copy.membership.title }]);
+---
+
+<AppShell
+  page={page}
+  title={copy.membership.title}
+  description={copy.membership.description}
+  canonicalPath="/membership/"
+  noindex
+>
+  <h1 class="sr-only">{copy.membership.title}</h1>
+  {
+    page.ok ? (
+      <div class="flex flex-col gap-5">
+        {!page.value.membership && (
+          <section class="rounded-lg border border-dashed border-border bg-surface p-6 text-center">
+            <p class="text-base font-medium text-foreground">{copy.membership.guestTitle}</p>
+            <p class="mt-2 text-sm leading-relaxed text-body-muted">
+              {copy.membership.guestHint}
+            </p>
+          </section>
+        )}
+        <MembershipPanel
+          client:load
+          locale={page.locale}
+          timezone={page.site.timezone}
+          channels={page.value.tiers.channels}
+          items={page.value.tiers.items}
+          membership={page.value.membership}
+          entries={page.value.entries}
+          hasMore={page.value.hasMore}
+        />
+      </div>
+    ) : (
+      <PageState
+        image={page.site.defaults.emptyImage}
+        error
+        title={page.error.title}
+        message={page.error.message}
+        retry="/membership/"
+        retryLabel={copy.common.retry}
+      />
+    )
+  }
+</AppShell>

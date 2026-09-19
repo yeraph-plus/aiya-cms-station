@@ -1,0 +1,107 @@
+---
+import AppShell from '@/components/layout/AppShell.astro';
+import PageState from '@/components/layout/PageState.astro';
+import PageDetail from '@/components/islands/detail/PageDetail';
+import { rewriteMediaUrl } from '@/lib/media';
+import { articleJsonLd, breadcrumbJsonLd } from '@/lib/seo';
+import { siteOrigin } from '@/lib/aiya/server';
+import { t } from '@/lib/i18n';
+import { loadPage } from '@/lib/page.server';
+import { setCrumbs } from '@/lib/breadcrumbs';
+import { detailSlug } from '@/lib/detail';
+
+const slug = detailSlug(Astro.params.slug);
+if (slug === '') {
+  return Astro.redirect('/pages/');
+}
+const page = await loadPage(async (client, site) => {
+  const detail = await client.page(slug);
+  // Locked bodies hide their comments too (the read 404s) — skip the fetch.
+  const hidden = detail.data.locked || detail.data.gated;
+  const perPage = site.comments.commentsPerPage;
+  const order = site.comments.defaultCommentsPage === 'newest' ? ('desc' as const) : ('asc' as const);
+  const comments = hidden
+    ? null
+    : await client.comments(detail.data.id, { page: 1, perPage, order });
+  const authorProfile = detail.data.author.slug
+    ? await client.profile(detail.data.author.slug).catch(() => null)
+    : null;
+  return {
+    post: detail.data,
+    comments: comments?.data ?? [],
+    commentsPagination: comments?.meta.pagination ?? null,
+    authorBio: authorProfile?.data.bio ?? '',
+    authorId: detail.data.author.id,
+    window: { order, perPage },
+  };
+}, Astro.cookies);
+if (!page.ok) Astro.response.status = page.error.status;
+const copy = t(page.locale);
+const post = page.ok ? page.value.post : null;
+if (page.ok && post) {
+  setCrumbs(Astro.locals, page.locale, [
+    { label: copy.pages.title, href: '/pages/' },
+    { label: post.title },
+  ]);
+}
+let origin = 'http://localhost:4321';
+try {
+  origin = siteOrigin();
+} catch {
+  /* degraded env */
+}
+const jsonLd =
+  page.ok && post
+    ? [articleJsonLd(post, origin, page.locale), breadcrumbJsonLd(post.breadcrumbs, origin)]
+    : [];
+const cover = post?.featured ?? post?.thumbnail ?? null;
+const seoTitle = post?.seo.title || post?.title || copy.state.notFoundTitle;
+const seoDescription = post?.seo.description || post?.excerpt || copy.state.notFoundMessage;
+const noindex = !page.ok || Boolean(post?.seo.noindex);
+---
+
+<AppShell
+  page={page}
+  title={seoTitle}
+  description={seoDescription}
+  canonicalPath={post ? post.url : `/pages/${Astro.params.slug}/`}
+  noindex={noindex}
+  image={cover ? rewriteMediaUrl(cover.url) : null}
+  ogType="article"
+  jsonLd={jsonLd}
+>
+  {
+    !page.ok ? (
+      <PageState
+        image={page.site.defaults.emptyImage}
+        error
+        title={page.error.title}
+        message={page.error.message}
+        retry="`/pages/${Astro.params.slug}/`"
+        retryLabel={copy.common.retry}
+      />
+    ) : post ? (
+      <PageDetail
+        client:load
+        post={post}
+        comments={page.value.comments}
+        commentsPagination={page.value.commentsPagination ?? { page: 1, totalPages: 0, hasNext: false }}
+        settings={page.site.comments}
+        loggedIn={Boolean(page.user)}
+        authorBio={page.value.authorBio}
+        isSelf={Boolean(page.user && page.user.id === page.value.authorId)}
+        locale={page.locale}
+        window={page.value.window}
+      />
+    ) : (
+      <PageState
+        image={page.site.defaults.emptyImage}
+        error
+        title={copy.state.notFoundTitle}
+        message={copy.state.notFoundMessage}
+        retry="`/pages/${Astro.params.slug}/`"
+        retryLabel={copy.common.retry}
+      />
+    )
+  }
+</AppShell>

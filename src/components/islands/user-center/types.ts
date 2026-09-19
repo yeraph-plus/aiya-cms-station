@@ -1,0 +1,45 @@
+// Shared prop types for the UserCenter island. Copy strings are assembled
+// server-side from the i18n dictionaries (AppShell) and passed down — the
+// island never reads the dictionaries itself.
+export interface UserCenterUser {
+  nickname: string;
+  avatarUrl: string | null;
+  roleLabel: string;
+  /** Public profile route key (/profile/{slug}/). */
+  slug: string;
+  email: string;
+}
+
+export interface UserCenterCopy {
+  login: string;
+  register: string;
+  logout: string;
+  /** /profile/me/ entry (user center). */
+  profile: string;
+  favorites: string;
+  followingTitle: string;
+  accountSettings: string;
+  emailLabel: string;
+  passwordLabel: string;
+  passwordConfirmLabel: string;
+  nicknameLabel: string;
+  authFailed: string;
+  forgotPassword: string;
+  /** Prebuilt greeting with the site name. */
+  welcome: string;
+  remember: string;
+  switchToRegisterHint: string;
+  switchToLoginHint: string;
+  notifications: string;
+  notificationsLoading: string;
+  notificationsEmpty: string;
+  notificationsError: string;
+}
+
+export type AuthMode = 'login' | 'register';
+
+/** Best-effort upstream answer of the /api/auth proxies. */
+export interface AuthResponse {
+  ok?: boolean;
+  message?: string;
+}

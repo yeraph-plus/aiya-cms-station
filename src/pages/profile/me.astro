@@ -1,0 +1,166 @@
+---
+/**
+ * Own account overview (Bearer session read): the /users/me entry. Second
+ * level is the UserHub island (收藏 / 关注 / 设置 tabs) — islands only for
+ * user-interactive surfaces. Guests are redirected home.
+ */
+import AppShell from '@/components/layout/AppShell.astro';
+import Icon from '@/components/layout/Icon.astro';
+import ProfileCard from '@/components/content/ProfileCard.astro';
+import UserHub from '@/components/islands/user-center/UserHub';
+import { displayDate } from '@/lib/format';
+import { rewriteMediaUrl } from '@/lib/media';
+import { t } from '@/lib/i18n';
+import { loadPage } from '@/lib/page.server';
+import { setCrumbs } from '@/lib/breadcrumbs';
+import { readSessionToken } from '@/lib/aiya/session';
+
+if (!readSessionToken(Astro.cookies)) {
+  return Astro.redirect('/');
+}
+
+const page = await loadPage(async (client) => {
+  const [me, favorites, following, followers] = await Promise.all([
+    client.me(),
+    client.myFavorites({ page: 1, perPage: 10 }),
+    client.following({ page: 1, perPage: 12 }),
+    client.followers({ page: 1, perPage: 12 }),
+  ]);
+  return {
+    user: me.data,
+    favorites: favorites.data,
+    following: following.data,
+    followers: followers.data,
+  };
+}, Astro.cookies);
+if (!page.ok) Astro.response.status = page.error.status;
+const copy = t(page.locale);
+if (page.ok) setCrumbs(Astro.locals, page.locale, [{ label: page.value.user.nickname }]);
+const noindex = !page.ok || page.degraded;
+
+const hubFavorites = page.ok
+  ? page.value.favorites.map((f) => ({
+      id: f.id,
+      title: f.title,
+      url: f.url,
+      date: f.publishedAt ? displayDate(f.publishedAt, page.locale) : '',
+      thumbUrl: f.thumbnail ? rewriteMediaUrl(f.thumbnail.url) : null,
+    }))
+  : [];
+const hubFollowing = page.ok
+  ? page.value.following.map((a) => ({
+      slug: a.slug,
+      name: a.name,
+      avatarUrl: a.avatar ? rewriteMediaUrl(a.avatar.url) : null,
+    }))
+  : [];
+const hubFollowers = page.ok
+  ? page.value.followers.map((a) => ({
+      slug: a.slug,
+      name: a.name,
+      avatarUrl: a.avatar ? rewriteMediaUrl(a.avatar.url) : null,
+    }))
+  : [];
+const settingsCopy = {
+  avatarTitle: copy.settings.avatarTitle,
+  changeAvatar: copy.settings.changeAvatar,
+  removeAvatar: copy.settings.removeAvatar,
+  profileTitle: copy.settings.profileTitle,
+  nicknameLabel: copy.shell.nicknameLabel,
+  descriptionLabel: copy.settings.descriptionLabel,
+  urlLabel: copy.settings.urlLabel,
+  localeLabel: copy.settings.localeLabel,
+  emailLabel: copy.shell.emailLabel,
+  currentPasswordLabel: copy.settings.currentPasswordLabel,
+  currentPasswordHint: copy.settings.currentPasswordHint,
+  passwordTitle: copy.settings.passwordTitle,
+  newPasswordLabel: copy.settings.newPasswordLabel,
+  passwordConfirmLabel: copy.shell.passwordConfirmLabel,
+  save: copy.settings.save,
+  saved: copy.settings.saved,
+  passwordSaved: copy.settings.passwordSaved,
+  authFailed: copy.shell.authFailed,
+};
+const initialTab =
+  Astro.url.searchParams.get('tab') === 'following'
+    ? 'following'
+    : Astro.url.searchParams.get('tab') === 'followers'
+      ? 'followers'
+      : Astro.url.searchParams.get('tab') === 'settings'
+        ? 'settings'
+        : 'favorites';
+---
+
+<AppShell
+  page={page}
+  title={page.ok ? page.value.user.nickname : copy.state.notFoundTitle}
+  description={copy.profile.overviewDescription}
+  canonicalPath="/profile/"
+  noindex={noindex}
+>
+  {
+    page.ok && (
+      <>
+        <ProfileCard
+          name={page.value.user.nickname}
+          avatarUrl={
+            page.value.user.avatar.url ? rewriteMediaUrl(page.value.user.avatar.url) : null
+          }
+          roleLabel={copy.shell.roleLabels[page.value.user.role]}
+          bio={page.value.user.description}
+          id={page.value.user.id}
+          registeredAt={page.value.user.registeredAt}
+          locale={page.locale}
+          stats={page.value.user.stats}
+          class="mb-8"
+        >
+          <Fragment slot="actions">
+            {page.value.user.slug && (
+              <a
+                href={`/profile/${page.value.user.slug}/`}
+                class="inline-flex items-center gap-1.5 rounded-md border border-border bg-surface px-4 py-2 text-sm text-foreground hover:border-body-muted"
+              >
+                <Icon name="externalLink" size={14} />
+                {copy.profile.publicProfile}
+              </a>
+            )}
+          </Fragment>
+        </ProfileCard>
+
+        <UserHub
+          client:load
+          favorites={hubFavorites}
+          following={hubFollowing}
+          followers={hubFollowers}
+          settings={{
+            user: {
+              nickname: page.value.user.nickname,
+              email: page.value.user.email,
+              url: page.value.user.url,
+              description: page.value.user.description,
+              locale: page.value.user.locale,
+              avatarUrl: page.value.user.avatar.url
+                ? rewriteMediaUrl(page.value.user.avatar.url)
+                : null,
+            },
+            copy: settingsCopy,
+            localeOptions: [
+              { value: 'zh_CN', label: '简体中文' },
+              { value: 'zh_TW', label: '繁體中文' },
+              { value: 'zh_HK', label: '繁體中文（香港）' },
+              { value: 'en_US', label: 'English' },
+            ],
+            locale: page.locale,
+          }}
+          tabFavorites={copy.profile.tabFavorites}
+          tabFollowing={copy.profile.tabFollowing}
+          tabFollowers={copy.profile.tabFollowers}
+          tabSettings={copy.profile.tabSettings}
+          emptyText={copy.profile.favoritesEmpty}
+          followersEmpty={copy.profile.followersEmpty}
+          initialTab={initialTab}
+        />
+      </>
+    )
+  }
+</AppShell>

@@ -1,0 +1,94 @@
+---
+/**
+ * Public profile (anonymous read): the account card plus the owner's
+ * published articles, filtered by the profile slug (user_nicename) —
+ * WP author-archive style. The follow toggle is the one island here.
+ */
+import AppShell from '@/components/layout/AppShell.astro';
+import PageState from '@/components/layout/PageState.astro';
+import PostLoop from '@/components/islands/feed/PostLoop';
+import FollowButton from '@/components/islands/user-center/FollowButton';
+import ProfileCard from '@/components/content/ProfileCard.astro';
+import { displayDate } from '@/lib/format';
+import { cloakPostSummaryMedia, rewriteMediaUrl } from '@/lib/media';
+import { AiyaApiError } from '@/lib/aiya/errors';
+import { t } from '@/lib/i18n';
+import { loadPage } from '@/lib/page.server';
+
+const slug = (Astro.params.slug ?? '').slice(0, 100);
+
+const sort = Astro.url.searchParams.get('sort') === 'oldest' ? 'oldest' : 'newest';
+if (!/^[a-z0-9_-]+$/.test(slug)) {
+  return Astro.redirect('/');
+}
+const page = await loadPage(async (client) => {
+  // /profile/me/ is the reserved account route; a nicename can never claim it.
+  if (slug === 'me') throw new AiyaApiError('http', 404, undefined, 'aiya_not_found');
+  const profile = await client.profile(slug);
+  const posts = await client.posts({ author: slug, page: 1, perPage: 12, sort });
+  return { profile: profile.data, posts: posts.data, postsPagination: posts.meta.pagination };
+}, Astro.cookies);
+if (!page.ok) Astro.response.status = page.error.status;
+const copy = t(page.locale);
+const profile = page.ok ? page.value.profile : null;
+---
+
+<AppShell
+  page={page}
+  title={profile ? profile.name : copy.state.notFoundTitle}
+  description={profile ? profile.bio : copy.state.notFoundMessage}
+  canonicalPath={profile ? `/profile/${profile.slug}/` : `/profile/${Astro.params.slug}/`}
+  noindex={!page.ok}
+>
+  {
+    page.ok && profile ? (
+      <div class="flex flex-col gap-8">
+        <ProfileCard
+          name={profile.name}
+          avatarUrl={profile.avatar ? rewriteMediaUrl(profile.avatar.url) : null}
+          roleLabel={copy.shell.roleLabels[profile.role]}
+          extraBadge={profile.membership.status === 'active' ? copy.profile.sponsorBadge : ''}
+          bio={profile.bio}
+          id={profile.id}
+          registeredAt={profile.joinedAt}
+          locale={page.locale}
+          stats={profile.stats}
+        >
+          <Fragment slot="actions">
+            <FollowButton
+              client:load
+              userId={profile.id}
+              copy={{
+                follow: copy.profile.follow,
+                unfollow: copy.profile.unfollow,
+                loginToFollow: copy.profile.loginToFollow,
+              }}
+            />
+          </Fragment>
+        </ProfileCard>
+
+        <section>
+          <h2 class="mb-3 font-display text-lg font-semibold text-foreground">
+            {copy.profile.articlesTitle}
+          </h2>
+          <PostLoop
+            client:load
+            endpoint="/api/feed/posts/"
+            items={page.value.posts.map(cloakPostSummaryMedia)}
+            pagination={page.value.postsPagination}
+            page={1}
+            query={{ author: profile.slug, sort }}
+            route={{
+              index: `/profile/${profile.slug}/`,
+              pagePattern: `/profile/${profile.slug}/page/{page}/`,
+              carry: ['sort'],
+            }}
+            emptyText={copy.profile.articlesEmpty}
+            errorText={copy.state.backendMessage}
+            locale={page.locale}
+          />
+        </section>
+      </div>
+    ) : null
+  }
+</AppShell>

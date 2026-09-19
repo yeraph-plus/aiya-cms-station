@@ -1,0 +1,29 @@
+---
+import { iconInner } from '@/lib/icons';
+
+interface Props {
+  /** Lucide icon name — kebab-case, camelCase or PascalCase all resolve. */
+  name: string;
+  size?: number;
+  strokeWidth?: number;
+  class?: string;
+}
+const { name, size = 16, strokeWidth = 2, class: className } = Astro.props;
+// Unknown names fall back to the chevron; the shell svg owns sizing and
+// stroke attributes, the inner markup inherits both.
+const inner = iconInner(name) ?? iconInner('chevron-right');
+---
+
+<svg
+  width={size}
+  height={size}
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width={strokeWidth}
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  class={className}
+  aria-hidden="true"
+  set:html={inner}
+/>

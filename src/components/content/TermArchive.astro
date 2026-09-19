@@ -1,0 +1,80 @@
+---
+/**
+ * Term archive body for the nested /{base}/(category|tag)/[slug]/ routes.
+ * Pure renderer — all resolution (page fetch, status codes, breadcrumbs,
+ * titles) happens in loadTermArchive(), which must run in PAGE frontmatter
+ * for the status assignments to apply.
+ */
+import AppShell from '@/components/layout/AppShell.astro';
+import PageState from '@/components/layout/PageState.astro';
+import PostLoop from '@/components/islands/feed/PostLoop';
+import { cloakPostSummaryMedia } from '@/lib/media';
+import { t } from '@/lib/i18n';
+import type { TermArchiveView } from '@/lib/archive';
+
+interface Props {
+  view: TermArchiveView;
+  /** The wrapper renders its own visible header (with the h1) — the
+      built-in sr-only title would duplicate it. */
+  hideTitle?: boolean;
+}
+
+const { view, hideTitle = false } = Astro.props;
+const { page, pageNumber, archiveBase, pagePattern, feed, filter, title, emptyText, locale } =
+  view;
+const copy = t(locale);
+const showList = page.ok && !(pageNumber > 1 && pageNumber > page.value.pagination.totalPages);
+// Tag archives are thin content by nature — never indexed.
+const noindex = !page.ok || !showList || 'tag' in filter;
+const metaDescription = page.ok ? view.description || page.site.description : page.site.description;
+---
+
+<AppShell
+  page={page}
+  title={title}
+  description={page.site.description}
+  canonicalPath={pageNumber === 1 ? archiveBase : `${archiveBase}page/${pageNumber}/`}
+  noindex={noindex}
+  description={metaDescription}
+>
+  {
+    page.ok ? (
+      showList ? (
+        <>
+          {pageNumber === 1 && !hideTitle && <h1 class="sr-only">{title}</h1>}
+          <slot />
+          <PostLoop
+            client:load
+            endpoint={feed}
+            items={page.value.items.map(cloakPostSummaryMedia)}
+            pagination={page.value.pagination}
+            page={pageNumber}
+            query={filter}
+            route={{ index: archiveBase, pagePattern, carry: ['sort'] }}
+            emptyText={emptyText}
+            errorText={copy.state.backendMessage}
+            locale={page.locale}
+          />
+        </>
+      ) : (
+        <PageState
+          image={page.site.defaults.emptyImage}
+          error
+          title={copy.state.notFoundTitle}
+          message={copy.state.notFoundMessage}
+          retry={archiveBase}
+          retryLabel={copy.common.retry}
+        />
+      )
+    ) : (
+      <PageState
+        image={page.site.defaults.emptyImage}
+        error
+        title={page.error.title}
+        message={page.error.message}
+        retry={archiveBase}
+        retryLabel={copy.common.retry}
+      />
+    )
+  }
+</AppShell>

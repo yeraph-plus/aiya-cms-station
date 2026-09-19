@@ -1,0 +1,57 @@
+---
+/**
+ * Page list (/pages/): page-type entries share the post projection, so the
+ * PostLoop island serves this route exactly like /posts/ (sort select in
+ * the toolbar, auto-load appends the next page).
+ */
+import AppShell from '@/components/layout/AppShell.astro';
+import PageState from '@/components/layout/PageState.astro';
+import PostLoop from '@/components/islands/feed/PostLoop';
+import { cloakPostSummaryMedia } from '@/lib/media';
+import { t } from '@/lib/i18n';
+import { loadPage } from '@/lib/page.server';
+import { setCrumbs } from '@/lib/breadcrumbs';
+
+const page = await loadPage(async (client) => {
+  const list = await client.pages();
+  return { pages: list.data.map(cloakPostSummaryMedia), pagination: list.meta.pagination };
+}, Astro.cookies);
+if (!page.ok) Astro.response.status = page.error.status;
+const copy = t(page.locale);
+if (page.ok) setCrumbs(Astro.locals, page.locale, [{ label: copy.pages.title }]);
+---
+
+<AppShell
+  page={page}
+  title={copy.pages.title}
+  description={copy.pages.description}
+  canonicalPath="/pages/"
+>
+  <h1 class="sr-only">{copy.pages.title}</h1>
+  {
+    page.ok ? (
+      <PostLoop
+        client:load
+        endpoint="/api/feed/pages/"
+        items={page.value.pages}
+        pagination={page.value.pagination}
+        page={1}
+        query={{}}
+        route={{ index: '/pages/' }}
+        autoLoad
+        emptyText={copy.pages.listEmpty}
+        errorText={copy.state.backendMessage}
+        locale={page.locale}
+      />
+    ) : (
+      <PageState
+        image={page.site.defaults.emptyImage}
+        error
+        title={page.error.title}
+        message={page.error.message}
+        retry="/pages/"
+        retryLabel={copy.common.retry}
+      />
+    )
+  }
+</AppShell>

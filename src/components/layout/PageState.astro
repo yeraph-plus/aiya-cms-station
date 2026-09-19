@@ -1,0 +1,65 @@
+---
+/**
+ * Empty/error card in the shadcn Empty look (dashed border, media slot,
+ * action with icon). The media is the site-configured placeholder image
+ * (defaults.emptyImage) with an icon fallback. `retry` is a link target:
+ * "/" renders the back-home icon, anything else the retry icon.
+ */
+import Icon from '@/components/layout/Icon.astro';
+import { rewriteMediaUrl } from '@/lib/media';
+
+interface Props {
+  title: string;
+  message?: string;
+  error?: boolean;
+  /** Site placeholder image DTO (defaults.emptyImage), or null for icon. */
+  image?: { url: string; alt: string } | null;
+  retry?: string;
+  retryLabel?: string;
+}
+const { title, message = '', error = false, image = null, retry, retryLabel } = Astro.props;
+const imageUrl = image ? rewriteMediaUrl(image.url) : null;
+const retryIcon = retry === '/' ? 'house' : 'rotateCcw';
+---
+
+<div
+  class="flex min-h-[75vh] min-w-0 flex-1 flex-col items-center justify-center gap-6 rounded-lg border border-dashed border-border bg-surface px-6 py-14 text-center text-balance"
+>
+  {
+    imageUrl ? (
+      <img
+        src={imageUrl}
+        alt=""
+        class="max-h-40 w-auto max-w-full sm:max-w-sm rounded-md"
+        loading="lazy"
+      />
+    ) : (
+      <div
+        class:list={[
+          'flex size-10 shrink-0 items-center justify-center rounded-lg bg-secondary',
+          error ? 'text-error' : 'text-body-muted',
+        ]}
+        aria-hidden="true"
+      >
+        <Icon name={error ? 'triangleAlert' : 'inbox'} size={24} />
+      </div>
+    )
+  }
+  <div class="flex max-w-sm flex-col items-center gap-2 text-center">
+    <p class:list={['text-lg font-medium', error ? 'text-error' : 'text-foreground']}>{title}</p>
+    {message && <p class="text-sm leading-relaxed text-body-muted">{message}</p>}
+  </div>
+  {
+    retry && retryLabel && (
+      <div class="flex w-full max-w-sm flex-col items-center gap-2 sm:flex-row sm:justify-center">
+        <a
+          href={retry}
+          class="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-focus-blue"
+        >
+          <Icon name={retryIcon} size={16} />
+          {retryLabel}
+        </a>
+      </div>
+    )
+  }
+</div>

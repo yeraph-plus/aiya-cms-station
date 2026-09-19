@@ -1,0 +1,131 @@
+---
+/**
+ * Horizontal identity card shared by /profile/me/ and /profile/{slug}/.
+ * The oversized avatar floats half above the card's top-left corner.
+ * Top row: info (name + badges + ID/join date on one line, then the bio —
+ * a placeholder shows when it is empty), then the three counters (posts /
+ * followers / favorited) and the page's action in one vertically-centered
+ * group at the far right — no divider row.
+ */
+import { displayDate } from '@/lib/format';
+import { rewriteMediaUrl } from '@/lib/media';
+import { t } from '@/lib/i18n';
+import type { Locale } from '@/lib/i18n/locale';
+import type { ProfileStats } from '@/lib/aiya/contracts';
+
+interface Props {
+  name: string;
+  /** Avatar media-cloaked URL, or null for the initial-letter fallback. */
+  avatarUrl: string | null;
+  roleLabel: string;
+  /** Second badge (sponsor), rendered in the accent style. */
+  extraBadge?: string;
+  bio?: string;
+  id: number;
+  /** ISO registration timestamp; formatted with the page locale. */
+  registeredAt: string;
+  locale: Locale;
+  stats?: ProfileStats | null;
+  class?: string;
+}
+const {
+  name,
+  avatarUrl,
+  roleLabel,
+  extraBadge = '',
+  bio = '',
+  id,
+  registeredAt,
+  locale,
+  stats = null,
+  class: className = '',
+} = Astro.props;
+const copy = t(locale);
+const paddedId = String(id).padStart(5, '0');
+---
+
+<section
+  class:list={[
+    'relative mt-20 rounded-xl border border-border bg-surface p-6 pt-24 sm:p-6 sm:pl-[176px]',
+    className,
+  ]}
+>
+  <div class="absolute -top-16 left-6 size-32">
+    {
+      avatarUrl ? (
+        <img
+          src={rewriteMediaUrl(avatarUrl)}
+          alt={name}
+          width={128}
+          height={128}
+          class="size-32 rounded-full border-4 border-background object-cover shadow-md"
+        />
+      ) : (
+        <span
+          aria-hidden="true"
+          class="flex size-32 items-center justify-center rounded-full border-4 border-background bg-secondary text-4xl font-semibold text-foreground"
+        >
+          {name.slice(0, 1)}
+        </span>
+      )
+    }
+  </div>
+
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-center">
+    <div class="flex min-w-0 flex-1 flex-col gap-1.5">
+      <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <h1 class="font-display text-2xl font-semibold tracking-tight text-foreground">{name}</h1>
+        <span class="rounded-full bg-secondary px-2.5 py-0.5 text-xs text-body-muted">
+          {roleLabel}
+        </span>
+        {
+          extraBadge !== '' && (
+            <span class="rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-primary">
+              {extraBadge}
+            </span>
+          )
+        }
+        <span class="text-xs text-body-muted">ID {paddedId}</span>
+        <span class="text-xs text-body-muted">
+          {copy.profile.joined}
+          {displayDate(registeredAt, locale)}
+        </span>
+      </div>
+      <p
+        class:list={[
+          'line-clamp-2 text-sm',
+          bio !== '' ? 'text-body-muted' : 'italic text-body-muted/60',
+        ]}
+      >
+        {bio !== '' ? bio : copy.profile.bioPlaceholder}
+      </p>
+    </div>
+    {
+      stats && (
+        <dl class="flex shrink-0 items-center gap-6">
+          <div class="text-center">
+            <dt class="text-xs text-body-muted">{copy.profile.statsPosts}</dt>
+            <dd class="font-display text-lg font-semibold leading-tight text-foreground">
+              {stats.contributions}
+            </dd>
+          </div>
+          <div class="text-center">
+            <dt class="text-xs text-body-muted">{copy.profile.statsFollowers}</dt>
+            <dd class="font-display text-lg font-semibold leading-tight text-foreground">
+              {stats.followers}
+            </dd>
+          </div>
+          <div class="text-center">
+            <dt class="text-xs text-body-muted">{copy.profile.statsFavorited}</dt>
+            <dd class="font-display text-lg font-semibold leading-tight text-foreground">
+              {stats.favorites}
+            </dd>
+          </div>
+        </dl>
+      )
+    }
+    <div class="flex shrink-0 items-center gap-2">
+      <slot name="actions" />
+    </div>
+  </div>
+</section>

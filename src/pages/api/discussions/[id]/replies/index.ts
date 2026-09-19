@@ -1,0 +1,41 @@
+import type { APIRoute } from 'astro';
+import { errorCode, errorStatus, jsonResponse } from '@/lib/api-auth';
+import { authClient, serverClient } from '@/lib/aiya/server';
+import { readSessionToken } from '@/lib/aiya/session';
+import { cloakReply } from '@/lib/community';
+
+/** GET /api/discussions/{id}/replies/: public paged reply list; the island
+    fetches these lazily when a thread's reply section expands. */
+export const GET: APIRoute = async ({ params, url }) => {
+  const id = Number(params.id);
+  if (!Number.isInteger(id) || id < 1) return jsonResponse({ ok: false }, 400);
+  const pageNum = Math.max(1, Number(url.searchParams.get('page') ?? 1) || 1);
+  try {
+    const result = await serverClient().discussionReplies(id, pageNum);
+    return jsonResponse({
+      ok: true,
+      items: result.data.map(cloakReply),
+      pagination: result.meta.pagination,
+    });
+  } catch (error) {
+    return jsonResponse({ ok: false, code: errorCode(error) }, errorStatus(error));
+  }
+};
+
+/** POST /api/discussions/{id}/replies/: login-only flat reply. */
+export const POST: APIRoute = async ({ cookies, params, request }) => {
+  const id = Number(params.id);
+  if (!Number.isInteger(id) || id < 1) return jsonResponse({ ok: false }, 400);
+  const token = readSessionToken(cookies);
+  if (!token) return jsonResponse({ ok: false }, 401);
+  const body = (await request.json().catch(() => null)) as { content?: unknown } | null;
+  if (!body || typeof body.content !== 'string' || body.content.trim() === '') {
+    return jsonResponse({ ok: false }, 400);
+  }
+  try {
+    const result = await authClient(token).addDiscussionReply(id, body.content);
+    return jsonResponse({ ok: true, reply: cloakReply(result.data) });
+  } catch (error) {
+    return jsonResponse({ ok: false, code: errorCode(error) }, errorStatus(error));
+  }
+};

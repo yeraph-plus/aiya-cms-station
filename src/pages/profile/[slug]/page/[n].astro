@@ -1,0 +1,92 @@
+---
+/** Author archive pagination: /profile/{slug}/page/[n]/ (n ≥ 2). */
+import AppShell from '@/components/layout/AppShell.astro';
+import Breadcrumb from '@/components/layout/Breadcrumb.astro';
+import PageState from '@/components/layout/PageState.astro';
+import PostLoop from '@/components/islands/feed/PostLoop';
+import { cloakPostSummaryMedia, rewriteMediaUrl } from '@/lib/media';
+import { AiyaApiError } from '@/lib/aiya/errors';
+import { t } from '@/lib/i18n';
+import { loadPage } from '@/lib/page.server';
+import { setCrumbs } from '@/lib/breadcrumbs';
+
+const slug = (Astro.params.slug ?? '').slice(0, 100);
+
+const sort = Astro.url.searchParams.get('sort') === 'oldest' ? 'oldest' : 'newest';
+const n = Number(Astro.params.n);
+if (!/^[a-z0-9_-]+$/.test(slug) || !Number.isInteger(n) || n < 2) {
+  return Astro.redirect(`/profile/${slug}/`);
+}
+
+const page = await loadPage(async (client) => {
+  // /profile/me/ is the reserved account route; a nicename can never claim it.
+  if (slug === 'me') throw new AiyaApiError('http', 404, undefined, 'aiya_not_found');
+  const profile = await client.profile(slug);
+  const posts = await client.posts({ author: slug, page: n, perPage: 12, sort });
+  return { profile: profile.data, posts: posts.data, postsPagination: posts.meta.pagination };
+}, Astro.cookies);
+if (!page.ok) Astro.response.status = page.error.status;
+const overRange = page.ok && n > page.value.postsPagination.totalPages;
+if (overRange) Astro.response.status = 404;
+const copy = t(page.locale);
+if (page.ok)
+  setCrumbs(Astro.locals, page.locale, [
+    { label: page.value.profile.name },
+    { label: copy.profile.articlesTitle },
+  ]);
+const showList = page.ok && !overRange;
+---
+
+<AppShell
+  page={page}
+  title={page.ok
+    ? `${page.value.profile.name} · ${copy.profile.articlesTitle}`
+    : copy.state.notFoundTitle}
+  description={page.site.description}
+  canonicalPath={`/profile/${slug}/page/${n}/`}
+  noindex={overRange}
+>
+  {
+    page.ok ? (
+      showList ? (
+        <>
+          <h1 class="sr-only">{page.value.profile.name}</h1>
+          <PostLoop
+            client:load
+            endpoint="/api/feed/posts/"
+            items={page.value.posts.map(cloakPostSummaryMedia)}
+            pagination={page.value.postsPagination}
+            page={n}
+            query={{ author: slug, sort }}
+            route={{
+              index: `/profile/${slug}/`,
+              pagePattern: `/profile/${slug}/page/{page}/`,
+              carry: ['sort'],
+            }}
+            emptyText={copy.profile.articlesEmpty}
+            errorText={copy.state.backendMessage}
+            locale={page.locale}
+          />
+        </>
+      ) : (
+        <PageState
+          image={page.site.defaults.emptyImage}
+          error
+          title={copy.state.notFoundTitle}
+          message={copy.state.notFoundMessage}
+          retry={`/profile/${slug}/`}
+          retryLabel={copy.common.retry}
+        />
+      )
+    ) : (
+      <PageState
+        image={page.site.defaults.emptyImage}
+        error
+        title={page.error.title}
+        message={page.error.message}
+        retry={`/profile/${slug}/page/${n}/`}
+        retryLabel={copy.common.retry}
+      />
+    )
+  }
+</AppShell>

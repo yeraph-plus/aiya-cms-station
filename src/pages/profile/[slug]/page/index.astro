@@ -1,0 +1,5 @@
+---
+// Page-number-less shape: bounce to the profile root.
+const slug = Astro.params.slug ?? '';
+return Astro.redirect(`/profile/${slug}/`);
+---

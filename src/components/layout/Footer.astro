@@ -1,0 +1,103 @@
+---
+/**
+ * Footer, Empty-style layout: left column = secondary menu line + fixed
+ * copyright line; right column = compliance links (one per line, icon per
+ * template from the backend repeater); last line = a random hitokoto
+ * sentence when the switch is on. No border, no background fill.
+ */
+import Icon from '@/components/layout/Icon.astro';
+import { rewriteMediaUrl } from '@/lib/media';
+import hitokotoData from '../../data/hitokoto.json';
+import type { MenuItem, Site } from '@/lib/aiya/contracts';
+
+interface Props {
+  site: Site;
+  /** Secondary menu group — the footer navigation. */
+  footerMenu: MenuItem[];
+}
+const { site, footerMenu } = Astro.props;
+
+const year = new Date().getFullYear();
+const hitokotoEnabled = site.footer.hitokoto && hitokotoData.length > 0;
+const sentence = hitokotoEnabled
+  ? hitokotoData[Math.floor(Math.random() * hitokotoData.length)]
+  : null;
+---
+
+<footer>
+  <div class="mx-auto w-full max-w-[1510px] px-4 pb-24 pt-6 min-[992px]:pb-8">
+    <div
+      class="flex flex-col gap-6 min-[992px]:flex-row min-[992px]:items-start min-[992px]:justify-between"
+    >
+      {
+        sentence ? (
+          <p class="text-sm text-body-muted">
+            「{sentence.hitokoto}」
+            {sentence.author && <span class="ml-1">—— {sentence.author}</span>}
+          </p>
+        ) : (
+          <span />
+        )
+      }
+      {
+        site.footer.links.length > 0 && (
+          <ul class="flex flex-col gap-1.5">
+            {site.footer.links.map((link) => (
+              <li>
+                <a
+                  href={link.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  class="inline-flex items-center gap-1.5 text-sm text-body-muted hover:text-foreground"
+                >
+                  {link.icon === 'shield' && <Icon name="shield" size={16} />}
+                  {link.icon === 'police' && (
+                    <img
+                      src="https://www.beian.gov.cn/img/ghs.png"
+                      alt=""
+                      width={16}
+                      height={16}
+                      loading="lazy"
+                    />
+                  )}
+                  {link.icon === 'custom' && link.iconUrl !== '' && (
+                    <img
+                      src={rewriteMediaUrl(link.iconUrl)}
+                      alt=""
+                      width={16}
+                      height={16}
+                      loading="lazy"
+                    />
+                  )}
+                  {link.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        )
+      }
+    </div>
+
+    <div
+      class="mt-6 flex flex-col gap-2 min-[992px]:flex-row min-[992px]:items-center min-[992px]:justify-between"
+    >
+      {
+        footerMenu.length > 0 && (
+          <nav aria-label="footer" class="flex flex-wrap items-center gap-x-5 gap-y-1">
+            {footerMenu.map((item) => (
+              <a
+                href={item.url}
+                target={item.target === 'blank' ? '_blank' : undefined}
+                rel={item.target === 'blank' ? 'noreferrer' : undefined}
+                class="text-sm text-foreground hover:text-primary"
+              >
+                {item.label}
+              </a>
+            ))}
+          </nav>
+        )
+      }
+      <p class="text-sm text-body-muted">Copyright © {year} AIYA CMS. All rights reserved.</p>
+    </div>
+  </div>
+</footer>

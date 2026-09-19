@@ -1,0 +1,904 @@
+{
+    "contractVersion": "1",
+    "dtos": {
+        "Attachment": [
+            {
+                "name": "name",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "size",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "type",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "modified",
+                "type": "string",
+                "nullable": true
+            },
+            {
+                "name": "url",
+                "type": "string",
+                "nullable": true
+            },
+            {
+                "name": "ready",
+                "type": "bool",
+                "nullable": false
+            }
+        ],
+        "AuthSession": [
+            {
+                "name": "token",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "expiresAt",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "user",
+                "type": "UserProfile",
+                "nullable": false
+            }
+        ],
+        "Author": [
+            {
+                "name": "id",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "slug",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "name",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "avatar",
+                "type": "Image",
+                "nullable": true
+            }
+        ],
+        "AvatarImage": [
+            {
+                "name": "url",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "thumbUrl",
+                "type": "string",
+                "nullable": false
+            }
+        ],
+        "Breadcrumb": [
+            {
+                "name": "label",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "url",
+                "type": "string",
+                "nullable": true
+            }
+        ],
+        "Discussion": [
+            {
+                "name": "id",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "url",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "title",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "board",
+                "type": "DiscussionBoard",
+                "nullable": true
+            },
+            {
+                "name": "status",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "author",
+                "type": "Author",
+                "nullable": false
+            },
+            {
+                "name": "postRef",
+                "type": "PostRef",
+                "nullable": true
+            },
+            {
+                "name": "replies",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "tags",
+                "type": "array",
+                "nullable": false
+            },
+            {
+                "name": "images",
+                "type": "array",
+                "nullable": false
+            },
+            {
+                "name": "lastReplyAt",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "publishedAt",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "canEdit",
+                "type": "bool",
+                "nullable": false
+            },
+            {
+                "name": "canDelete",
+                "type": "bool",
+                "nullable": false
+            },
+            {
+                "name": "canReply",
+                "type": "bool",
+                "nullable": false
+            }
+        ],
+        "DiscussionDetail": [
+            {
+                "name": "id",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "url",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "title",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "board",
+                "type": "DiscussionBoard",
+                "nullable": true
+            },
+            {
+                "name": "status",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "author",
+                "type": "Author",
+                "nullable": false
+            },
+            {
+                "name": "postRef",
+                "type": "PostRef",
+                "nullable": true
+            },
+            {
+                "name": "replies",
+                "type": "array",
+                "nullable": false
+            },
+            {
+                "name": "tags",
+                "type": "array",
+                "nullable": false
+            },
+            {
+                "name": "images",
+                "type": "array",
+                "nullable": false
+            },
+            {
+                "name": "lastReplyAt",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "publishedAt",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "canEdit",
+                "type": "bool",
+                "nullable": false
+            },
+            {
+                "name": "canDelete",
+                "type": "bool",
+                "nullable": false
+            },
+            {
+                "name": "canReply",
+                "type": "bool",
+                "nullable": false
+            },
+            {
+                "name": "content",
+                "type": "object",
+                "nullable": false
+            }
+        ],
+        "DiscussionReply": [
+            {
+                "name": "id",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "author",
+                "type": "Author",
+                "nullable": false
+            },
+            {
+                "name": "content",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "publishedAt",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "canDelete",
+                "type": "bool",
+                "nullable": false
+            }
+        ],
+        "Image": [
+            {
+                "name": "url",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "alt",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "width",
+                "type": "int",
+                "nullable": true
+            },
+            {
+                "name": "height",
+                "type": "int",
+                "nullable": true
+            }
+        ],
+        "Membership": [
+            {
+                "name": "status",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "renewsAt",
+                "type": "string",
+                "nullable": true
+            }
+        ],
+        "MenuItem": [
+            {
+                "name": "id",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "label",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "url",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "target",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "icon",
+                "type": "string",
+                "nullable": true
+            },
+            {
+                "name": "children",
+                "type": "array",
+                "nullable": false
+            }
+        ],
+        "Notification": [
+            {
+                "name": "id",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "type",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "title",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "body",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "createdAt",
+                "type": "string",
+                "nullable": false
+            }
+        ],
+        "Pagination": [
+            {
+                "name": "page",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "perPage",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "totalItems",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "totalPages",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "hasNext",
+                "type": "bool",
+                "nullable": false
+            },
+            {
+                "name": "hasPrevious",
+                "type": "bool",
+                "nullable": false
+            }
+        ],
+        "PostDetail": [
+            {
+                "name": "id",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "slug",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "url",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "type",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "title",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "excerpt",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "publishedAt",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "updatedAt",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "readingMinutes",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "thumbnail",
+                "type": "Image",
+                "nullable": true
+            },
+            {
+                "name": "author",
+                "type": "Author",
+                "nullable": false
+            },
+            {
+                "name": "categories",
+                "type": "array",
+                "nullable": false
+            },
+            {
+                "name": "tags",
+                "type": "array",
+                "nullable": false
+            },
+            {
+                "name": "metrics",
+                "type": "PostMetrics",
+                "nullable": false
+            },
+            {
+                "name": "content",
+                "type": "object",
+                "nullable": false
+            },
+            {
+                "name": "featured",
+                "type": "Image",
+                "nullable": true
+            },
+            {
+                "name": "seo",
+                "type": "Seo",
+                "nullable": false
+            },
+            {
+                "name": "breadcrumbs",
+                "type": "array",
+                "nullable": false
+            },
+            {
+                "name": "previous",
+                "type": "PostSummary",
+                "nullable": true
+            },
+            {
+                "name": "next",
+                "type": "PostSummary",
+                "nullable": true
+            }
+        ],
+        "PostMetrics": [
+            {
+                "name": "views",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "likes",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "comments",
+                "type": "int",
+                "nullable": false
+            }
+        ],
+        "PostRef": [
+            {
+                "name": "id",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "type",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "title",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "url",
+                "type": "string",
+                "nullable": false
+            }
+        ],
+        "PostSummary": [
+            {
+                "name": "id",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "slug",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "url",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "type",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "title",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "excerpt",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "publishedAt",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "updatedAt",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "readingMinutes",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "thumbnail",
+                "type": "Image",
+                "nullable": true
+            },
+            {
+                "name": "author",
+                "type": "Author",
+                "nullable": false
+            },
+            {
+                "name": "categories",
+                "type": "array",
+                "nullable": false
+            },
+            {
+                "name": "tags",
+                "type": "array",
+                "nullable": false
+            },
+            {
+                "name": "metrics",
+                "type": "PostMetrics",
+                "nullable": false
+            }
+        ],
+        "Profile": [
+            {
+                "name": "id",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "slug",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "name",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "role",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "avatar",
+                "type": "Image",
+                "nullable": true
+            },
+            {
+                "name": "bio",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "joinedAt",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "stats",
+                "type": "ProfileStats",
+                "nullable": false
+            },
+            {
+                "name": "membership",
+                "type": "Membership",
+                "nullable": false
+            },
+            {
+                "name": "favorites",
+                "type": "array",
+                "nullable": false
+            }
+        ],
+        "ProfileStats": [
+            {
+                "name": "favorites",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "contributions",
+                "type": "int",
+                "nullable": false
+            }
+        ],
+        "Seo": [
+            {
+                "name": "title",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "description",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "noindex",
+                "type": "bool",
+                "nullable": false
+            }
+        ],
+        "Site": [
+            {
+                "name": "name",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "description",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "language",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "timezone",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "favicon",
+                "type": "Image",
+                "nullable": true
+            },
+            {
+                "name": "registrationOpen",
+                "type": "bool",
+                "nullable": false
+            },
+            {
+                "name": "defaults",
+                "type": "SiteDefaults",
+                "nullable": false
+            },
+            {
+                "name": "footer",
+                "type": "SiteFooter",
+                "nullable": false
+            }
+        ],
+        "SiteDefaults": [
+            {
+                "name": "colorMode",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "thumb",
+                "type": "Image",
+                "nullable": true
+            },
+            {
+                "name": "emptyImage",
+                "type": "Image",
+                "nullable": true
+            },
+            {
+                "name": "theme",
+                "type": "SiteTheme",
+                "nullable": false
+            }
+        ],
+        "SiteFooter": [
+            {
+                "name": "links",
+                "type": "array",
+                "nullable": false
+            },
+            {
+                "name": "hitokoto",
+                "type": "bool",
+                "nullable": false
+            }
+        ],
+        "SiteTheme": [
+            {
+                "name": "primary",
+                "type": "string",
+                "nullable": false
+            }
+        ],
+        "Term": [
+            {
+                "name": "id",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "taxonomy",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "slug",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "name",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "description",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "parentId",
+                "type": "int",
+                "nullable": true
+            },
+            {
+                "name": "count",
+                "type": "int",
+                "nullable": false
+            }
+        ],
+        "UserProfile": [
+            {
+                "name": "id",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "username",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "slug",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "nickname",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "email",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "url",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "description",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "locale",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "registeredAt",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "role",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "avatar",
+                "type": "AvatarImage",
+                "nullable": false
+            }
+        ],
+        "BeianLink": [
+            {
+                "name": "label",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "url",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "icon",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "iconUrl",
+                "type": "string",
+                "nullable": false
+            }
+        ]
+    }
+}

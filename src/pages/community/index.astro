@@ -1,0 +1,11 @@
+---
+import CommunityBoardPage from '@/components/content/CommunityBoardPage.astro';
+import { loadCommunityBoard } from '@/lib/community-board';
+
+const view = await loadCommunityBoard(Astro.response, Astro.url, Astro.cookies, Astro.locals, {
+  boardSlug: '',
+  page: 1,
+});
+---
+
+<CommunityBoardPage view={view} />

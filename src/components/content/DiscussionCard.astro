@@ -1,0 +1,72 @@
+---
+import Icon from '@/components/layout/Icon.astro';
+import { displayDate } from '@/lib/format';
+import type { Discussion } from '@/lib/aiya/contracts';
+import { t, type Locale } from '@/lib/i18n';
+
+interface Props {
+  discussion: Discussion;
+  locale: Locale;
+}
+const { discussion, locale } = Astro.props;
+const copy = t(locale);
+const statusLabels: Record<Discussion['status'], string> = {
+  open: copy.community.status_open,
+  closed: copy.community.status_closed,
+};
+
+const statusDot: Record<Discussion['status'], string> = {
+  open: 'bg-focus-blue',
+  closed: 'bg-body-muted/40',
+};
+const activity = discussion.lastReplyAt || discussion.publishedAt;
+// Untitled threads fall back to a plain-text excerpt of the body.
+const excerpt =
+  discussion.contentHtml
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 80) || '…';
+---
+
+<article
+  class="rounded-lg border border-border bg-surface p-4 transition-colors hover:border-body-muted"
+>
+  <div class="flex flex-wrap items-center gap-2">
+    {
+      discussion.board && (
+        <span class="rounded-full bg-secondary px-2 py-0.5 text-xs text-foreground">
+          {discussion.board.name}
+        </span>
+      )
+    }
+    <span class="inline-flex items-center gap-1.5 text-xs text-body-muted">
+      <span class:list={['size-1.5 rounded-full', statusDot[discussion.status]]} aria-hidden="true"
+      ></span>
+      {statusLabels[discussion.status]}
+    </span>
+    {
+      discussion.postRef && (
+        <a
+          href={discussion.postRef.url}
+          class="max-w-[14rem] truncate rounded-full border border-border px-2 py-0.5 text-xs text-body-muted hover:text-foreground"
+          title={discussion.postRef.title}
+        >
+          {copy.community.relatedPost}: {discussion.postRef.title}
+        </a>
+      )
+    }
+  </div>
+  <h2 class="mt-2 truncate font-display text-base font-semibold text-foreground">
+    {discussion.title !== '' ? discussion.title : excerpt}
+  </h2>
+  <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-body-muted">
+    <span>{discussion.author.name}</span>
+    {discussion.tags.map((tag) => <span>#{tag}</span>)}
+    {activity && <span>{displayDate(activity, locale)}</span>}
+    <span class="inline-flex items-center gap-1">
+      <Icon name="messageCircle" size={13} />
+      {discussion.replies}
+    </span>
+  </div>
+</article>

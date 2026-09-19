@@ -1,0 +1,80 @@
+---
+/** Page list pagination: /pages/page/[n]/ (n ≥ 2). */
+import AppShell from '@/components/layout/AppShell.astro';
+import PageState from '@/components/layout/PageState.astro';
+import PostLoop from '@/components/islands/feed/PostLoop';
+import { cloakPostSummaryMedia } from '@/lib/media';
+import { t } from '@/lib/i18n';
+import { loadPage } from '@/lib/page.server';
+import { setCrumbs } from '@/lib/breadcrumbs';
+
+const n = Number(Astro.params.n);
+// Page 1 lives at /pages/; anything non-numeric 404s via the loader below.
+if (!Number.isInteger(n) || n < 2) {
+  return Astro.redirect('/pages/');
+}
+
+const page = await loadPage(async (client) => {
+  const list = await client.pages({ page: n });
+  return { pages: list.data.map(cloakPostSummaryMedia), pagination: list.meta.pagination };
+}, Astro.cookies);
+if (!page.ok) Astro.response.status = page.error.status;
+const overRange = page.ok && n > page.value.pagination.totalPages;
+if (overRange) Astro.response.status = 404;
+const copy = t(page.locale);
+if (page.ok)
+  setCrumbs(Astro.locals, page.locale, [
+    { label: copy.pages.title, href: '/pages/' },
+    { label: copy.pages.pageOf(n) },
+  ]);
+const showList = page.ok && !overRange;
+---
+
+<AppShell
+  page={page}
+  title={copy.pages.pageOf(n)}
+  description={copy.pages.description}
+  canonicalPath={`/pages/page/${n}/`}
+  noindex={overRange}
+>
+  {
+    page.ok ? (
+      showList ? (
+        <>
+          <h1 class="sr-only">{copy.pages.pageOf(n)}</h1>
+          <PostLoop
+            client:load
+            endpoint="/api/feed/pages/"
+            items={page.value.pages}
+            pagination={page.value.pagination}
+            page={n}
+            query={{}}
+            route={{ index: '/pages/', pagePattern: '/pages/page/{page}/' }}
+            autoLoad
+            emptyText={copy.pages.listEmpty}
+            errorText={copy.state.backendMessage}
+            locale={page.locale}
+          />
+        </>
+      ) : (
+        <PageState
+          image={page.site.defaults.emptyImage}
+          error
+          title={copy.state.notFoundTitle}
+          message={copy.state.notFoundMessage}
+          retry="/pages/"
+          retryLabel={copy.common.retry}
+        />
+      )
+    ) : (
+      <PageState
+        image={page.site.defaults.emptyImage}
+        error
+        title={page.error.title}
+        message={page.error.message}
+        retry={`/pages/page/${n}/`}
+        retryLabel={copy.common.retry}
+      />
+    )
+  }
+</AppShell>

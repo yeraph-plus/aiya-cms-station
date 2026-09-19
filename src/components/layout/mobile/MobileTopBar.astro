@@ -1,0 +1,32 @@
+---
+/**
+ * @pending 992px 以下移动端壳——待就绪：当前只迭代桌面布局，移动端仅保证可用性并显示提示条。
+ */
+import UserCenter from '@/components/islands/UserCenter';
+import type { UserCenterCopy, UserCenterUser } from '@/components/islands/user-center/types';
+
+interface Props {
+  siteName: string;
+  user: UserCenterUser | null;
+  authCopy: UserCenterCopy;
+  registrationOpen: boolean;
+  /** BCP 47 tag forwarded to the notification bubble for date formatting. */
+  localeTag: string;
+}
+const { siteName, user, authCopy, registrationOpen, localeTag } = Astro.props;
+---
+
+<header
+  class="sticky top-0 z-30 flex h-14 min-[992px]:hidden items-center justify-between border-b border-border bg-surface px-4"
+>
+  <a href="/" class="font-display text-lg font-semibold tracking-tight text-foreground">
+    {siteName}
+  </a>
+  <UserCenter
+    client:load
+    user={user}
+    registrationOpen={registrationOpen}
+    copy={authCopy}
+    localeTag={localeTag}
+  />
+</header>

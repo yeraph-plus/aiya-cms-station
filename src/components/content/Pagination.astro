@@ -1,0 +1,43 @@
+---
+import type { Pagination } from '@/lib/aiya/contracts';
+
+interface Props {
+  pagination: Pick<Pagination, 'page' | 'totalPages' | 'hasNext' | 'hasPrevious'>;
+  href: (page: number) => string;
+  previousLabel: string;
+  nextLabel: string;
+}
+const { pagination, href, previousLabel, nextLabel } = Astro.props;
+---
+
+{
+  pagination.totalPages > 1 && (
+    <nav class="mt-6 flex items-center justify-between" aria-label="pagination">
+      {pagination.hasPrevious ? (
+        <a
+          href={href(pagination.page - 1)}
+          rel="prev"
+          class="rounded-md border border-border bg-surface px-3.5 py-2 text-sm text-foreground hover:border-body-muted"
+        >
+          ← {previousLabel}
+        </a>
+      ) : (
+        <span />
+      )}
+      <span class="text-xs text-body-muted">
+        {pagination.page} / {pagination.totalPages}
+      </span>
+      {pagination.hasNext ? (
+        <a
+          href={href(pagination.page + 1)}
+          rel="next"
+          class="rounded-md border border-border bg-surface px-3.5 py-2 text-sm text-foreground hover:border-body-muted"
+        >
+          {nextLabel} →
+        </a>
+      ) : (
+        <span />
+      )}
+    </nav>
+  )
+}

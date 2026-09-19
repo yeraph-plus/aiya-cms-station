@@ -1,0 +1,153 @@
+---
+/**
+ * Community surface body shared by /community/ and the board archives
+ * /community/board/[slug]/ — page 1 renders the board rail plus the
+ * CommunityFeed island, later pages render SSR cards with crawlable
+ * pagination links (the island only exists on page 1). Pure renderer:
+ * loadCommunityBoard() runs in PAGE frontmatter for the status assignments.
+ */
+import AppShell from '@/components/layout/AppShell.astro';
+import Icon from '@/components/layout/Icon.astro';
+import PageState from '@/components/layout/PageState.astro';
+import Pagination from '@/components/content/Pagination.astro';
+import DiscussionCard from '@/components/content/DiscussionCard.astro';
+import CommunityFeed from '@/components/islands/user-center/CommunityFeed';
+import { cloakDiscussion } from '@/lib/community';
+import { t } from '@/lib/i18n';
+import type { CommunityBoardView } from '@/lib/community-board';
+
+interface Props {
+  view: CommunityBoardView;
+}
+
+const { view } = Astro.props;
+const {
+  page,
+  pageNumber,
+  base,
+  title,
+  description,
+  noindex,
+  sort,
+  boardHref,
+  listHref,
+  canPost,
+} = view;
+const copy = t(page.locale);
+const overRange = page.ok && pageNumber > page.value.pagination.totalPages;
+const showList = page.ok && !overRange;
+// The rail highlights the board whose path we are on ('' for the all feed).
+const currentBoard = base === '/community/' ? '' : base.replace('/community/board/', '').replace(/\/+$/, '');
+
+const boardClass = (active: boolean) =>
+  `flex items-center justify-between gap-1.5 rounded-md px-2 py-1.5 text-sm whitespace-nowrap transition-colors ${
+    active
+      ? 'bg-primary font-medium text-primary-foreground'
+      : 'text-body-muted hover:bg-secondary/60 hover:text-foreground'
+  }`;
+const boardBadgeClass = (active: boolean) =>
+  `rounded-full px-1.5 text-[11px] leading-4 tabular-nums ${
+    active ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-secondary text-body-muted'
+  }`;
+---
+
+<AppShell
+  page={page}
+  title={title}
+  description={description}
+  canonicalPath={pageNumber === 1 ? base : `${base}page/${pageNumber}/`}
+  noindex={noindex}
+>
+  <h1 class="sr-only">{title}</h1>
+  {
+    page.ok ? (
+      pageNumber === 1 ? (
+        <div class="mx-auto flex w-full max-w-[760px] flex-col gap-5 sm:flex-row sm:gap-6">
+          <aside class="shrink-0 sm:w-28" aria-label={copy.community.boardFilter}>
+            <nav
+              class:list={[
+                'flex gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+                '-mx-4 px-4 py-0.5 sm:mx-0 sm:flex-col sm:gap-1 sm:px-0',
+              ]}
+            >
+              <a
+                href={boardHref('')}
+                aria-current={currentBoard === '' ? 'page' : undefined}
+                class:list={[boardClass(currentBoard === ''), 'shrink-0 sm:w-full']}
+              >
+                <span class="flex items-center gap-1 truncate">
+                  <Icon name="chevron-right" size={13} />
+                  {copy.community.all}
+                </span>
+              </a>
+              {page.value.boards.map((board) => (
+                <a
+                  href={boardHref(board.slug)}
+                  aria-current={board.slug === currentBoard ? 'page' : undefined}
+                  class:list={[boardClass(board.slug === currentBoard), 'shrink-0 sm:w-full']}
+                >
+                  <span class="flex items-center gap-1 truncate">
+                    <Icon name="chevron-right" size={13} />
+                    {board.name}
+                  </span>
+                  <span class:list={[boardBadgeClass(board.slug === currentBoard)]}>
+                    {board.threads}
+                  </span>
+                </a>
+              ))}
+            </nav>
+          </aside>
+
+          <div class="min-w-0 flex-1">
+            <CommunityFeed
+              client:load
+              initialThreads={page.value.list.map(cloakDiscussion)}
+              initialPagination={page.value.pagination}
+              boards={page.value.boards}
+              initialBoard={currentBoard}
+              canPost={canPost}
+              user={
+                page.user
+                  ? { name: page.user.nickname, avatarUrl: page.user.avatar?.url ?? null }
+                  : null
+              }
+              locale={page.locale}
+            />
+          </div>
+        </div>
+      ) : showList ? (
+        <>
+          <div class="mx-auto flex w-full max-w-[760px] flex-col gap-3">
+            {page.value.list.map((discussion) => (
+              <DiscussionCard discussion={discussion} locale={page.locale} />
+            ))}
+          </div>
+          <Pagination
+            pagination={page.value.pagination}
+            href={listHref}
+            previousLabel={copy.common.previousPage}
+            nextLabel={copy.common.nextPage}
+          />
+        </>
+      ) : (
+        <PageState
+          image={page.site.defaults.emptyImage}
+          error
+          title={copy.state.notFoundTitle}
+          message={copy.state.notFoundMessage}
+          retry={base}
+          retryLabel={copy.common.retry}
+        />
+      )
+    ) : (
+      <PageState
+        image={page.site.defaults.emptyImage}
+        error
+        title={page.error.title}
+        message={page.error.message}
+        retry="/community/"
+        retryLabel={copy.common.retry}
+      />
+    )
+  }
+</AppShell>

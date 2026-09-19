@@ -1,0 +1,111 @@
+---
+import UserCenter from '@/components/islands/UserCenter';
+import type { UserCenterCopy, UserCenterUser } from '@/components/islands/user-center/types';
+import Icon from '@/components/layout/Icon.astro';
+
+interface Props {
+  searchPlaceholder: string;
+  menuToggleLabel: string;
+  /** Aria/title copy for the color mode toggle (header-owned, not user center). */
+  colorModeLabel: string;
+  /** Label of the membership entry the header carries directly. */
+  membershipLabel: string;
+  registrationOpen: boolean;
+  /** BCP 47 tag forwarded to the notification bubble for date formatting. */
+  localeTag: string;
+  user: UserCenterUser | null;
+  authCopy: UserCenterCopy;
+}
+const {
+  searchPlaceholder,
+  menuToggleLabel,
+  colorModeLabel,
+  membershipLabel,
+  registrationOpen,
+  localeTag,
+  user,
+  authCopy,
+} = Astro.props;
+
+// The membership hub is a top-level destination, so it sits in the header
+// rather than the sidebar's content menu. Same active rule as the sidebar.
+const membershipActive = Astro.url.pathname.startsWith('/membership/');
+---
+
+<header
+  data-shell-header
+  class="relative z-30 flex h-12 shrink-0 items-center gap-2 px-3 max-[991px]:hidden"
+>
+  <button
+    type="button"
+    data-sidebar-toggle
+    aria-label={menuToggleLabel}
+    aria-controls="global-sidebar"
+    class="flex size-8 shrink-0 items-center justify-center rounded-md text-foreground hover:bg-secondary focus-visible:outline-2 focus-visible:outline-focus-blue"
+  >
+    <Icon name="menu" size={18} />
+  </button>
+  <form
+    action="/posts/"
+    method="get"
+    role="search"
+    class="relative hidden min-w-0 flex-1 min-[992px]:block"
+  >
+    <Icon
+      name="search"
+      size={16}
+      class="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-body-muted"
+    />
+    <input
+      type="search"
+      name="q"
+      placeholder={searchPlaceholder}
+      aria-label={searchPlaceholder}
+      class="h-9 w-full max-w-[20rem] rounded-md border border-transparent bg-foreground/10 pl-9 pr-4 text-sm outline-none transition-colors placeholder:text-body-muted focus:border-focus-blue"
+    />
+  </form>
+  <div class="ml-auto flex shrink-0 items-center gap-1.5">
+    <a
+      href="/membership/"
+      aria-current={membershipActive ? 'page' : undefined}
+      class:list={[
+        'flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-focus-blue',
+        membershipActive
+          ? 'bg-secondary font-medium text-primary'
+          : 'text-foreground hover:bg-secondary',
+      ]}
+    >
+      <Icon name="award" size={16} />
+      <span>{membershipLabel}</span>
+    </a>
+    <button
+      type="button"
+      data-color-toggle
+      aria-label={colorModeLabel}
+      title={colorModeLabel}
+      class="flex size-8 items-center justify-center rounded-md text-foreground hover:bg-secondary focus-visible:outline-2 focus-visible:outline-focus-blue"
+    >
+      <Icon name="moon" size={18} class="dark:hidden" />
+      <Icon name="sun" size={18} class="hidden dark:block" />
+    </button>
+    <UserCenter
+      client:load
+      user={user}
+      registrationOpen={registrationOpen}
+      localeTag={localeTag}
+      copy={authCopy}
+    />
+  </div>
+</header>
+
+<script>
+  // Color mode toggle, document-level so it survives ClientRouter swaps.
+  // The header itself is deliberately not sticky (2026-09-11 拍板): it and
+  // the banner underlaying it scroll away together.
+  document.addEventListener('click', (event) => {
+    if (!(event.target instanceof Element)) return;
+    if (!event.target.closest('[data-color-toggle]')) return;
+    const dark = document.documentElement.classList.toggle('dark');
+    localStorage.setItem('aiya-color-mode', dark ? 'dark' : 'light');
+  });
+</script>

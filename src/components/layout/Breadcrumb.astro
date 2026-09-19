@@ -1,0 +1,39 @@
+---
+/**
+ * Renders the registered breadcrumb trail (see lib/breadcrumbs.ts
+ * setCrumbs). Pages register in frontmatter; this component only reads —
+ * renders nothing when no trail was registered (e.g. the homepage).
+ */
+import Icon from '@/components/layout/Icon.astro';
+import type { Crumb } from '@/lib/breadcrumbs';
+
+const items = (Astro.locals.breadcrumbs ?? []) as Crumb[];
+---
+
+{
+  items.length > 0 && (
+    <nav aria-label="Breadcrumb" class="mb-5">
+      <ol class="flex flex-wrap items-center gap-1.5 break-words text-sm text-body-muted sm:items-center">
+        <li class="inline-flex items-center" aria-hidden="true">
+          <Icon name="send" size={14} class="text-body-muted/60" />
+        </li>
+        {items.map((item, index) => (
+          <li class="inline-flex items-center gap-1.5">
+            {index > 0 && <Icon name="chevronRight" size={14} class="text-body-muted/60" />}
+            {index < items.length - 1 && item.href ? (
+              <a href={item.href} class="transition-colors hover:text-foreground">
+                {item.label}
+              </a>
+            ) : index === items.length - 1 ? (
+              <span aria-current="page" class="font-normal text-foreground">
+                {item.label}
+              </span>
+            ) : (
+              <span class="font-normal text-foreground">{item.label}</span>
+            )}
+          </li>
+        ))}
+      </ol>
+    </nav>
+  )
+}

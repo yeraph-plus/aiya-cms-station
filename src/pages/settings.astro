@@ -1,0 +1,77 @@
+---
+/**
+ * Account settings (Bearer session read + island writes): basic profile,
+ * avatar and password over the /api/account proxies. Guests redirect home.
+ */
+import AppShell from '@/components/layout/AppShell.astro';
+import Breadcrumb from '@/components/layout/Breadcrumb.astro';
+import SettingsPanel from '@/components/islands/user-center/SettingsPanel';
+import { rewriteMediaUrl } from '@/lib/media';
+import { t } from '@/lib/i18n';
+import { loadPage } from '@/lib/page.server';
+import { setCrumbs } from '@/lib/breadcrumbs';
+import { readSessionToken } from '@/lib/aiya/session';
+
+if (!readSessionToken(Astro.cookies)) {
+  return Astro.redirect('/');
+}
+
+const page = await loadPage((client) => client.me(), Astro.cookies);
+if (!page.ok) Astro.response.status = page.error.status;
+const copy = t(page.locale);
+if (page.ok) setCrumbs(Astro.locals, page.locale, [{ label: copy.settings.title }]);
+const user = page.ok ? page.value.data : null;
+const localeOptions = [
+  { value: 'zh_CN', label: '简体中文' },
+  { value: 'zh_TW', label: '繁體中文' },
+  { value: 'zh_HK', label: '繁體中文（香港）' },
+  { value: 'en_US', label: 'English' },
+];
+---
+
+<AppShell
+  page={page}
+  title={copy.settings.title}
+  description={copy.settings.description}
+  canonicalPath="/settings/"
+  noindex
+>
+  <h1 class="sr-only">{copy.settings.title}</h1>
+  {
+    user && (
+      <SettingsPanel
+        client:load
+        locale={page.locale}
+        localeOptions={localeOptions}
+        user={{
+          nickname: user.nickname,
+          email: user.email,
+          url: user.url,
+          description: user.description,
+          locale: user.locale,
+          avatarUrl: user.avatar.url ? rewriteMediaUrl(user.avatar.url) : null,
+        }}
+        copy={{
+          avatarTitle: copy.settings.avatarTitle,
+          changeAvatar: copy.settings.changeAvatar,
+          removeAvatar: copy.settings.removeAvatar,
+          profileTitle: copy.settings.profileTitle,
+          nicknameLabel: copy.shell.nicknameLabel,
+          descriptionLabel: copy.settings.descriptionLabel,
+          urlLabel: copy.settings.urlLabel,
+          localeLabel: copy.settings.localeLabel,
+          emailLabel: copy.shell.emailLabel,
+          currentPasswordLabel: copy.settings.currentPasswordLabel,
+          currentPasswordHint: copy.settings.currentPasswordHint,
+          passwordTitle: copy.settings.passwordTitle,
+          newPasswordLabel: copy.settings.newPasswordLabel,
+          passwordConfirmLabel: copy.shell.passwordConfirmLabel,
+          save: copy.settings.save,
+          saved: copy.settings.saved,
+          passwordSaved: copy.settings.passwordSaved,
+          authFailed: copy.shell.authFailed,
+        }}
+      />
+    )
+  }
+</AppShell>
