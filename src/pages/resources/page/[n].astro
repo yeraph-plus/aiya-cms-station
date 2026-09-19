@@ -3,13 +3,13 @@
 import AppShell from '@/components/layout/AppShell.astro';
 import PageState from '@/components/layout/PageState.astro';
 import PostLoop from '@/components/islands/feed/PostLoop';
-import { cloakPostSummaryMedia, rewriteMediaUrl } from '@/lib/media';
+import { cloakPostSummaryMedia } from '@/lib/media';
 import { t } from '@/lib/i18n';
 import { loadPage } from '@/lib/page.server';
 import { setCrumbs } from '@/lib/breadcrumbs';
 
 const n = Number(Astro.params.n);
-// Page 1 lives at /resources/ (with the same query); anything non-numeric 404s.
+// Page 1 and non-numeric shapes live at /resources/ — bounce there (302).
 if (!Number.isInteger(n) || n < 2) {
   return Astro.redirect('/resources/');
 }
@@ -41,6 +41,7 @@ const canonical = (() => {
   const params = new URLSearchParams();
   if (q !== '') params.set('q', q);
   if (category !== '') params.set('category', category);
+  if (tag !== '') params.set('tag', tag);
   return `${base}?${params.toString()}`;
 })();
 ---
@@ -53,7 +54,7 @@ const canonical = (() => {
   noindex={filtered || overRange}
 >
   {
-    page.ok ? (
+    page.ok && (
       showList ? (
         <>
           <h1 class="sr-only">{listTitle}</h1>
@@ -85,15 +86,6 @@ const canonical = (() => {
           retryLabel={copy.common.retry}
         />
       )
-    ) : (
-      <PageState
-        image={page.site.defaults.emptyImage}
-        error
-        title={page.error.title}
-        message={page.error.message}
-        retry={`/resources/page/${n}/`}
-        retryLabel={copy.common.retry}
-      />
     )
   }
 </AppShell>

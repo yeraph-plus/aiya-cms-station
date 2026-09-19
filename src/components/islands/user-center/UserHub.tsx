@@ -59,7 +59,7 @@ export default function UserHub({
   tabSettings,
   initialTab = 'favorites',
 }: Props) {
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(settings.user.avatarUrl);
+  const [avatarUrl] = useState<string | null>(settings.user.avatarUrl);
   const settingsUser = { ...settings.user, avatarUrl };
 
   return (

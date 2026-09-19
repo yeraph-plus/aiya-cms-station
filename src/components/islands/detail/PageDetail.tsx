@@ -19,8 +19,6 @@ export default function PageDetail({
   commentsPagination,
   settings,
   loggedIn,
-  authorBio,
-  isSelf,
   locale,
   window,
 }: DetailShellProps & { window: CommentsWindow }) {

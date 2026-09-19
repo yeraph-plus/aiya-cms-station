@@ -36,7 +36,6 @@ const page = await loadPage(async (client) => {
 if (!page.ok) Astro.response.status = page.error.status;
 const copy = t(page.locale);
 if (page.ok) setCrumbs(Astro.locals, page.locale, [{ label: page.value.user.nickname }]);
-const noindex = !page.ok || page.degraded;
 
 const hubFavorites = page.ok
   ? page.value.favorites.map((f) => ({
@@ -95,8 +94,7 @@ const initialTab =
   page={page}
   title={page.ok ? page.value.user.nickname : copy.state.notFoundTitle}
   description={copy.profile.overviewDescription}
-  canonicalPath="/profile/"
-  noindex={noindex}
+  noindex
 >
   {
     page.ok && (

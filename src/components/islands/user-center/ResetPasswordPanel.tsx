@@ -88,7 +88,7 @@ export default function ResetPasswordPanel({ login, resetKey, locale, copy }: Pr
     })();
   }, [hasKey, login, resetKey]);
 
-  const submitRequest = async (event: React.FormEvent<HTMLFormElement>) => {
+  const submitRequest = async (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     setStatus('sending');
@@ -106,7 +106,7 @@ export default function ResetPasswordPanel({ login, resetKey, locale, copy }: Pr
     }
   };
 
-  const submitReset = async (event: React.FormEvent<HTMLFormElement>) => {
+  const submitReset = async (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     setStatus('saving');

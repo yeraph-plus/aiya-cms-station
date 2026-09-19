@@ -34,7 +34,7 @@ export default function ReplyComposer({ threadId, canReply, locale }: Props) {
     );
   }
 
-  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = async (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (content.trim() === '') return;
     setBusy(true);

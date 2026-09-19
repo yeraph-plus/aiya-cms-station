@@ -14,6 +14,8 @@ const zh_HK: Dictionary = {
     favoriteFailed: '收藏失敗，請稍後重試。',
     copy: '複製',
     copied: '已複製',
+    breadcrumb: '麵包屑導覽',
+    pagination: '分頁',
   },
   shell: {
     mobilePending: '流動裝置介面準備中，建議使用桌面瀏覽器訪問。',

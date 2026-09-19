@@ -5,7 +5,7 @@ export interface Crumb {
   href?: string;
 }
 
-type LocalsWithCrumbs = { breadcrumbs?: Crumb[] };
+type LocalsWithCrumbs = { breadcrumbs?: Crumb[]; breadcrumbsLabel?: string };
 
 /**
  * Registration-style breadcrumbs: a page declares its trail in frontmatter
@@ -17,4 +17,5 @@ type LocalsWithCrumbs = { breadcrumbs?: Crumb[] };
 export function setCrumbs(locals: LocalsWithCrumbs, locale: Locale, items: Crumb[]): void {
   const home: Crumb = { label: t(locale).common.home, href: '/' };
   locals.breadcrumbs = [home, ...items];
+  locals.breadcrumbsLabel = t(locale).common.breadcrumb;
 }

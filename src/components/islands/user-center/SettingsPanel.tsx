@@ -64,7 +64,7 @@ export default function SettingsPanel({ user, locale, localeOptions, copy }: Pro
     return errors[state] ?? copy.authFailed;
   };
 
-  const submitProfile = async (event: React.FormEvent<HTMLFormElement>) => {
+  const submitProfile = async (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     setProfileBusy(true);
@@ -104,7 +104,7 @@ export default function SettingsPanel({ user, locale, localeOptions, copy }: Pro
     }
   };
 
-  const submitPassword = async (event: React.FormEvent<HTMLFormElement>) => {
+  const submitPassword = async (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = event.currentTarget;
     const data = new FormData(form);

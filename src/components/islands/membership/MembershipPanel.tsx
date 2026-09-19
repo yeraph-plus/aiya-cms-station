@@ -303,7 +303,7 @@ export default function MembershipPanel({
     }
   };
 
-  const runRedeem = async (event: React.FormEvent<HTMLFormElement>) => {
+  const runRedeem = async (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     const code = String(data.get('code') ?? '').trim();

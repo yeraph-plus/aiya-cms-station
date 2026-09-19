@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { safeContent } from '@/lib/content';
 import { displayDate } from '@/lib/format';
-import { articleJsonLd, breadcrumbJsonLd, websiteJsonLd } from '@/lib/seo';
+import { articleJsonLd, breadcrumbJsonLd, robotsTxt, websiteJsonLd } from '@/lib/seo';
 
 const site = {
   name: 'AIYA',
@@ -116,5 +116,23 @@ describe('displayDate', () => {
     expect(displayDate('2026-09-09T10:00:00+08:00', 'zh_CN')).toBe('2026/09/09');
     expect(displayDate('2026-09-09T10:00:00+08:00', 'en_US')).toBe('09/09/2026');
     expect(displayDate('', 'zh_CN')).toBe('');
+  });
+});
+
+describe('robotsTxt', () => {
+  it('fails closed for an unreachable backend and advertises no sitemap', () => {
+    const body = robotsTxt(false);
+    expect(body).toBe('User-agent: *\nDisallow: /\n');
+  });
+
+  it('allows crawling with the API/query blacklists, AI groups and the sitemap pointer', () => {
+    const body = robotsTxt(true, 'https://aiya.example.com/sitemap.xml');
+    expect(body).toContain('Disallow: /api/');
+    expect(body).toContain('Disallow: /*?*');
+    expect(body).toContain('User-agent: GPTBot');
+    expect(body).toContain('User-agent: ClaudeBot');
+    expect(body).toContain('Sitemap: https://aiya.example.com/sitemap.xml');
+    // The pointer is a top-level record, not part of a user-agent group.
+    expect(body.includes('\n\nSitemap: ')).toBe(true);
   });
 });

@@ -591,6 +591,27 @@ export const termsResponseSchema = itemEnvelope(z.array(termSchema));
     hundreds of tokens do not ride every shell payload). */
 export const smiliesResponseSchema = itemEnvelope(z.array(smiliesPackSchema));
 export const postsResponseSchema = listEnvelope(postSummarySchema);
+/** One content type's slice of the grouped search answer (page one of its
+    relevance-ordered matches + the total for deep-linking into typed mode). */
+export const searchGroupSchema = z.object({
+  items: z.array(postSummarySchema),
+  total: count,
+});
+/** Grouped cross-type answer served when /search receives no `type`. */
+export const searchResultSchema = z.object({
+  posts: searchGroupSchema,
+  pages: searchGroupSchema,
+  resources: searchGroupSchema,
+});
+export const searchGroupedResponseSchema = itemEnvelope(searchResultSchema);
+/** With `type` present the endpoint answers the standard list shape —
+    reuse postsResponseSchema for that mode's parsing. */
+export const searchQuerySchema = z.object({
+  q: z.string().min(1).max(100),
+  type: z.enum(['post', 'page', 'resource']).optional(),
+  page: z.number().int().min(1).default(1),
+  perPage: z.number().int().min(1).max(50).default(10),
+});
 export const postResponseSchema = itemEnvelope(postDetailSchema);
 export const resourcesResponseSchema = postsResponseSchema;
 export const resourceResponseSchema = postResponseSchema;

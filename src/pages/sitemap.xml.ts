@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { serverClient, siteOrigin } from '@/lib/aiya/server';
 
-const STATIC_PATHS = ['/', '/posts/', '/resources/', '/community/'];
+const STATIC_PATHS = ['/', '/posts/', '/resources/', '/pages/', '/categories/', '/community/'];
 /** Runaway guard: at most 50 × 100 items per type. */
 const MAX_PAGES = 50;
 

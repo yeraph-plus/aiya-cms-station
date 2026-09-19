@@ -6,7 +6,6 @@
  * to the site default preview image when a term has none.
  */
 import AppShell from '@/components/layout/AppShell.astro';
-import PageState from '@/components/layout/PageState.astro';
 import CategoryCards, { type CategoryCardData } from '@/components/islands/CategoryCards';
 import { loadCategoriesIndex } from '@/lib/archive';
 import { iconInner } from '@/lib/icons';
@@ -47,7 +46,7 @@ const cards: CategoryCardData[] = page.ok
 <AppShell page={page} title={title} description={page.site.description} canonicalPath="/categories/">
   <h1 class="sr-only">{title}</h1>
   {
-    page.ok ? (
+    page.ok && (
       cards.length > 0 ? (
         <CategoryCards client:idle cards={cards} defaultCover={defaultCover} />
       ) : (
@@ -55,15 +54,6 @@ const cards: CategoryCardData[] = page.ok
           {copy.categories.empty}
         </p>
       )
-    ) : (
-      <PageState
-        image={page.site.defaults.emptyImage}
-        error
-        title={page.error.title}
-        message={page.error.message}
-        retry="/categories/"
-        retryLabel={copy.common.retry}
-      />
     )
   }
 </AppShell>

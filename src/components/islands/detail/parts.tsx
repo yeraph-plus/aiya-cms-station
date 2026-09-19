@@ -7,7 +7,6 @@ import 'yet-another-react-lightbox/styles.css';
 import {
   CalendarIcon,
   DownloadIcon,
-  LoaderCircleIcon,
   NewspaperIcon,
   EyeIcon,
   HeartIcon,
@@ -27,7 +26,6 @@ import UnlockGate from '@/components/islands/UnlockGate';
 import { safeContent } from '@/lib/content';
 import { iconInner } from '@/lib/icons';
 import { displayDate } from '@/lib/format';
-import { rewriteMediaUrl } from '@/lib/media';
 import { t, type Locale } from '@/lib/i18n';
 import type {
   Comment,
@@ -88,7 +86,7 @@ export function MetaRow({
     <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 text-xs ${muted}`}>
       {post.author.avatar ? (
         <img
-          src={rewriteMediaUrl(post.author.avatar.url)}
+          src={post.author.avatar.url}
           alt={post.author.name}
           width={22}
           height={22}
@@ -289,7 +287,7 @@ export function ArticleHeader({
           <>
             {/* In flow, so the block keeps the backend's 1000x240 hero ratio. */}
             <img
-              src={rewriteMediaUrl(hero.url)}
+              src={hero.url}
               alt={hero.alt}
               width={hero.width ?? 1000}
               height={hero.height ?? 240}
@@ -600,7 +598,7 @@ export function PrevNextNav({ post, locale }: { post: PostDetail; locale: Locale
       <a href={item.url} rel={rel} className="flex items-center gap-3 p-3">
         {item.thumbnail ? (
           <img
-            src={rewriteMediaUrl(item.thumbnail.url)}
+            src={item.thumbnail.url}
             alt=""
             width={96}
             height={54}
@@ -649,7 +647,7 @@ export function RelatedList({ related, locale }: { related: PostSummary[]; local
           <a key={item.id} href={item.url} className="group flex items-start gap-3">
             {item.thumbnail ? (
               <img
-                src={rewriteMediaUrl(item.thumbnail.url)}
+                src={item.thumbnail.url}
                 alt=""
                 width={96}
                 height={56}
@@ -705,7 +703,7 @@ export function AuthorCard({
       <div className="flex items-center gap-3">
         {post.author.avatar ? (
           <img
-            src={rewriteMediaUrl(post.author.avatar.url)}
+            src={post.author.avatar.url}
             alt={post.author.name}
             width={48}
             height={48}
@@ -789,7 +787,7 @@ export function AttachmentPanel({
           <span className="flex-none text-xs text-body-muted">{sizeText(file.size)}</span>
           {file.url ? (
             <a
-              href={rewriteMediaUrl(file.url)}
+              href={file.url}
               className="flex-none rounded bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
               download
             >

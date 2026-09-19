@@ -5,7 +5,6 @@
  * the toolbar, auto-load appends the next page).
  */
 import AppShell from '@/components/layout/AppShell.astro';
-import PageState from '@/components/layout/PageState.astro';
 import PostLoop from '@/components/islands/feed/PostLoop';
 import { cloakPostSummaryMedia } from '@/lib/media';
 import { t } from '@/lib/i18n';
@@ -29,7 +28,7 @@ if (page.ok) setCrumbs(Astro.locals, page.locale, [{ label: copy.pages.title }])
 >
   <h1 class="sr-only">{copy.pages.title}</h1>
   {
-    page.ok ? (
+    page.ok && (
       <PostLoop
         client:load
         endpoint="/api/feed/pages/"
@@ -37,20 +36,11 @@ if (page.ok) setCrumbs(Astro.locals, page.locale, [{ label: copy.pages.title }])
         pagination={page.value.pagination}
         page={1}
         query={{}}
-        route={{ index: '/pages/' }}
+        route={{ index: '/pages/', pagePattern: '/pages/page/{page}/' }}
         autoLoad
         emptyText={copy.pages.listEmpty}
         errorText={copy.state.backendMessage}
         locale={page.locale}
-      />
-    ) : (
-      <PageState
-        image={page.site.defaults.emptyImage}
-        error
-        title={page.error.title}
-        message={page.error.message}
-        retry="/pages/"
-        retryLabel={copy.common.retry}
       />
     )
   }

@@ -1,6 +1,5 @@
 ---
 import AppShell from '@/components/layout/AppShell.astro';
-import PageState from '@/components/layout/PageState.astro';
 import ResourceDetail from '@/components/islands/detail/ResourceDetail';
 import { cloakPostSummaryMedia, rewriteMediaUrl } from '@/lib/media';
 import { articleJsonLd, breadcrumbJsonLd } from '@/lib/seo';
@@ -8,7 +7,7 @@ import { siteOrigin } from '@/lib/aiya/server';
 import { t } from '@/lib/i18n';
 import { loadPage } from '@/lib/page.server';
 import { setCrumbs } from '@/lib/breadcrumbs';
-import { detailSlug } from '@/lib/detail';
+import { cloakPostDetail, detailSlug } from '@/lib/detail';
 
 const slug = detailSlug(Astro.params.slug);
 if (slug === '') {
@@ -29,7 +28,9 @@ const page = await loadPage(async (client, site) => {
     ? await client.profile(detail.data.author.slug).catch(() => null)
     : null;
   return {
-    post: detail.data,
+    // Cloak before the island sees it: media URLs and body HTML cross the
+    // single-origin boundary here (lib/detail.ts), not in the browser.
+    post: cloakPostDetail(detail.data),
     comments: comments?.data ?? [],
     commentsPagination: comments?.meta.pagination ?? null,
     related: related.data.map(cloakPostSummaryMedia),
@@ -76,16 +77,7 @@ const noindex = !page.ok || Boolean(post?.seo.noindex);
   jsonLd={jsonLd}
 >
   {
-    !page.ok ? (
-      <PageState
-        image={page.site.defaults.emptyImage}
-        error
-        title={page.error.title}
-        message={page.error.message}
-        retry="`/resources/${Astro.params.slug}/`"
-        retryLabel={copy.common.retry}
-      />
-    ) : post ? (
+    page.ok && post && (
       <ResourceDetail
         client:load
         post={post}
@@ -99,15 +91,6 @@ const noindex = !page.ok || Boolean(post?.seo.noindex);
         loggedIn={Boolean(page.user)}
         locale={page.locale}
         window={page.value.window}
-      />
-    ) : (
-      <PageState
-        image={page.site.defaults.emptyImage}
-        error
-        title={copy.state.notFoundTitle}
-        message={copy.state.notFoundMessage}
-        retry="`/resources/${Astro.params.slug}/`"
-        retryLabel={copy.common.retry}
       />
     )
   }

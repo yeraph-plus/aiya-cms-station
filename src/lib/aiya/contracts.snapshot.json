@@ -1043,6 +1043,35 @@
                 "nullable": false
             }
         ],
+        "SearchGroup": [
+            {
+                "name": "items",
+                "type": "array",
+                "nullable": false
+            },
+            {
+                "name": "total",
+                "type": "int",
+                "nullable": false
+            }
+        ],
+        "SearchResult": [
+            {
+                "name": "posts",
+                "type": "SearchGroup",
+                "nullable": false
+            },
+            {
+                "name": "pages",
+                "type": "SearchGroup",
+                "nullable": false
+            },
+            {
+                "name": "resources",
+                "type": "SearchGroup",
+                "nullable": false
+            }
+        ],
         "Seo": [
             {
                 "name": "title",

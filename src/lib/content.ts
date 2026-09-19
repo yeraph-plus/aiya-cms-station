@@ -75,7 +75,7 @@ export function safeContent(html: string): string {
           decoding: 'async',
         },
       }),
-      a: (tagName, attribs) => ({
+      a: (_tagName, attribs) => ({
         tagName: 'a',
         attribs: { ...attribs, href: rewriteMediaUrl(attribs.href ?? '') },
       }),
@@ -125,7 +125,7 @@ export function sanitizeDiscussionHtml(html: string): string {
     allowedSchemesByTag: { img: ['https', 'http'] },
     allowProtocolRelative: false,
     transformTags: {
-      a: (tagName, attribs) => ({
+      a: (_tagName, attribs) => ({
         tagName: 'a',
         attribs: { ...attribs, href: rewriteMediaUrl(attribs.href ?? '') },
       }),
@@ -139,8 +139,13 @@ export function sanitizeDiscussionHtml(html: string): string {
         },
       }),
     },
+    // Content images stay stripped (the grid renders them) — only images
+    // that point at the single-origin media proxy survive, which covers the
+    // backend's smilies (their src is rewritten by the transform above).
+    // The `aiya-smilie` class alone is not trusted: a crafted
+    // `class="aiya-smilie"` must not smuggle a remote pixel through.
     exclusiveFilter: (frame) =>
-      frame.tag === 'img' && !(frame.attribs.class ?? '').includes('aiya-smilie'),
+      frame.tag === 'img' && !(frame.attribs.src ?? '').startsWith('/media/'),
   });
 }
 
@@ -189,10 +194,12 @@ export function sanitizeCommentHtml(html: string): string {
     },
     exclusiveFilter: (frame) => {
       if (frame.tag !== 'img') return false;
-      const cls = frame.attribs.class ?? '';
-      // Backend-injected smilies always ride; uploaded comment images only
-      // when they land on the single-origin media proxy.
-      return !cls.includes('aiya-smilie') && !(frame.attribs.src ?? '').startsWith('/media/');
+      // Only images on the single-origin media proxy survive: the backend's
+      // smilies arrive already rewritten (transform above), and uploaded
+      // comment images are /media/ by contract. The `aiya-smilie` class
+      // alone is not trusted — a crafted class must not smuggle a remote
+      // tracking pixel through.
+      return !(frame.attribs.src ?? '').startsWith('/media/');
     },
   });
 }

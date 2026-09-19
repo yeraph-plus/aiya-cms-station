@@ -3,6 +3,7 @@ import { errorCode, errorStatus, jsonResponse } from '@/lib/api-auth';
 import { authClient, serverClient } from '@/lib/aiya/server';
 import { readSessionToken } from '@/lib/aiya/session';
 import { rewriteMediaUrl } from '@/lib/media';
+import { sanitizeCommentHtml } from '@/lib/content';
 
 /**
  * GET  /api/content/{id}/comments/: public paged list (approved only).
@@ -37,6 +38,10 @@ export const GET: APIRoute = async ({ params, url }) => {
           ...item.author,
           avatar: item.author.avatar ? rewriteMediaUrl(item.author.avatar) : null,
         },
+        // Body HTML is sanitized here, not in the browser: pages fetched
+        // beyond the SSR window cannot rewrite WP-origin smilies srcs (the
+        // client-side pass stays as defense in depth; it is idempotent).
+        bodyHtml: sanitizeCommentHtml(item.bodyHtml),
       })),
       pagination: result.meta.pagination,
     });

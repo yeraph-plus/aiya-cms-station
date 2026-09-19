@@ -6,6 +6,8 @@ declare global {
     interface Locals {
       /** Per-request breadcrumb trail; populated by pages via setCrumbs(). */
       breadcrumbs?: Crumb[];
+      /** Localized aria-label for the breadcrumb nav (set by setCrumbs). */
+      breadcrumbsLabel?: string;
     }
   }
 }

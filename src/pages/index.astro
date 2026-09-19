@@ -7,12 +7,11 @@
  * banner is a homepage-only decoration handled by AppShell.
  */
 import AppShell from '@/components/layout/AppShell.astro';
-import PageState from '@/components/layout/PageState.astro';
 import PostLoop from '@/components/islands/feed/PostLoop';
 import DiscussionCard from '@/components/content/DiscussionCard.astro';
 import { websiteJsonLd } from '@/lib/seo';
 import { siteOrigin } from '@/lib/aiya/server';
-import { cloakPostSummaryMedia, rewriteMediaUrl } from '@/lib/media';
+import { cloakPostSummaryMedia } from '@/lib/media';
 import { t } from '@/lib/i18n';
 import { loadPage } from '@/lib/page.server';
 
@@ -54,8 +53,9 @@ const jsonLd = page.ok ? [websiteJsonLd(page.site, origin)] : [];
   canonicalPath="/"
   jsonLd={jsonLd}
 >
+  <h1 class="sr-only">{page.site.name}</h1>
   {
-    page.ok ? (
+    page.ok && (
       <>
         {page.value.posts.ok && page.value.posts.items.length > 0 && (
           <section aria-labelledby="home-posts">
@@ -127,15 +127,6 @@ const jsonLd = page.ok ? [websiteJsonLd(page.site, origin)] : [];
           </section>
         )}
       </>
-    ) : (
-      <PageState
-        image={page.site.defaults.emptyImage}
-        error
-        title={page.error.title}
-        message={page.error.message}
-        retry="/"
-        retryLabel={copy.common.retry}
-      />
     )
   }
 </AppShell>

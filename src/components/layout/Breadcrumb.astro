@@ -8,11 +8,12 @@ import Icon from '@/components/layout/Icon.astro';
 import type { Crumb } from '@/lib/breadcrumbs';
 
 const items = (Astro.locals.breadcrumbs ?? []) as Crumb[];
+const navLabel = (Astro.locals.breadcrumbsLabel as string | undefined) ?? 'Breadcrumb';
 ---
 
 {
   items.length > 0 && (
-    <nav aria-label="Breadcrumb" class="mb-5">
+    <nav aria-label={navLabel} class="mb-5">
       <ol class="flex flex-wrap items-center gap-1.5 break-words text-sm text-body-muted sm:items-center">
         <li class="inline-flex items-center" aria-hidden="true">
           <Icon name="send" size={14} class="text-body-muted/60" />

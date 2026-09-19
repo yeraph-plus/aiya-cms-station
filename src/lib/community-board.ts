@@ -3,7 +3,6 @@ import type { Crumb } from '@/lib/breadcrumbs';
 import { setCrumbs } from '@/lib/breadcrumbs';
 import { AiyaApiError } from '@/lib/aiya/errors';
 import type { Discussion, DiscussionBoard, Pagination } from '@/lib/aiya/contracts';
-import type { Locale } from '@/lib/i18n';
 import { t } from '@/lib/i18n';
 import type { PageResult } from '@/lib/page.server';
 import { loadPage } from '@/lib/page.server';

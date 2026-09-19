@@ -42,7 +42,7 @@ export function AuthDialog({
     onModeChange(next);
   };
 
-  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = async (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (mode === null) return;
     const data = new FormData(event.currentTarget);

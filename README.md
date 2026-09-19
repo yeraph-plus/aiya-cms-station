@@ -75,8 +75,9 @@ SEO）、路由与请求器（pages/ → loadPage → HTTP 状态）全归 Astro
 | `/posts/{slug}/` `/resources/{slug}/` `/pages/{slug}/` 详情 | 正文 SSR（净化 HTML + 灯箱 class 注入）+ 交互岛：`LikeButton`（post/page）、`RatingRow`（resource）、`FavoriteButton`、`CommentSection`（关闭态内置）、`UnlockGate`（密码锁原位换内容）；上下篇仅 post；相关文章 SSR 列表；资源附件面板；可见性门禁（登录/会员）占位面板 |
 | `/categories/` `/categories/{slug}/` | `CategoryCards` 岛（汇总网格 + 详情页头复用） |
 | `/community/`（板块/首页） | `CommunityFeed` + 社区表单岛 |
-| `/profile/{slug}/` `/profile/me` `/settings` | `UserCenter` / `SettingsPanel` 等账号岛 |
-| 兜底 `/category/` `/tag/` 旧形态 | 302 派发壳（参数路由化后仅作重定向） |
+| `/profile/{slug}/` `/profile/me` `/settings` `/reset-password` | `UserCenter` / `SettingsPanel` / `ResetPasswordPanel` 等账号岛 |
+| `/membership/` | `MembershipPanel` 岛（档位定价/每日签到/积分账本/兑换/收银台） |
+| 旧 `/category/` `/tag/` 形态 | 已整树删除（404）——分类统一入口为一级路由 `/categories/`，标签过滤为列表页 `?tag=` 参数态 |
 
 详情页交互约定：评论关闭（后端 `commentsOpen=false`）时评论区渲染禁用态而非
 隐藏；锁文/门禁正文为空时评论一并隐藏（WP 语义：锁文评论读取 404）；密码

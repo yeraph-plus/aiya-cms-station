@@ -13,6 +13,8 @@ const en_US: Dictionary = {
     favoriteFailed: 'Could not save. Please try again later.',
     copy: 'Copy',
     copied: 'Copied',
+    breadcrumb: 'Breadcrumb',
+    pagination: 'Pagination',
   },
   shell: {
     mobilePending:

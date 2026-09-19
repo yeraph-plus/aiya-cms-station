@@ -32,7 +32,6 @@ const metaDescription = page.ok ? view.description || page.site.description : pa
 <AppShell
   page={page}
   title={title}
-  description={page.site.description}
   canonicalPath={pageNumber === 1 ? archiveBase : `${archiveBase}page/${pageNumber}/`}
   noindex={noindex}
   description={metaDescription}

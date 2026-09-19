@@ -6,13 +6,14 @@ interface Props {
   href: (page: number) => string;
   previousLabel: string;
   nextLabel: string;
+  ariaLabel?: string;
 }
-const { pagination, href, previousLabel, nextLabel } = Astro.props;
+const { pagination, href, previousLabel, nextLabel, ariaLabel = 'pagination' } = Astro.props;
 ---
 
 {
   pagination.totalPages > 1 && (
-    <nav class="mt-6 flex items-center justify-between" aria-label="pagination">
+    <nav class="mt-6 flex items-center justify-between" aria-label={ariaLabel}>
       {pagination.hasPrevious ? (
         <a
           href={href(pagination.page - 1)}

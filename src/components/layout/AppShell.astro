@@ -22,7 +22,7 @@ interface Props {
   page: PageResult;
   title: string;
   description: string;
-  canonicalPath: string;
+  canonicalPath?: string;
   noindex?: boolean;
   /** Absolute image URL for og:image (e.g. a post thumbnail). */
   image?: string | null;
@@ -162,7 +162,7 @@ const showBanner = bannerUrl !== null && isHome;
                 error
                 title={page.error.title}
                 message={page.error.message}
-                retry={canonicalPath}
+                retry={canonicalPath ?? '/'}
                 retryLabel={copy.common.retry}
               />
             )

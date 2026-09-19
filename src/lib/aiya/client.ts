@@ -58,6 +58,9 @@ import {
   resetValidatedSchema,
   afdianOrderUrlResponseSchema,
   redeemSchema,
+  searchGroupedResponseSchema,
+  searchQuerySchema,
+  searchResultSchema,
   sentResponseSchema,
   siteResponseSchema,
   smiliesResponseSchema,
@@ -299,6 +302,25 @@ export function createAiyaClient(options: ClientOptions) {
       return request('GET', `content/${id}/comments`, commentsResponseSchema, {
         query: commentsQuerySchema.parse(query),
       });
+    },
+    /** Cross-type search. Grouped answer (all three types, page one per
+        group) when `type` is absent; standard paged list for a single
+        type. Q shorter than 2 chars answers an empty payload. */
+    search: (query: z.input<typeof searchQuerySchema>) => {
+      const parsed = searchQuerySchema.parse(query);
+      const qp: Record<string, string | number | undefined> = {
+        q: parsed.q,
+        page: parsed.page,
+        perPage: parsed.perPage,
+        type: parsed.type,
+      };
+
+      return request(
+        'GET',
+        'search',
+        parsed.type === undefined ? searchGroupedResponseSchema : postsResponseSchema,
+        { query: qp },
+      );
     },
     notifications: () => request('GET', 'notifications', notificationsResponseSchema),
 

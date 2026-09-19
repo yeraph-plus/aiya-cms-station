@@ -11,7 +11,7 @@ interface Props {
   locale: Locale;
   /** Absolute http(s) origin, from siteOrigin(). */
   origin: string;
-  canonicalPath: string;
+  canonicalPath?: string;
   noindex?: boolean;
   /** Image URL for og:image / twitter:image (e.g. the post thumbnail);
       relative /media/ paths are absolutized against the site origin. */
@@ -33,7 +33,7 @@ const {
   ogType = 'website',
   jsonLd = [],
 } = Astro.props;
-const canonical = new URL(canonicalPath, origin).href;
+const canonical = canonicalPath !== undefined ? new URL(canonicalPath, origin).href : null;
 const robots = noindex ? 'noindex, nofollow' : 'index, follow';
 // Home passes an empty title: the document is just the site name.
 const fullTitle = title === '' ? site.name : `${title} · ${site.name}`;
@@ -55,7 +55,7 @@ const faviconHref = site.favicon ? rewriteMediaUrl(site.favicon.url) : '/favicon
   )
 }
 <meta name="robots" content={robots} />
-<link rel="canonical" href={canonical} />
+{canonical && <link rel="canonical" href={canonical} />}
 <link rel="icon" type="image/svg+xml" href={faviconHref} />
 <ClientRouter />
 {
@@ -82,7 +82,7 @@ const faviconHref = site.favicon ? rewriteMediaUrl(site.favicon.url) : '/favicon
 <meta property="og:title" content={fullTitle} />
 <meta property="og:description" content={description} />
 <meta property="og:type" content={ogType} />
-<meta property="og:url" content={canonical} />
+{canonical && <meta property="og:url" content={canonical} />}
 <meta property="og:locale" content={locale} />
 {imageUrl && <meta property="og:image" content={imageUrl} />}
 <meta name="twitter:card" content={imageUrl ? 'summary_large_image' : 'summary'} />
@@ -102,7 +102,11 @@ const faviconHref = site.favicon ? rewriteMediaUrl(site.favicon.url) : '/favicon
 {
   site.defaults.gaId !== '' && import.meta.env.PROD && (
     <>
-      <script async src={`https://www.googletagmanager.com/gtag/js?id=${site.defaults.gaId}`} />
+      <script
+        is:inline
+        async
+        src={`https://www.googletagmanager.com/gtag/js?id=${site.defaults.gaId}`}
+      />
       <script is:inline define:vars={{ gaId: site.defaults.gaId }}>
         window.dataLayer = window.dataLayer || [];
         function gtag() {

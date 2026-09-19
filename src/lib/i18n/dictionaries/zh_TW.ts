@@ -13,6 +13,8 @@ const zh_TW: Dictionary = {
     favoriteFailed: '收藏失敗，請稍後重試。',
     copy: '複製',
     copied: '已複製',
+    breadcrumb: '麵包屑導覽',
+    pagination: '分頁',
   },
   shell: {
     mobilePending: '行動裝置介面準備中，建議使用桌面瀏覽器存取。',

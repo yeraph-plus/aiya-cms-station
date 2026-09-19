@@ -16,11 +16,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import type { UserCenterCopy, UserCenterUser } from './types';
 
-interface Props {
-  user: UserCenterUser;
-  copy: UserCenterCopy;
-}
-
 /**
  * Avatar bubble: dropdown with the identity header (nickname + role badge,
  * email below) and the hub entries — every hub link lands on /profile/me/

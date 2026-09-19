@@ -16,6 +16,8 @@ const zh_CN = {
     favoriteFailed: '收藏失败，请稍后重试。',
     copy: '复制',
     copied: '已复制',
+    breadcrumb: '面包屑导航',
+    pagination: '分页',
   },
   shell: {
     mobilePending: '移动端界面准备中，建议使用桌面浏览器访问。',

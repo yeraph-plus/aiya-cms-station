@@ -951,7 +951,7 @@ export default function PostLoop({
         </p>
       )}
       {!autoLoad && state.pagination.totalPages > 1 && (
-        <PaginationRoot className="mt-8 text-xs">
+        <PaginationRoot className="mt-8 text-xs" aria-label={t(locale).common.pagination}>
           <PaginationContent>
             <PaginationItem>
               {state.pagination.hasPrevious ? (

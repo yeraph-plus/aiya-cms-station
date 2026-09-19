@@ -30,7 +30,7 @@ export default function UnlockGate({ postId, labels }: UnlockGateProps) {
   const [failed, setFailed] = useState(false);
   const [html, setHtml] = useState<string | null>(null);
 
-  const unlock = async (event: React.FormEvent<HTMLFormElement>) => {
+  const unlock = async (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (busy || password === '') return;
     setBusy(true);

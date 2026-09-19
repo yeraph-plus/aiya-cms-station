@@ -16,6 +16,14 @@ describe('sanitizeCommentHtml', () => {
     expect(out).not.toContain('evil.test');
   });
 
+  it('does not trust the smilies class alone: crafted remote pixels are dropped', () => {
+    const crafted =
+      '<img src="https://evil.test/pixel.png" alt="" class="aiya-smilie">';
+    const out = sanitizeCommentHtml(`hi ${crafted}`);
+    expect(out).not.toContain('evil.test');
+    expect(out).not.toContain('<img');
+  });
+
   it('never lets markup through: escaped entities stay text', () => {
     const out = sanitizeCommentHtml('a &lt;b&gt;bold&lt;/b&gt; &amp; done ::01::');
     expect(out).not.toContain('<b>');
@@ -33,6 +41,14 @@ describe('sanitizeDiscussionHtml smilies exemption', () => {
     expect(out).toContain('aiya-smilie');
     expect(out).toContain('/media/wp-content/smilies/aru/01.png');
     expect(out).not.toContain('evil.test');
+  });
+
+  it('strips a crafted smilies class riding a foreign src', () => {
+    const out = sanitizeDiscussionHtml(
+      `<p><img src="https://evil.test/pixel.png" class="aiya-smilie"></p>`,
+    );
+    expect(out).not.toContain('evil.test');
+    expect(out).not.toContain('<img');
   });
 });
 

@@ -22,12 +22,13 @@
  * flap open and shut every re-probe interval. Everything else — network,
  * timeout, 5xx, contract drift, bad config — is a genuine outage.
  */
+import { AiyaApiError } from '@/lib/aiya/errors';
+
 export function isBackendOutage(error: unknown): boolean {
   if (error instanceof AiyaApiError) return !(error.kind === 'http' && error.status < 500);
   return true;
 }
 
-import { AiyaApiError } from '@/lib/aiya/errors';
 
 export interface ReachabilityOptions {
   /** Resolves when the backend answered; throws when it did not. */

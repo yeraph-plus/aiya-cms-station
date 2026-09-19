@@ -13,6 +13,7 @@ import Pagination from '@/components/content/Pagination.astro';
 import DiscussionCard from '@/components/content/DiscussionCard.astro';
 import CommunityFeed from '@/components/islands/user-center/CommunityFeed';
 import { cloakDiscussion } from '@/lib/community';
+import { rewriteMediaUrl } from '@/lib/media';
 import { t } from '@/lib/i18n';
 import type { CommunityBoardView } from '@/lib/community-board';
 
@@ -28,7 +29,6 @@ const {
   title,
   description,
   noindex,
-  sort,
   boardHref,
   listHref,
   canPost,
@@ -60,8 +60,8 @@ const boardBadgeClass = (active: boolean) =>
 >
   <h1 class="sr-only">{title}</h1>
   {
-    page.ok ? (
-      pageNumber === 1 ? (
+    page.ok &&
+      (pageNumber === 1 ? (
         <div class="mx-auto flex w-full max-w-[760px] flex-col gap-5 sm:flex-row sm:gap-6">
           <aside class="shrink-0 sm:w-28" aria-label={copy.community.boardFilter}>
             <nav
@@ -108,7 +108,12 @@ const boardBadgeClass = (active: boolean) =>
               canPost={canPost}
               user={
                 page.user
-                  ? { name: page.user.nickname, avatarUrl: page.user.avatar?.url ?? null }
+                  ? {
+                      name: page.user.nickname,
+                      avatarUrl: page.user.avatar
+                        ? rewriteMediaUrl(page.user.avatar.url)
+                        : null,
+                    }
                   : null
               }
               locale={page.locale}
@@ -127,6 +132,7 @@ const boardBadgeClass = (active: boolean) =>
             href={listHref}
             previousLabel={copy.common.previousPage}
             nextLabel={copy.common.nextPage}
+            ariaLabel={copy.common.pagination}
           />
         </>
       ) : (
@@ -138,16 +144,6 @@ const boardBadgeClass = (active: boolean) =>
           retry={base}
           retryLabel={copy.common.retry}
         />
-      )
-    ) : (
-      <PageState
-        image={page.site.defaults.emptyImage}
-        error
-        title={page.error.title}
-        message={page.error.message}
-        retry="/community/"
-        retryLabel={copy.common.retry}
-      />
-    )
+      ))
   }
 </AppShell>

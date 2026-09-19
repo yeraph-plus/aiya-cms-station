@@ -181,7 +181,7 @@ export default function CommentSection({
     }
   };
 
-  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = async (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     const attachments = images.map((src) => `<img src="${src}" alt="" />`).join('\n');
     const body = [html, attachments].filter(Boolean).join('\n');

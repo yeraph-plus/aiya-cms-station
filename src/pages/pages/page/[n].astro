@@ -38,7 +38,7 @@ const showList = page.ok && !overRange;
   noindex={overRange}
 >
   {
-    page.ok ? (
+    page.ok && (
       showList ? (
         <>
           <h1 class="sr-only">{copy.pages.pageOf(n)}</h1>
@@ -66,15 +66,6 @@ const showList = page.ok && !overRange;
           retryLabel={copy.common.retry}
         />
       )
-    ) : (
-      <PageState
-        image={page.site.defaults.emptyImage}
-        error
-        title={page.error.title}
-        message={page.error.message}
-        retry={`/pages/page/${n}/`}
-        retryLabel={copy.common.retry}
-      />
     )
   }
 </AppShell>
