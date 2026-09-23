@@ -1,11 +1,11 @@
 import type { APIRoute } from 'astro';
-import { errorCode, errorStatus, jsonResponse, visitorIp } from '@/lib/api-auth';
+import { errorCode, errorStatus, jsonResponse, visitorIp, readJsonBody } from '@/lib/api-auth';
 import { authClient } from '@/lib/core/server';
 
 /** POST /api/auth/password-reset/validate/: checks a reset key without consuming it. */
 export const POST: APIRoute = async (Astro) => {
   const ip = visitorIp(Astro.request, Astro.clientAddress);
-  const body = (await Astro.request.json().catch(() => null)) as {
+  const body = (await readJsonBody(Astro.request)) as {
     login?: unknown;
     key?: unknown;
   } | null;

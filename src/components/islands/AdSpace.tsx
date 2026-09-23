@@ -1,6 +1,7 @@
 import { MegaphoneIcon } from 'lucide-react';
 
 import type { AdSlot } from '@/lib/core/contracts';
+import { safeHref } from '@/lib/media';
 
 /**
  * Advertisement space (the Blocks page's page-top / page-bottom lists):
@@ -23,11 +24,14 @@ export default function AdSpace({ slots }: { slots: AdSlot[] }) {
       data-ad-space
     >
       {slots.map((slot) => {
-        const external = /^https?:\/\//.test(slot.url);
+        // Last-line scheme gate: the contract already validates the target;
+        // the render layer stays self-standing (null → plain banner, no link).
+        const href = safeHref(slot.url);
+        const external = href !== null && /^https?:\/\//.test(href);
         return (
           <a
             key={slot.url + slot.label}
-            href={slot.url}
+            {...(href !== null ? { href } : {})}
             {...(external ? { target: '_blank', rel: 'nofollow noopener noreferrer' } : {})}
             title={slot.label}
             // Geometry rides on inline styles: the dev pipeline has twice

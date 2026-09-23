@@ -98,11 +98,14 @@ export function BadgeRow({ post, locale }: { post: PostDetail; locale: Locale })
 export function MetaRow({
   post,
   locale,
+  timezone,
   tone = 'plain',
   withReadingTime = true,
 }: {
   post: PostDetail;
   locale: Locale;
+  timezone?: string;
+
   tone?: 'plain' | 'hero';
   withReadingTime?: boolean;
 }) {
@@ -132,7 +135,7 @@ export function MetaRow({
       <span className="font-medium">{post.author.name}</span>
       <span className={item}>
         <CalendarIcon className="size-3" aria-hidden="true" />
-        {displayDate(post.publishedAt, locale)}
+        {displayDate(post.publishedAt, locale, timezone)}
       </span>
       {withReadingTime && <span>{copy.readingMinutes(post.readingMinutes)}</span>}
       <span className={item}>
@@ -151,12 +154,14 @@ export function MetaRow({
         <MessageCircleIcon className="size-3" aria-hidden="true" />
         {post.metrics.comments}
       </span>
-      {post.type === 'resource' && post.metrics.ratingScore !== null && post.metrics.ratingScore > 0 && (
-        <span className={item}>
-          <StarIcon className="size-3" aria-hidden="true" />
-          {post.metrics.ratingScore}
-        </span>
-      )}
+      {post.type === 'resource' &&
+        post.metrics.ratingScore !== null &&
+        post.metrics.ratingScore > 0 && (
+          <span className={item}>
+            <StarIcon className="size-3" aria-hidden="true" />
+            {post.metrics.ratingScore}
+          </span>
+        )}
     </div>
   );
 }
@@ -295,12 +300,15 @@ function TitleRow({
 export function ArticleHeader({
   post,
   locale,
+  timezone,
   basePath,
   tagVocabLabels,
   actions,
 }: {
   post: PostDetail;
   locale: Locale;
+  timezone?: string;
+
   basePath: string;
   tagVocabLabels?: Record<string, string>;
   /** The action bar (like/rating + favorite) at the title row's right. */
@@ -334,7 +342,7 @@ export function ArticleHeader({
               : 'relative flex flex-col gap-2.5 px-6 pt-5'
           }
         >
-          <MetaRow post={post} locale={locale} tone={hero ? 'hero' : 'plain'} />
+          <MetaRow post={post} locale={locale} timezone={timezone} tone={hero ? 'hero' : 'plain'} />
           <TitleRow post={post} locale={locale} hero={hero !== null} actions={actions} />
         </div>
       </div>
@@ -359,12 +367,15 @@ export function ArticleHeader({
 export function SimpleHeader({
   post,
   locale,
+  timezone,
   basePath,
   tagVocabLabels,
   actions,
 }: {
   post: PostDetail;
   locale: Locale;
+  timezone?: string;
+
   basePath: string;
   tagVocabLabels?: Record<string, string>;
   actions?: React.ReactNode;
@@ -373,7 +384,7 @@ export function SimpleHeader({
     <header>
       <div className="flex flex-col gap-2.5 px-6 pt-5">
         <TitleRow post={post} locale={locale} hero={false} actions={actions} />
-        <MetaRow post={post} locale={locale} />
+        <MetaRow post={post} locale={locale} timezone={timezone} />
       </div>
       <div className="px-6 pt-4">
         <TermRows post={post} locale={locale} basePath={basePath} tagVocabLabels={tagVocabLabels} />
@@ -413,10 +424,7 @@ export function ArticleBody({ post, locale }: { post: PostDetail; locale: Locale
     (index: number, slides: GallerySlides) => setGallery({ open: true, index, slides }),
     [],
   );
-  const closeGallery = useCallback(
-    () => setGallery((prev) => ({ ...prev, open: false })),
-    [],
-  );
+  const closeGallery = useCallback(() => setGallery((prev) => ({ ...prev, open: false })), []);
 
   return (
     <>
@@ -504,9 +512,7 @@ const ProseBody = memo(function ProseBody({
     return (
       <div className="mt-6 rounded-lg border border-dashed border-border bg-surface px-6 py-8 text-center">
         <p className="font-medium text-foreground">
-          {post.visibility === 'member'
-            ? copy.posts.gatedMemberTitle
-            : copy.posts.gatedLoginTitle}
+          {post.visibility === 'member' ? copy.posts.gatedMemberTitle : copy.posts.gatedLoginTitle}
         </p>
         <p className="mx-auto mt-1 max-w-md text-sm text-body-muted">
           {post.visibility === 'member'
@@ -664,11 +670,14 @@ export function PrevNextNav({ post, locale }: { post: PostDetail; locale: Locale
 export function RelatedList({
   related,
   locale,
+  timezone,
   heading,
   emptyText,
 }: {
   related: PostSummary[];
   locale: Locale;
+  timezone?: string;
+
   /** Heading override (the resource shell answers "相关资源", not "相关文章"). */
   heading?: string;
   emptyText?: string;
@@ -709,7 +718,7 @@ export function RelatedList({
                 <span className="mt-1 flex items-center gap-2.5 text-xs text-body-muted">
                   <span className="inline-flex items-center gap-1">
                     <CalendarIcon className="size-3" aria-hidden="true" />
-                    {displayDate(item.publishedAt, locale)}
+                    {displayDate(item.publishedAt, locale, timezone)}
                   </span>
                   <span className="inline-flex items-center gap-1">
                     <EyeIcon className="size-3" aria-hidden="true" />
@@ -838,7 +847,10 @@ const FILE_ICONS: Record<string, typeof FileIcon> = {
 type SortKey = 'name' | 'size' | 'modified';
 
 /** Client-side sort of one list; the backend order stands until a column is clicked. */
-function sortEntries(items: FileEntry[], sort: { key: SortKey; dir: 'asc' | 'desc' } | null): FileEntry[] {
+function sortEntries(
+  items: FileEntry[],
+  sort: { key: SortKey; dir: 'asc' | 'desc' } | null,
+): FileEntry[] {
   if (sort === null) return items;
   const factor = sort.dir === 'asc' ? 1 : -1;
   const weight = (file: FileEntry): string | number => {
@@ -848,7 +860,8 @@ function sortEntries(items: FileEntry[], sort: { key: SortKey; dir: 'asc' | 'des
   };
   return [...items].sort((a, b) => {
     // A row with no stamp at all keeps the bottom of the table either way.
-    const missing = sort.key === 'modified' ? Number(a.modified === null) - Number(b.modified === null) : 0;
+    const missing =
+      sort.key === 'modified' ? Number(a.modified === null) - Number(b.modified === null) : 0;
     if (missing !== 0) return missing;
     const left = weight(a);
     const right = weight(b);
@@ -898,7 +911,8 @@ function readAria2Config(): Aria2Config {
     const stored = JSON.parse(raw) as Partial<Aria2Config>;
     return {
       enabled: stored.enabled === true,
-      rpcUrl: typeof stored.rpcUrl === 'string' && stored.rpcUrl !== '' ? stored.rpcUrl : fallback.rpcUrl,
+      rpcUrl:
+        typeof stored.rpcUrl === 'string' && stored.rpcUrl !== '' ? stored.rpcUrl : fallback.rpcUrl,
       token: typeof stored.token === 'string' ? stored.token : '',
     };
   } catch {
@@ -973,11 +987,13 @@ export function DownloadPanel({
   postId,
   loggedIn,
   locale,
+  timezone,
 }: {
   lists: FileList[];
   postId: number;
   loggedIn: boolean;
   locale: Locale;
+  timezone?: string;
 }) {
   const copy = t(locale).resources;
   const [claims, setClaims] = useState<Record<string, { url: string; code: string | null }>>({});
@@ -1041,7 +1057,10 @@ export function DownloadPanel({
           delete next[key];
           return next;
         });
-        setClaims((prev) => ({ ...prev, [key]: { url: payload.url as string, code: payload.code ?? null } }));
+        setClaims((prev) => ({
+          ...prev,
+          [key]: { url: payload.url as string, code: payload.code ?? null },
+        }));
         return payload.url;
       } catch {
         setFailures((prev) => ({ ...prev, [key]: 'failed' }));
@@ -1082,7 +1101,9 @@ export function DownloadPanel({
   };
 
   const pushSelected = async (list: FileList): Promise<void> => {
-    const rows = list.items.filter((file) => file.kind === 'file' && selected[`${list.id}:${file.ref}`] === true);
+    const rows = list.items.filter(
+      (file) => file.kind === 'file' && selected[`${list.id}:${file.ref}`] === true,
+    );
     if (rows.length === 0) return;
     setPending(`batch:${list.id}`);
     let sent = 0;
@@ -1105,7 +1126,9 @@ export function DownloadPanel({
   };
 
   const toggleSort = (key: SortKey): void =>
-    setSort((prev) => (prev?.key === key ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' }));
+    setSort((prev) =>
+      prev?.key === key ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' },
+    );
 
   const toggleSelected = (key: string): void =>
     setSelected((prev) => {
@@ -1173,7 +1196,9 @@ export function DownloadPanel({
             <span className="text-sm text-foreground">{copy.pushToClient}</span>
             <Switch
               checked={aria2.enabled}
-              onCheckedChange={(checked) => setAria2((prev) => ({ ...prev, enabled: checked === true }))}
+              onCheckedChange={(checked) =>
+                setAria2((prev) => ({ ...prev, enabled: checked === true }))
+              }
             />
           </label>
           <label className="flex flex-col gap-1">
@@ -1181,7 +1206,9 @@ export function DownloadPanel({
             <select
               value={ARIA2_PRESETS.find((preset) => preset.url === aria2.rpcUrl)?.url ?? ''}
               onChange={(event) => {
-                const preset = ARIA2_PRESETS.find((candidate) => candidate.url === event.target.value);
+                const preset = ARIA2_PRESETS.find(
+                  (candidate) => candidate.url === event.target.value,
+                );
                 if (preset) setAria2((prev) => ({ ...prev, rpcUrl: preset.url }));
               }}
               className="h-8 rounded-md border border-border bg-surface px-2 text-sm text-foreground"
@@ -1279,7 +1306,9 @@ export function DownloadPanel({
                     </th>
                     <th className="px-3 py-2">{sortHead('name', copy.thName)}</th>
                     <th className="w-24 px-3 py-2 text-right">{sortHead('size', copy.thSize)}</th>
-                    <th className="w-20 whitespace-nowrap px-3 py-2 text-right">{copy.thCredits}</th>
+                    <th className="w-20 whitespace-nowrap px-3 py-2 text-right">
+                      {copy.thCredits}
+                    </th>
                     <th className="w-28 px-3 py-2">{sortHead('modified', copy.thModified)}</th>
                     <th className="w-56 px-3 py-2">{copy.thActions}</th>
                   </tr>
@@ -1316,7 +1345,9 @@ export function DownloadPanel({
                           {list.price > 0 ? list.price : '—'}
                         </td>
                         <td className="whitespace-nowrap px-3 py-2.5 align-middle text-xs text-body-muted">
-                          {file.modified !== null ? displayDate(file.modified, locale) : '—'}
+                          {file.modified !== null
+                            ? displayDate(file.modified, locale, timezone)
+                            : '—'}
                         </td>
                         <td className="px-3 py-2.5 align-middle">
                           {file.kind === 'dir' ? (
@@ -1347,7 +1378,10 @@ export function DownloadPanel({
                                   className="flex items-center gap-1.5 whitespace-nowrap rounded bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-60"
                                 >
                                   {pending === key ? (
-                                    <LoaderCircleIcon className="size-3.5 animate-spin" aria-hidden="true" />
+                                    <LoaderCircleIcon
+                                      className="size-3.5 animate-spin"
+                                      aria-hidden="true"
+                                    />
                                   ) : pushOn ? (
                                     <SendIcon className="size-3.5" aria-hidden="true" />
                                   ) : (
@@ -1357,7 +1391,9 @@ export function DownloadPanel({
                                 </button>
                               </span>
                               {failure !== undefined && (
-                                <span className={`text-xs ${failure === 'login' ? 'text-body-muted' : 'text-destructive'}`}>
+                                <span
+                                  className={`text-xs ${failure === 'login' ? 'text-body-muted' : 'text-destructive'}`}
+                                >
                                   {failure === 'login'
                                     ? copy.loginToDownload
                                     : failure === 'limited'
@@ -1399,16 +1435,24 @@ export function DownloadSection({
   postId,
   loggedIn,
   locale,
+  timezone,
 }: {
   lists: FileList[] | null;
   postId: number;
   loggedIn: boolean;
   locale: Locale;
+  timezone?: string;
 }) {
   if (lists === null || lists.length === 0) return null;
   return (
     <div className="mt-8 border-t border-dashed border-border pt-6">
-      <DownloadPanel lists={lists} postId={postId} loggedIn={loggedIn} locale={locale} />
+      <DownloadPanel
+        lists={lists}
+        postId={postId}
+        loggedIn={loggedIn}
+        locale={locale}
+        timezone={timezone}
+      />
     </div>
   );
 }
@@ -1416,9 +1460,7 @@ export function DownloadSection({
 /** Shared section heading for sidebar panels. */
 export function SidebarHeading({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="mb-3 text-xs font-medium uppercase tracking-wide text-body-muted">
-      {children}
-    </h2>
+    <h2 className="mb-3 text-xs font-medium uppercase tracking-wide text-body-muted">{children}</h2>
   );
 }
 
@@ -1434,6 +1476,7 @@ export function CommentsBlock({
   settings,
   loggedIn,
   locale,
+  timezone,
   window,
 }: {
   post: PostDetail;
@@ -1442,6 +1485,8 @@ export function CommentsBlock({
   settings: SiteComments;
   loggedIn: boolean;
   locale: Locale;
+  timezone?: string;
+
   window: { order: 'asc' | 'desc'; perPage: number };
 }) {
   if (post.gated || post.locked) return null;
@@ -1457,6 +1502,7 @@ export function CommentsBlock({
       loggedIn={loggedIn}
       closed={!post.commentsOpen}
       locale={locale}
+      timezone={timezone}
     />
   );
 }
@@ -1467,8 +1513,6 @@ export function useViewPing(postId: number): void {
   useEffect(() => {
     if (fired.current) return;
     fired.current = true;
-    void fetch(`/api/content/${postId}/view/`, { method: 'POST', keepalive: true }).catch(
-      () => {},
-    );
+    void fetch(`/api/content/${postId}/view/`, { method: 'POST', keepalive: true }).catch(() => {});
   }, [postId]);
 }

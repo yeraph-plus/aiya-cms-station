@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { errorCode, errorStatus, jsonResponse, visitorIp } from '@/lib/api-auth';
+import { errorCode, errorStatus, jsonResponse, visitorIp, readJsonBody } from '@/lib/api-auth';
 import { authClient, siteOrigin } from '@/lib/core/server';
 
 /**
@@ -11,7 +11,7 @@ import { authClient, siteOrigin } from '@/lib/core/server';
  */
 export const POST: APIRoute = async (Astro) => {
   const ip = visitorIp(Astro.request, Astro.clientAddress);
-  const body = (await Astro.request.json().catch(() => null)) as { email?: unknown } | null;
+  const body = (await readJsonBody(Astro.request)) as { email?: unknown } | null;
   const email = String(body?.email ?? '');
   if (email === '') return jsonResponse({ ok: false }, 400);
   let domain: string;

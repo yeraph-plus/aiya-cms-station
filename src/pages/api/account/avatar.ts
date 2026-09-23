@@ -1,5 +1,11 @@
 import type { APIRoute } from 'astro';
-import { errorCode, errorStatus, jsonResponse, visitorIp } from '@/lib/api-auth';
+import {
+  errorCode,
+  errorStatus,
+  jsonResponse,
+  visitorIp,
+  uploadLengthStatus,
+} from '@/lib/api-auth';
 import { authClient } from '@/lib/core/server';
 import { readSessionToken } from '@/lib/core/session';
 
@@ -18,9 +24,15 @@ export const POST: APIRoute = async (Astro) => {
   const ip = visitorIp(Astro.request, Astro.clientAddress);
   const token = readSessionToken(Astro.cookies);
   if (!token) return jsonResponse({ ok: false }, 401);
-  const declared = Astro.request.headers.get('content-length');
-  if (declared && Number(declared) > MAX_AVATAR_BYTES + 4096) {
-    return jsonResponse({ ok: false, code: 'aiya_upload_too_large' }, 413);
+  // formData() buffers the whole body before the field size is known, and a
+  // chunked body carries no length at all — gate the declared length up
+  // front (islands' fetch always sends one).
+  const lengthStatus = uploadLengthStatus(Astro.request, MAX_AVATAR_BYTES + 4096);
+  if (lengthStatus !== null) {
+    return jsonResponse(
+      { ok: false, code: lengthStatus === 413 ? 'aiya_upload_too_large' : 'aiya_invalid_param' },
+      lengthStatus,
+    );
   }
   let file: File;
   try {

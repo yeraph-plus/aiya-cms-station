@@ -115,7 +115,8 @@ const en_US: Dictionary = {
     gatedLoginTitle: 'Sign in to read',
     gatedLoginDescription: 'This content is visible to logged-in users only — sign in to continue.',
     gatedMemberTitle: 'Members only',
-    gatedMemberDescription: 'This content is visible to members only — become a member to continue.',
+    gatedMemberDescription:
+      'This content is visible to members only — become a member to continue.',
     ratingThanks: 'Thanks for rating!',
     ratingFailed: 'Rating failed, please try again later.',
     likeSuccess: 'Liked',
@@ -185,7 +186,8 @@ const en_US: Dictionary = {
     pushFailed: (n: number) => `${n} file(s) failed to send.`,
     pushUnavailable: 'No link available — nothing was sent.',
     configureClient: 'Download client',
-    configureClientHint: 'Point at your local aria2 RPC to push files straight to the client (it must allow cross-origin calls).',
+    configureClientHint:
+      'Point at your local aria2 RPC to push files straight to the client (it must allow cross-origin calls).',
     preset: 'Preset',
     presetPlaceholder: 'Pick a preset',
     rpcUrl: 'RPC URL',
@@ -256,7 +258,8 @@ const en_US: Dictionary = {
     templateBrokenLink: 'Broken download link',
     templateBrokenLinkBody: '<p>Broken link:</p><p>Error message you saw:</p><p>Notes:</p>',
     templateUpdateRequest: 'Update request',
-    templateUpdateRequestBody: '<p>What should be updated:</p><p>New version info (version / source):</p>',
+    templateUpdateRequestBody:
+      '<p>What should be updated:</p><p>New version info (version / source):</p>',
     templateNewRelease: 'New release request',
     templateNewReleaseBody: '<p>Name of the release:</p><p>Description or source link:</p>',
     templateErrata: 'Errata',
@@ -340,7 +343,8 @@ const en_US: Dictionary = {
     tierPriceLine: (price: string, cycles: number) => `¥${price}/cycle, ${cycles} cycles total`,
     channelEmpty: 'No payment channel is available yet.',
     title: 'Membership & credits',
-    modalDescription: 'Pick a tier to become a sponsor, or activate with a code / Afdian order number.',
+    modalDescription:
+      'Pick a tier to become a sponsor, or activate with a code / Afdian order number.',
     modalLoading: 'Loading tiers…',
     walletTitle: 'Credit balance',
     balanceUnit: 'credits',
@@ -369,7 +373,8 @@ const en_US: Dictionary = {
     redeemPlaceholder: 'Enter your code',
     redeemAfdianPlaceholder: 'Enter your Afdian order number',
     redeemAction: 'Redeem',
-    redeemGranted: (tier: string, cycles: number) => `“${tier}” redeemed — ${cycles} cycles queued.`,
+    redeemGranted: (tier: string, cycles: number) =>
+      `“${tier}” redeemed — ${cycles} cycles queued.`,
     tiersEmpty: 'No tier is on sale yet.',
     tierPrice: (price: string) => `¥${price}`,
     channelLabel: 'Payment method',
@@ -456,6 +461,15 @@ const en_US: Dictionary = {
     aiya_source_not_found: 'The file does not exist or has been removed.',
     aiya_source_invalid: 'The file service answered with something unrecognizable.',
     aiya_credit_insufficient: 'Not enough credits for this download.',
+    // review closure: codes the backend can answer that callers here can hit
+    aiya_thread_locked: 'This discussion is closed to new replies.',
+    aiya_identity_required: 'Please sign in before commenting.',
+    aiya_credit_duplicate:
+      'That file was just requested and is being processed — try again in a moment.',
+    aiya_invalid_return_url: 'The payment return address is invalid. Contact the site owner.',
+    aiya_forbidden: 'You do not have permission to do that.',
+    aiya_counter_missing_post: 'The content no longer exists.',
+    aiya_counter_not_supported: 'This content does not support that action.',
     aiya_account_disabled: 'This account is disabled.',
     aiya_db_error: 'The service is temporarily unavailable, please retry later.',
     aiya_rate_limited: 'Too many attempts, please try again later.',

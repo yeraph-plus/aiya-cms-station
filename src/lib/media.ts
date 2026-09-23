@@ -76,3 +76,28 @@ interface PostSummaryMedia {
   thumbnail: { url: string; alt: string; width: number | null; height: number | null } | null;
   author: { name: string; avatar: { url: string } | null };
 }
+
+/**
+ * CSS `url('…')` string escape for settings-sourced artwork: a URL is
+ * contract-validated http(s), but quote/backslash bytes are still legal in
+ * a URL and would break out of the CSS string token. Escape them so the
+ * style attribute stays a single background-image declaration.
+ */
+export function cssUrl(value: string): string {
+  return value.replace(/[\'"]/g, (ch) => `\${ch}`);
+}
+
+/**
+ * Last-line href/src gate for settings-sourced links: the contract already
+ * guarantees http(s) or site-relative, but the render layer stays
+ * self-standing — null means "do not render this link".
+ */
+export function safeHref(url: string): string | null {
+  if (url.startsWith('/')) return url.startsWith('//') ? null : url;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? url : null;
+  } catch {
+    return null;
+  }
+}

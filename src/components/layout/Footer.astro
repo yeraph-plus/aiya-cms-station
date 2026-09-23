@@ -6,7 +6,7 @@
  * sentence when the switch is on. No border, no background fill.
  */
 import Icon from '@/components/layout/Icon.astro';
-import { rewriteMediaUrl } from '@/lib/media';
+import { rewriteMediaUrl, safeHref } from '@/lib/media';
 import hitokotoData from '../../data/hitokoto.json';
 import type { MenuItem, Site } from '@/lib/core/contracts';
 
@@ -45,7 +45,7 @@ const sentence = hitokotoEnabled
             {site.footer.links.map((link) => (
               <li>
                 <a
-                  href={link.url}
+                  href={safeHref(link.url) ?? undefined}
                   target="_blank"
                   rel="noreferrer"
                   class="inline-flex items-center gap-1.5 text-sm text-body-muted hover:text-foreground"
@@ -86,7 +86,7 @@ const sentence = hitokotoEnabled
           <nav aria-label="footer" class="flex flex-wrap items-center gap-x-5 gap-y-1">
             {footerMenu.map((item) => (
               <a
-                href={item.url}
+                href={safeHref(item.url) ?? undefined}
                 target={item.target === 'blank' ? '_blank' : undefined}
                 rel={item.target === 'blank' ? 'noreferrer' : undefined}
                 class="text-sm text-foreground hover:text-primary"

@@ -83,3 +83,90 @@ describe('aiyaErrorCopy', () => {
     }
   });
 });
+
+describe('backend error-code coverage', () => {
+  // Every machine code the backend's REST face can answer a visitor request
+  // with (aiya-core src/Api/Rest + the domain codes those controllers
+  // rethrow). Refresh this list when the backend contract gains codes — the
+  // point is that a missing dictionary entry fails HERE instead of showing
+  // visitors the generic fallback. Admin-surface and gateway-internal codes
+  // (board_exists, tier_in_use, order_unattributed, …) are deliberately out.
+  const BACKEND_VISITOR_CODES = [
+    'aiya_account_disabled',
+    'aiya_activation_failed',
+    'aiya_afdian_rejected',
+    'aiya_afdian_unavailable',
+    'aiya_already_logged_in',
+    'aiya_avatar_missing',
+    'aiya_avatar_rejected',
+    'aiya_channel_unavailable',
+    'aiya_code_activation_failed',
+    'aiya_code_invalid',
+    'aiya_code_used',
+    'aiya_comment_flood',
+    'aiya_comment_rejected',
+    'aiya_comments_closed',
+    'aiya_counter_missing_post',
+    'aiya_counter_not_supported',
+    'aiya_credit_checkin_disabled',
+    'aiya_credit_checkin_done',
+    'aiya_credit_duplicate',
+    'aiya_credit_insufficient',
+    'aiya_db_error',
+    'aiya_duplicate_comment',
+    'aiya_duplicate_order',
+    'aiya_email_exists',
+    'aiya_forbidden',
+    'aiya_identity_required',
+    'aiya_invalid_credentials',
+    'aiya_invalid_param',
+    'aiya_invalid_parent',
+    'aiya_invalid_password',
+    'aiya_invalid_reset_key',
+    'aiya_invalid_return_url',
+    'aiya_login_required',
+    'aiya_mail_failed',
+    'aiya_not_found',
+    'aiya_not_logged_in',
+    'aiya_order_bound',
+    'aiya_order_not_found',
+    'aiya_order_not_paid',
+    'aiya_order_used',
+    'aiya_plan_unbound',
+    'aiya_rate_limited',
+    'aiya_reauth_required',
+    'aiya_registration_disabled',
+    'aiya_registration_failed',
+    'aiya_server_error',
+    'aiya_source_denied',
+    'aiya_source_invalid',
+    'aiya_source_not_found',
+    'aiya_source_unauthorized',
+    'aiya_source_unreachable',
+    'aiya_thread_locked',
+    'aiya_tier_disabled',
+    'aiya_update_failed',
+    'aiya_upload_empty',
+    'aiya_upload_failed',
+    'aiya_upload_invalid',
+    'aiya_upload_process',
+    'aiya_upload_too_large',
+    'aiya_upload_type',
+    'aiya_upload_url',
+    'aiya_upload_write',
+    'aiya_user_missing',
+    'aiya_validation_failed',
+    'aiya_wrong_password',
+  ] as const;
+
+  it('the four dictionaries translate every backend visitor-reachable code', () => {
+    for (const code of BACKEND_VISITOR_CODES) {
+      for (const [name, dict] of Object.entries({ zh_CN, en_US, zh_HK, zh_TW })) {
+        expect(
+          (dict.errors as Record<string, string | undefined>)[code],
+          `${name}:${code}`,
+        ).toBeTypeOf('string');
+      }
+    }
+  });
+});

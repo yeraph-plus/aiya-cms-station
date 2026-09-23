@@ -14,10 +14,14 @@ if (!Number.isInteger(n) || n < 2) {
   return Astro.redirect('/pages/');
 }
 
-const page = await loadPage(async (client) => {
-  const list = await client.pages({ page: n });
-  return { pages: list.data.map(cloakPostSummaryMedia), pagination: list.meta.pagination };
-}, Astro.cookies, Astro.locals.visitorIp);
+const page = await loadPage(
+  async (client) => {
+    const list = await client.pages({ page: n });
+    return { pages: list.data.map(cloakPostSummaryMedia), pagination: list.meta.pagination };
+  },
+  Astro.cookies,
+  Astro.locals.visitorIp,
+);
 if (!page.ok) Astro.response.status = page.error.status;
 const overRange = page.ok && n > page.value.pagination.totalPages;
 if (overRange) Astro.response.status = 404;
@@ -38,8 +42,8 @@ const showList = page.ok && !overRange;
   noindex={overRange}
 >
   {
-    page.ok && (
-      showList ? (
+    page.ok &&
+      (showList ? (
         <>
           <h1 class="sr-only">{copy.pages.pageOf(n)}</h1>
           <PostLoop
@@ -65,7 +69,6 @@ const showList = page.ok && !overRange;
           retry="/pages/"
           retryLabel={copy.common.retry}
         />
-      )
-    )
+      ))
   }
 </AppShell>

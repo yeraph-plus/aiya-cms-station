@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { serverClient, siteOrigin } from '@/lib/core/server';
+import { PROFILE_SLUG_PATTERN } from '@/lib/core/contracts';
 
 const STATIC_PATHS = ['/', '/posts/', '/resources/', '/pages/', '/categories/', '/community/'];
 /** Runaway guard: at most 50 × 100 items per type. */
@@ -27,9 +28,7 @@ export const GET: APIRoute = async () => {
     const origin = siteOrigin();
     const client = serverClient();
     const collect = async (
-      listPage: (
-        page: number,
-      ) => Promise<{
+      listPage: (page: number) => Promise<{
         data: { url: string; author: { slug: string } }[];
         meta: { pagination: { hasNext: boolean } };
       }>,
@@ -77,8 +76,10 @@ export const GET: APIRoute = async () => {
     for (const board of boards.data) {
       locs.push(new URL(`/community/board/${board.slug}/`, origin).href);
     }
+    // Only slugs the profile route actually serves — the same predicate as
+    // the route and the client (contracts.ts PROFILE_SLUG_PATTERN).
     for (const slug of authors) {
-      locs.push(new URL(`/profile/${slug}/`, origin).href);
+      if (PROFILE_SLUG_PATTERN.test(slug)) locs.push(new URL(`/profile/${slug}/`, origin).href);
     }
     locs.push(...posts, ...resources, ...pages);
   } catch {

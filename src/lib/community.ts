@@ -34,21 +34,26 @@ function cloakAuthor(author: Discussion['author']): Discussion['author'] {
 }
 
 export function cloakDiscussion(discussion: Discussion): FeedThread {
+  // Rest-destructure the raw HTML away: a spread would carry it (and the
+  // WP-absolute URLs inside) onto the wire despite the Omit in the type —
+  // Omit is compile-time only. The browser receives contentSafe, nothing else.
+  const { contentHtml, ...thread } = discussion;
   return {
-    ...discussion,
-    contentSafe: sanitizeDiscussionHtml(discussion.contentHtml),
-    images: discussion.images.map(cloakImage),
-    author: cloakAuthor(discussion.author),
+    ...thread,
+    contentSafe: sanitizeDiscussionHtml(contentHtml),
+    images: thread.images.map(cloakImage),
+    author: cloakAuthor(thread.author),
   };
 }
 
 export function cloakReply(reply: DiscussionReply): FeedReply {
+  const { content, ...row } = reply;
+  // Reply bodies may be rich HTML (Tiptap composer) — always rendered
+  // through the sanitizer, never raw; `content` itself never ships.
   return {
-    ...reply,
-    // Reply bodies may be rich HTML (Tiptap composer) — always rendered
-    // through the sanitizer, never raw.
-    contentSafe: sanitizeDiscussionHtml(reply.content),
-    images: reply.images.map(cloakImage),
-    author: cloakAuthor(reply.author),
+    ...row,
+    contentSafe: sanitizeDiscussionHtml(content),
+    images: row.images.map(cloakImage),
+    author: cloakAuthor(row.author),
   };
 }

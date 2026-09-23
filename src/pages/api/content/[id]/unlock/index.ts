@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { cloakPostDetail } from '@/lib/detail';
-import { errorCode, errorStatus, jsonResponse, visitorIp } from '@/lib/api-auth';
+import { errorCode, errorStatus, jsonResponse, visitorIp, readJsonBody } from '@/lib/api-auth';
 import { authClient, serverClient } from '@/lib/core/server';
 import { readSessionToken } from '@/lib/core/session';
 
@@ -16,7 +16,7 @@ export const POST: APIRoute = async (Astro) => {
   const ip = visitorIp(Astro.request, Astro.clientAddress);
   const id = Number(Astro.params.id);
   if (!Number.isInteger(id) || id < 1) return jsonResponse({ ok: false }, 400);
-  const body = (await Astro.request.json().catch(() => null)) as { password?: unknown } | null;
+  const body = (await readJsonBody(Astro.request)) as { password?: unknown } | null;
   if (!body || typeof body.password !== 'string' || body.password === '') {
     return jsonResponse({ ok: false }, 400);
   }

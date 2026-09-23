@@ -165,13 +165,18 @@ export function sanitizeDiscussionHtml(html: string): string {
         },
       }),
     },
-    // Content images stay stripped (the grid renders them) — only images
-    // that point at the single-origin media proxy survive, which covers the
-    // backend's smilies (their src is rewritten by the transform above).
-    // The `aiya-smilie` class alone is not trusted: a crafted
+    // Content images stay stripped (the grid renders them). Only the
+    // backend's smilies survive — by PATH, not by the /media/ prefix at
+    // large: the transform above rewrites every WP-origin img (uploaded
+    // content images included) to /media/, so a prefix check alone would
+    // keep exactly the images this pass exists to strip. Smilies are the
+    // sole legitimate occupant of `wp-content/aiya_smilies/`, whose URL the
+    // transform turns into `/media/wp-content/aiya_smilies/…`. The
+    // `aiya-smilie` class alone is not trusted: a crafted
     // `class="aiya-smilie"` must not smuggle a remote pixel through.
     exclusiveFilter: (frame) =>
-      frame.tag === 'img' && !(frame.attribs.src ?? '').startsWith('/media/'),
+      frame.tag === 'img' &&
+      !(frame.attribs.src ?? '').startsWith('/media/wp-content/aiya_smilies/'),
   });
 }
 

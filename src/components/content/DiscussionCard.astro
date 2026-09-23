@@ -7,8 +7,9 @@ import { t, type Locale } from '@/lib/i18n';
 interface Props {
   discussion: Discussion;
   locale: Locale;
+  timezone?: string;
 }
-const { discussion, locale } = Astro.props;
+const { discussion, locale, timezone } = Astro.props;
 const copy = t(locale);
 const statusLabels: Record<Discussion['status'], string> = {
   open: copy.community.status_open,
@@ -52,7 +53,7 @@ const excerpt =
   <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-body-muted">
     <span>{discussion.author.name}</span>
     {discussion.tags.map((tag) => <span>#{tag}</span>)}
-    {activity && <span>{displayDate(activity, locale)}</span>}
+    {activity && <span>{displayDate(activity, locale, timezone)}</span>}
     <span class="inline-flex items-center gap-1">
       <Icon name="messageCircle" size={13} />
       {discussion.replies}

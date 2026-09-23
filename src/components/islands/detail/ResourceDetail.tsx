@@ -46,6 +46,7 @@ export default function ResourceDetail({
   authorBio,
   isSelf,
   locale,
+  timezone,
   window,
 }: DetailShellProps & {
   related: PostSummary[];
@@ -67,7 +68,9 @@ export default function ResourceDetail({
             locale={locale}
             basePath="/resources/"
             tagVocabLabels={TAG_VOCAB_LABELS(locale)}
-            actions={<ActionRow post={post} locale={locale} variant="resource" loggedIn={loggedIn} />}
+            actions={
+              <ActionRow post={post} locale={locale} variant="resource" loggedIn={loggedIn} />
+            }
           />
           <CardContent className="px-6 py-6">
             <ArticleBody post={post} locale={locale} />
@@ -75,7 +78,13 @@ export default function ResourceDetail({
                 body — no section heading of its own, each group's caption is
                 the heading. Failed groups never reach the public payload, so
                 an empty lists array means nothing to show. */}
-            <DownloadSection lists={downloads} postId={post.id} loggedIn={loggedIn} locale={locale} />
+            <DownloadSection
+              lists={downloads}
+              postId={post.id}
+              loggedIn={loggedIn}
+              locale={locale}
+              timezone={timezone}
+            />
           </CardContent>
         </Card>
         <CommentsBlock
@@ -85,6 +94,7 @@ export default function ResourceDetail({
           settings={settings}
           loggedIn={loggedIn}
           locale={locale}
+          timezone={timezone}
           window={window}
         />
       </div>
@@ -93,6 +103,7 @@ export default function ResourceDetail({
         <RelatedList
           related={related}
           locale={locale}
+          timezone={timezone}
           heading={copy.resources.related}
           emptyText={copy.resources.relatedEmpty}
         />
@@ -103,6 +114,7 @@ export default function ResourceDetail({
           boards={boards}
           canPost={loggedIn}
           locale={locale}
+          timezone={timezone}
         />
       </aside>
     </article>

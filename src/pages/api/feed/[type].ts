@@ -3,12 +3,7 @@ import { errorCode, errorStatus, jsonResponse, visitorIp } from '@/lib/api-auth'
 import { postsQuerySchema, resourcesQuerySchema } from '@/lib/core/contracts';
 import { serverClient } from '@/lib/core/server';
 import { cloakPostSummaryMedia } from '@/lib/media';
-import {
-  isSearchScope,
-  loadSearchPage,
-  normalizeKeyword,
-  type SearchScope,
-} from '@/lib/search';
+import { isSearchScope, loadSearchPage, normalizeKeyword, type SearchScope } from '@/lib/search';
 
 /**
  * GET /api/feed/{posts|resources|pages|search}/: same-origin JSON feed

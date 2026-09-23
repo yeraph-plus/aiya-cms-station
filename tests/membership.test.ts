@@ -1,11 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Tier } from '@/lib/core/contracts';
-import {
-  displayDateTime,
-  displayDay,
-  paymentMethods,
-  purchasableTiers,
-} from '@/lib/membership';
+import { displayDateTime, displayDay, paymentMethods, purchasableTiers } from '@/lib/membership';
 
 describe('tier selection', () => {
   const tier = (key: string, enabled: boolean): Tier => ({

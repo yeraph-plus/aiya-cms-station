@@ -49,7 +49,9 @@ describe('outage classification', () => {
   });
 
   it('does not gate on a 4xx, which proves the backend is answering', () => {
-    expect(isBackendOutage(new AiyaApiError('http', 404, 'abcd1234', 'aiya_not_found'))).toBe(false);
+    expect(isBackendOutage(new AiyaApiError('http', 404, 'abcd1234', 'aiya_not_found'))).toBe(
+      false,
+    );
     expect(isBackendOutage(new AiyaApiError('http', 403))).toBe(false);
   });
 });

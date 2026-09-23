@@ -13,31 +13,40 @@ import { rewriteMediaUrl } from '@/lib/media';
 import { t } from '@/lib/i18n';
 import { loadPage } from '@/lib/page.server';
 import { setCrumbs } from '@/lib/breadcrumbs';
-import { readSessionToken } from '@/lib/core/session';
+import { currentUser, readSessionToken } from '@/lib/core/session';
 
 if (!readSessionToken(Astro.cookies)) {
   return Astro.redirect('/');
 }
+// A revoked/expired cookie must degrade to guest (home), not masquerade as
+// a backend outage: currentUser swallows every failure into null.
+if (!(await currentUser(Astro.cookies))) {
+  return Astro.redirect('/');
+}
 
-const page = await loadPage(async (client) => {
-  const [me, favorites, following, followers, membership, entries] = await Promise.all([
-    client.me(),
-    client.myFavorites({ page: 1, perPage: 10 }),
-    client.following({ page: 1, perPage: 12 }),
-    client.followers({ page: 1, perPage: 12 }),
-    client.myMembership(),
-    client.creditsEntries({ page: 1, perPage: 10 }),
-  ]);
-  return {
-    user: me.data,
-    favorites: favorites.data,
-    following: following.data,
-    followers: followers.data,
-    membership: membership.data,
-    entries: entries.data,
-    hasMore: entries.meta.pagination.hasNext,
-  };
-}, Astro.cookies, Astro.locals.visitorIp);
+const page = await loadPage(
+  async (client) => {
+    const [me, favorites, following, followers, membership, entries] = await Promise.all([
+      client.me(),
+      client.myFavorites({ page: 1, perPage: 10 }),
+      client.following({ page: 1, perPage: 12 }),
+      client.followers({ page: 1, perPage: 12 }),
+      client.myMembership(),
+      client.creditsEntries({ page: 1, perPage: 10 }),
+    ]);
+    return {
+      user: me.data,
+      favorites: favorites.data,
+      following: following.data,
+      followers: followers.data,
+      membership: membership.data,
+      entries: entries.data,
+      hasMore: entries.meta.pagination.hasNext,
+    };
+  },
+  Astro.cookies,
+  Astro.locals.visitorIp,
+);
 if (!page.ok) Astro.response.status = page.error.status;
 const copy = t(page.locale);
 if (page.ok) setCrumbs(Astro.locals, page.locale, [{ label: page.value.user.nickname }]);
@@ -47,7 +56,7 @@ const hubFavorites = page.ok
       id: f.id,
       title: f.title,
       url: f.url,
-      date: f.publishedAt ? displayDate(f.publishedAt, page.locale) : '',
+      date: f.publishedAt ? displayDate(f.publishedAt, page.locale, page.site.timezone) : '',
       thumbUrl: f.thumbnail ? rewriteMediaUrl(f.thumbnail.url) : null,
     }))
   : [];
@@ -137,7 +146,8 @@ const initialTab =
           favorites={hubFavorites}
           following={hubFollowing}
           followers={hubFollowers}
-          settings={{            user: {
+          settings={{
+            user: {
               nickname: page.value.user.nickname,
               email: page.value.user.email,
               url: page.value.user.url,

@@ -318,9 +318,7 @@ function CardInfo({
       {/* Row 1: badges + category + title */}
       <h2
         className={`flex min-w-0 items-center gap-x-1.5 font-display font-semibold text-foreground group-hover:text-primary ${
-          vertical
-            ? 'min-h-10 flex-wrap gap-y-1 text-sm'
-            : 'text-base flex-nowrap overflow-hidden'
+          vertical ? 'min-h-10 flex-wrap gap-y-1 text-sm' : 'text-base flex-nowrap overflow-hidden'
         }`}
       >
         {badges}
@@ -465,9 +463,7 @@ function FeedCard({
             decoding="async"
           />
         )}
-        <div
-          className={`flex min-w-0 flex-1 flex-col gap-1.5 ${vertical ? 'p-3' : 'p-3 sm:p-4'}`}
-        >
+        <div className={`flex min-w-0 flex-1 flex-col gap-1.5 ${vertical ? 'p-3' : 'p-3 sm:p-4'}`}>
           <CardInfo item={item} vertical={vertical} locale={locale} />
         </div>
       </a>
@@ -620,9 +616,11 @@ export default function PostLoop({
 
   /**
    * Auto-load: appends the next page without touching history. A sentinel
-   * div below the list drives an IntersectionObserver, so the observer
-   * refires as long as the sentinel stays in view — the loop stops itself
-   * once hasNext turns false.
+   * div below the list drives an IntersectionObserver plus a scroll poll —
+   * the observer only fires on intersection CHANGES, so a short page that
+   * leaves the sentinel inside the root margin would otherwise stall; the
+   * poll and the post-append re-arm keep the loop going. The loop stops
+   * itself once hasNext turns false.
    */
   const sentinelRef = useRef<HTMLDivElement>(null);
   const appendNext = () => {
@@ -648,6 +646,12 @@ export default function PostLoop({
       } finally {
         busyRef.current = false;
         setLoading(false);
+        // Re-arm while the sentinel is still on screen (short pages): the
+        // observer will not refire without an intersection change.
+        setTimeout(() => {
+          const el = sentinelRef.current;
+          if (el && el.getBoundingClientRect().top < window.innerHeight + 600) appendNext();
+        }, 200);
       }
     })();
   };
@@ -656,6 +660,7 @@ export default function PostLoop({
     if (!autoLoad) return;
     const el = sentinelRef.current;
     if (!el) return;
+    const near = () => el.getBoundingClientRect().top < window.innerHeight + 600;
     const io = new IntersectionObserver(
       (entries) => {
         if (entries.some((entry) => entry.isIntersecting)) appendNext();
@@ -663,7 +668,14 @@ export default function PostLoop({
       { rootMargin: '600px 0px' },
     );
     io.observe(el);
-    return () => io.disconnect();
+    // Fallback poll: backgrounded tabs may never produce observer callbacks.
+    const poll = window.setInterval(() => {
+      if (near()) appendNext();
+    }, 600);
+    return () => {
+      io.disconnect();
+      window.clearInterval(poll);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoLoad]);
 
@@ -872,12 +884,7 @@ export default function PostLoop({
               <div aria-hidden="true" className="h-5 w-px shrink-0 bg-border" />
             )}
             {hasTags && tagSet.length > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="shrink-0"
-                onClick={clearTagFilter}
-              >
+              <Button variant="outline" size="sm" className="shrink-0" onClick={clearTagFilter}>
                 <XIcon aria-hidden="true" />
                 {copy.posts.clearFilter}
               </Button>
@@ -936,50 +943,50 @@ export default function PostLoop({
       {panelOpen && hasTags && (
         <div className="mb-3 border-y border-border py-2.5">
           <div className="space-y-1.5">
-          {/* Sort row: moved out of the chips nav into the panel. */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="shrink-0 text-sm text-body-muted">{copy.posts.sort}：</span>
-            <FilterPill
-              active={(state.query.sort ?? 'newest') !== 'oldest'}
-              onClick={() => applySort('newest')}
-            >
-              {copy.posts.sortNewest}
-            </FilterPill>
-            <FilterPill
-              active={(state.query.sort ?? 'newest') === 'oldest'}
-              onClick={() => applySort('oldest')}
-            >
-              {copy.posts.sortOldest}
-            </FilterPill>
-          </div>
-          {groups.map((group) => (
-            <div key={group.key} className="flex flex-wrap items-center gap-1.5">
-              <span className="shrink-0 text-sm text-body-muted">{group.label}：</span>
-              {group.items.map((tag) => (
-                <FilterPill
-                  key={tag.slug}
-                  active={tagSet.includes(tag.slug)}
-                  onClick={() => applyTag(tag.slug)}
-                >
-                  {tag.icon && (
-                    <svg
-                      viewBox="0 0 24 24"
-                      width={13}
-                      height={13}
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden="true"
-                      dangerouslySetInnerHTML={{ __html: tag.icon }}
-                    />
-                  )}
-                  {tag.name}
-                </FilterPill>
-              ))}
+            {/* Sort row: moved out of the chips nav into the panel. */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="shrink-0 text-sm text-body-muted">{copy.posts.sort}：</span>
+              <FilterPill
+                active={(state.query.sort ?? 'newest') !== 'oldest'}
+                onClick={() => applySort('newest')}
+              >
+                {copy.posts.sortNewest}
+              </FilterPill>
+              <FilterPill
+                active={(state.query.sort ?? 'newest') === 'oldest'}
+                onClick={() => applySort('oldest')}
+              >
+                {copy.posts.sortOldest}
+              </FilterPill>
             </div>
-          ))}
+            {groups.map((group) => (
+              <div key={group.key} className="flex flex-wrap items-center gap-1.5">
+                <span className="shrink-0 text-sm text-body-muted">{group.label}：</span>
+                {group.items.map((tag) => (
+                  <FilterPill
+                    key={tag.slug}
+                    active={tagSet.includes(tag.slug)}
+                    onClick={() => applyTag(tag.slug)}
+                  >
+                    {tag.icon && (
+                      <svg
+                        viewBox="0 0 24 24"
+                        width={13}
+                        height={13}
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                        dangerouslySetInnerHTML={{ __html: tag.icon }}
+                      />
+                    )}
+                    {tag.name}
+                  </FilterPill>
+                ))}
+              </div>
+            ))}
           </div>
         </div>
       )}

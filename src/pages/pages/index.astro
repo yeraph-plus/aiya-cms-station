@@ -17,17 +17,21 @@ import { setCrumbs } from '@/lib/breadcrumbs';
 const q = (Astro.url.searchParams.get('q') ?? '').slice(0, 100);
 const category = (Astro.url.searchParams.get('category') ?? '').slice(0, 200);
 const sort = Astro.url.searchParams.get('sort') === 'oldest' ? 'oldest' : 'newest';
-const page = await loadPage(async (client) => {
-  const [pages, terms] = await Promise.all([
-    client.pages({ q, category, sort }),
-    client.terms('category', 'page'),
-  ]);
-  return {
-    pages: pages.data.map(cloakPostSummaryMedia),
-    pagination: pages.meta.pagination,
-    categories: terms.data.filter((term) => term.taxonomy === 'category'),
-  };
-}, Astro.cookies, Astro.locals.visitorIp);
+const page = await loadPage(
+  async (client) => {
+    const [pages, terms] = await Promise.all([
+      client.pages({ q, category, sort }),
+      client.terms('category', 'page'),
+    ]);
+    return {
+      pages: pages.data.map(cloakPostSummaryMedia),
+      pagination: pages.meta.pagination,
+      categories: terms.data.filter((term) => term.taxonomy === 'category'),
+    };
+  },
+  Astro.cookies,
+  Astro.locals.visitorIp,
+);
 if (!page.ok) Astro.response.status = page.error.status;
 const copy = t(page.locale);
 if (page.ok) setCrumbs(Astro.locals, page.locale, [{ label: copy.pages.title }]);

@@ -11,10 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import {
-  RadioGroup,
-  RadioGroupItem,
-} from '@/components/ui/radio-group';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -181,7 +178,11 @@ function PlanCard({
  * standalone activation form (redeem code or Afdian order number). It
  * renders only for signed-in visitors — the wallet bubble is the one host.
  */
-export function MembershipPlans({ locale, channels, items }: {
+export function MembershipPlans({
+  locale,
+  channels,
+  items,
+}: {
   locale: Locale;
   channels: Channels;
   items: Tier[];
@@ -199,11 +200,7 @@ export function MembershipPlans({ locale, channels, items }: {
 
   const tiers = purchasableTiers(items);
 
-  const startOrder = async (
-    tierKey: string,
-    channel: string,
-    onFail: (code?: string) => void,
-  ) => {
+  const startOrder = async (tierKey: string, channel: string, onFail: (code?: string) => void) => {
     try {
       // The payer returns to the page that opened the modal: the front end
       // derives the landing address from its own location.
@@ -328,7 +325,9 @@ export function MembershipPlans({ locale, channels, items }: {
               />
             </Field>
             <Button type="submit" disabled={redeemBusy}>
-              {redeemBusy && <LoaderCircleIcon className="size-4 animate-spin" aria-hidden="true" />}
+              {redeemBusy && (
+                <LoaderCircleIcon className="size-4 animate-spin" aria-hidden="true" />
+              )}
               {copy.redeemAction}
             </Button>
           </FieldGroup>

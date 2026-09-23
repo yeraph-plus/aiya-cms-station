@@ -51,21 +51,26 @@ export async function loadCommunityBoard(
   const sort = url.searchParams.get('sort') === 'newest' ? 'newest' : 'last_activity';
   const base = boardSlug === '' ? '/community/' : `/community/board/${boardSlug}/`;
 
-  const page = await loadPage<CommunityBoardValue>(async (client) => {
-    const [list, boards] = await Promise.all([
-      client.discussions({ board: boardSlug, sort, page: pageNumber }),
-      client.discussionBoards(),
-    ]);
-    const board = boards.data.find((entry) => entry.slug === boardSlug);
-    if (boardSlug !== '' && !board) throw new AiyaApiError('http', 404, undefined, 'aiya_not_found');
-    return {
-      list: list.data,
-      pagination: list.meta.pagination,
-      boards: boards.data,
-      boardName: board?.name ?? '',
-      boardDescription: board?.description ?? '',
-    };
-  }, cookies, locals.visitorIp);
+  const page = await loadPage<CommunityBoardValue>(
+    async (client) => {
+      const [list, boards] = await Promise.all([
+        client.discussions({ board: boardSlug, sort, page: pageNumber }),
+        client.discussionBoards(),
+      ]);
+      const board = boards.data.find((entry) => entry.slug === boardSlug);
+      if (boardSlug !== '' && !board)
+        throw new AiyaApiError('http', 404, undefined, 'aiya_not_found');
+      return {
+        list: list.data,
+        pagination: list.meta.pagination,
+        boards: boards.data,
+        boardName: board?.name ?? '',
+        boardDescription: board?.description ?? '',
+      };
+    },
+    cookies,
+    locals.visitorIp,
+  );
 
   if (!page.ok) response.status = page.error.status;
   // Empty archives (totalPages 0) must render their empty state, not 404.
@@ -74,7 +79,8 @@ export async function loadCommunityBoard(
 
   const copy = t(page.locale);
   const noindex = overRange || sort !== 'last_activity';
-  const boardTitle = page.ok && boardSlug !== '' ? copy.community.boardTitle(page.value.boardName) : '';
+  const boardTitle =
+    page.ok && boardSlug !== '' ? copy.community.boardTitle(page.value.boardName) : '';
   const title =
     boardSlug === ''
       ? pageNumber === 1

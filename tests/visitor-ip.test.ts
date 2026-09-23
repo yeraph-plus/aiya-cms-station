@@ -25,7 +25,9 @@ describe('resolveVisitorIp', () => {
   });
 
   it('discards junk instead of forwarding it', () => {
-    expect(resolveVisitorIp(req({ 'X-Real-IP': 'not-an-ip' }), '192.0.2.9', 'X-Real-IP')).toBeNull();
+    expect(
+      resolveVisitorIp(req({ 'X-Real-IP': 'not-an-ip' }), '192.0.2.9', 'X-Real-IP'),
+    ).toBeNull();
     expect(resolveVisitorIp(req(), '', '')).toBeNull();
     expect(resolveVisitorIp(req({ 'X-Real-IP': 'x'.repeat(80) }), null, 'X-Real-IP')).toBeNull();
   });

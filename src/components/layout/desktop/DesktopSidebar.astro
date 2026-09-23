@@ -1,7 +1,7 @@
 ---
 import Icon from '@/components/layout/Icon.astro';
 import type { MenuItem, Site } from '@/lib/core/contracts';
-import { rewriteMediaUrl } from '@/lib/media';
+import { rewriteMediaUrl, safeHref } from '@/lib/media';
 
 interface Props {
   site: Site;
@@ -93,7 +93,7 @@ const subLinkClass =
                   {item.children.map((child) => (
                     <li>
                       <a
-                        href={child.url}
+                        href={safeHref(child.url) ?? undefined}
                         aria-current={isActive(child.url) ? 'page' : undefined}
                         class:list={[
                           subLinkClass,
@@ -112,7 +112,7 @@ const subLinkClass =
           ) : (
             <li>
               <a
-                href={item.url}
+                href={safeHref(item.url) ?? undefined}
                 title={item.label}
                 aria-current={isActive(item.url) ? 'page' : undefined}
                 target={isExternal(item.url) ? '_blank' : undefined}

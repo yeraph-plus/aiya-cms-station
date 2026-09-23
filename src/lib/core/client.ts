@@ -80,6 +80,7 @@ import {
   type ProfileUpdate,
   type RegisterRequest,
   type SearchType,
+  PROFILE_SLUG_PATTERN,
   uploadResultSchema,
 } from './contracts';
 import { AiyaApiError } from './errors';
@@ -316,7 +317,7 @@ export function createAiyaClient(options: ClientOptions) {
       });
     },
     profile: (slug: string) => {
-      if (!/^[a-z0-9-]{1,64}$/.test(slug)) throw new AiyaApiError('configuration', 400);
+      if (!PROFILE_SLUG_PATTERN.test(slug)) throw new AiyaApiError('configuration', 400);
       return request('GET', `profiles/${slug}`, profileResponseSchema);
     },
     comments: (id: number, query: CommentsListQuery = {}) => {

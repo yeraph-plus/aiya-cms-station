@@ -51,6 +51,57 @@ export function errorCode(error: unknown): string | undefined {
   return error instanceof AiyaApiError ? error.code : undefined;
 }
 
+/** Upper bound for JSON proxy bodies; nothing here legitimately needs more. */
+const MAX_JSON_BYTES = 64 * 1024;
+
+/**
+ * Parsed JSON body, or null for anything malformed — including oversized.
+ * Reads through a bounded stream so a missing Content-Length (chunked
+ * encoding) cannot buffer an unbounded body into memory before any size
+ * check: the cap is enforced while reading, not after.
+ */
+export async function readJsonBody(request: Request): Promise<unknown> {
+  const reader = request.body?.getReader();
+  if (!reader) return null;
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > MAX_JSON_BYTES) {
+      await reader.cancel();
+      return null;
+    }
+    chunks.push(value);
+  }
+  const decoder = new TextDecoder();
+  let text = '';
+  for (const chunk of chunks) text += decoder.decode(chunk, { stream: true });
+  text += decoder.decode();
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Content-Length gate for multipart uploads: formData() buffers the whole
+ * body before the field size is known, and a chunked body carries no
+ * length at all — both would defeat a post-hoc check. Returns the failure
+ * status (411/413) or null when the declared length is within bounds (the
+ * per-field size is still checked after parsing).
+ */
+export function uploadLengthStatus(request: Request, max: number): number | null {
+  const raw = request.headers.get('content-length');
+  if (raw === null) return 411;
+  const length = Number(raw);
+  if (!Number.isFinite(length) || length < 0) return 400;
+  if (length > max) return 413;
+  return null;
+}
+
 export function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,

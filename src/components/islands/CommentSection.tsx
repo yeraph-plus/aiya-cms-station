@@ -42,6 +42,8 @@ interface Props {
   /** Backend per-post switch (`commentsOpen`); false renders the composer disabled. */
   closed?: boolean;
   locale: Locale;
+  /** Site calendar timezone (from /site); displayDate renders dates in it. */
+  timezone?: string;
 }
 
 /** One node of the display tree: a comment plus its direct replies. */
@@ -95,6 +97,7 @@ export default function CommentSection({
   loggedIn,
   closed = false,
   locale,
+  timezone,
 }: Props) {
   const copy = t(locale).comments;
   const community = t(locale).community;
@@ -236,12 +239,11 @@ export default function CommentSection({
         <CommentCard
           comment={node.comment}
           locale={locale}
+          timezone={timezone}
           onReply={canComment ? () => setReplyTo(node.comment) : undefined}
         />
         {node.children.length > 0 && (
-          <div className="mt-3 flex flex-col gap-3">
-            {renderNodes(node.children, level + 1)}
-          </div>
+          <div className="mt-3 flex flex-col gap-3">{renderNodes(node.children, level + 1)}</div>
         )}
       </div>
     ));
@@ -263,76 +265,76 @@ export default function CommentSection({
       ) : canComment ? (
         <Card className="gap-0 p-4">
           <form onSubmit={(event) => void submit(event)} className="flex flex-col gap-3">
-          {!loggedIn && (
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Input
-                value={guestName}
-                onChange={(event) => setGuestName(event.target.value)}
-                placeholder={copy.guestName}
-                maxLength={245}
-                required={settings.requireNameEmail}
-              />
-              <Input
-                type="email"
-                value={guestEmail}
-                onChange={(event) => setGuestEmail(event.target.value)}
-                placeholder={copy.guestEmail}
-                maxLength={254}
-                required={settings.requireNameEmail}
-              />
-            </div>
-          )}
-          {replyTo && (
-            <div className="flex items-center gap-2 self-start rounded-md bg-secondary px-2.5 py-1 text-xs text-body-muted">
-              <MessageSquareQuoteIcon className="size-3.5" aria-hidden="true" />
-              <span>
-                {copy.replyingTo} @{replyTo.author.name}
-              </span>
-              <button
-                type="button"
-                aria-label="×"
-                onClick={() => setReplyTo(null)}
-                className="hover:text-foreground"
-              >
-                <XIcon className="size-3" aria-hidden="true" />
-              </button>
-            </div>
-          )}
-          <RichEditor
-            initialHtml={html}
-            onChange={setHtml}
-            placeholder={replyTo ? copy.replyPlaceholder : copy.composerPlaceholder}
-            onImageFile={loggedIn ? (file) => void upload(file) : undefined}
-            labels={editorLabels}
-          />
-          {(images.length > 0 || uploading) && (
-            <AttachmentStrip
-              images={images}
-              uploading={uploading}
-              onRemove={(index) => setImages((prev) => prev.filter((_, i) => i !== index))}
-            />
-          )}
-          <div className="flex items-center justify-between gap-3">
-            {notice ? (
-              <p role="status" className="min-w-0 flex-1 truncate text-sm text-foreground">
-                {notice}
-              </p>
-            ) : (
-              <span />
+            {!loggedIn && (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Input
+                  value={guestName}
+                  onChange={(event) => setGuestName(event.target.value)}
+                  placeholder={copy.guestName}
+                  maxLength={245}
+                  required={settings.requireNameEmail}
+                />
+                <Input
+                  type="email"
+                  value={guestEmail}
+                  onChange={(event) => setGuestEmail(event.target.value)}
+                  placeholder={copy.guestEmail}
+                  maxLength={254}
+                  required={settings.requireNameEmail}
+                />
+              </div>
             )}
-            <Button type="submit" size="sm" disabled={busy}>
-              {busy ? (
-                <LoaderCircleIcon className="size-3.5 animate-spin" aria-hidden="true" />
+            {replyTo && (
+              <div className="flex items-center gap-2 self-start rounded-md bg-secondary px-2.5 py-1 text-xs text-body-muted">
+                <MessageSquareQuoteIcon className="size-3.5" aria-hidden="true" />
+                <span>
+                  {copy.replyingTo} @{replyTo.author.name}
+                </span>
+                <button
+                  type="button"
+                  aria-label="×"
+                  onClick={() => setReplyTo(null)}
+                  className="hover:text-foreground"
+                >
+                  <XIcon className="size-3" aria-hidden="true" />
+                </button>
+              </div>
+            )}
+            <RichEditor
+              initialHtml={html}
+              onChange={setHtml}
+              placeholder={replyTo ? copy.replyPlaceholder : copy.composerPlaceholder}
+              onImageFile={loggedIn ? (file) => void upload(file) : undefined}
+              labels={editorLabels}
+            />
+            {(images.length > 0 || uploading) && (
+              <AttachmentStrip
+                images={images}
+                uploading={uploading}
+                onRemove={(index) => setImages((prev) => prev.filter((_, i) => i !== index))}
+              />
+            )}
+            <div className="flex items-center justify-between gap-3">
+              {notice ? (
+                <p role="status" className="min-w-0 flex-1 truncate text-sm text-foreground">
+                  {notice}
+                </p>
               ) : (
-                copy.submit
+                <span />
               )}
-            </Button>
-          </div>
-          {error && (
-            <p role="alert" className="text-sm text-error">
-              {error}
-            </p>
-          )}
+              <Button type="submit" size="sm" disabled={busy}>
+                {busy ? (
+                  <LoaderCircleIcon className="size-3.5 animate-spin" aria-hidden="true" />
+                ) : (
+                  copy.submit
+                )}
+              </Button>
+            </div>
+            {error && (
+              <p role="alert" className="text-sm text-error">
+                {error}
+              </p>
+            )}
           </form>
         </Card>
       ) : (
@@ -385,10 +387,12 @@ export default function CommentSection({
 function CommentCard({
   comment,
   locale,
+  timezone,
   onReply,
 }: {
   comment: Comment;
   locale: Locale;
+  timezone?: string;
   onReply?: () => void;
 }) {
   const copy = t(locale).comments;
@@ -414,7 +418,7 @@ function CommentCard({
         <span className="font-medium text-foreground">{comment.author.name}</span>
         {comment.publishedAt && (
           <span className="text-xs text-body-muted">
-            {displayDate(comment.publishedAt, locale)}
+            {displayDate(comment.publishedAt, locale, timezone)}
           </span>
         )}
         {onReply && (

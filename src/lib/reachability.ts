@@ -29,7 +29,6 @@ export function isBackendOutage(error: unknown): boolean {
   return true;
 }
 
-
 export interface ReachabilityOptions {
   /** Resolves when the backend answered; throws when it did not. */
   probe: () => Promise<unknown>;

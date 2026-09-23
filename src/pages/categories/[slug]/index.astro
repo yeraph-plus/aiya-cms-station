@@ -33,9 +33,7 @@ const typeLabel = {
             type: view.type,
             name: view.name,
             description: view.description,
-            cover: view.cover
-              ? { ...view.cover, url: rewriteMediaUrl(view.cover.url) }
-              : null,
+            cover: view.cover ? { ...view.cover, url: rewriteMediaUrl(view.cover.url) } : null,
             count: view.count,
             countText: copy.categories.countLabel(view.count),
             typeLabel,

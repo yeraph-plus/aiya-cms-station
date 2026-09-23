@@ -24,6 +24,7 @@ export default function PageDetail({
   settings,
   loggedIn,
   locale,
+  timezone,
   window,
 }: DetailShellProps & { downloads: FileList[] | null; window: CommentsWindow }) {
   useViewPing(post.id);
@@ -49,6 +50,7 @@ export default function PageDetail({
         settings={settings}
         loggedIn={loggedIn}
         locale={locale}
+        timezone={timezone}
         window={window}
       />
     </article>

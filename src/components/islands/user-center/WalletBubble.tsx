@@ -144,7 +144,8 @@ export function WalletBubble({ locale }: { locale: Locale }) {
   // The currently effective plan: the queue row whose window contains now.
   const now = Date.now();
   const currentPlan = membership?.queue.find(
-    (row) => row.status === 'active' && Date.parse(row.startsAt) <= now && now < Date.parse(row.endsAt),
+    (row) =>
+      row.status === 'active' && Date.parse(row.startsAt) <= now && now < Date.parse(row.endsAt),
   );
 
   return (
@@ -190,7 +191,9 @@ export function WalletBubble({ locale }: { locale: Locale }) {
               <p className="text-xs text-body-muted">
                 {currentPlan
                   ? `${currentPlan.tierName} · ${copy.statusActive}${
-                      currentPlan.endsAt ? ` · ${copy.expiresLabel} ${currentPlan.endsAt.slice(0, 10)}` : ''
+                      currentPlan.endsAt
+                        ? ` · ${copy.expiresLabel} ${currentPlan.endsAt.slice(0, 10)}`
+                        : ''
                     }`
                   : copy.statusInactive}
               </p>

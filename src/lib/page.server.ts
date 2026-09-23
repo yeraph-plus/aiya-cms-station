@@ -3,7 +3,7 @@ import type { AiyaClient } from './core/client';
 import type { Menu, Site, User } from './core/contracts';
 import { backend } from './core/health';
 import { currentUser, readSessionToken } from './core/session';
-import { authClient, serverClient } from './core/server';
+import { authClient, serverClient, siteOrigin } from './core/server';
 import { resolveLocale, t } from './i18n';
 import { pageError, type PageErrorCopy } from './page-error';
 import { isBackendOutage } from './reachability';
@@ -11,6 +11,11 @@ import { isBackendOutage } from './reachability';
 export type Locale = ReturnType<typeof resolveLocale>;
 export interface ShellFrame {
   site: Site;
+  /** This site's own origin (AIYA_SITE_URL, validated): canonical, og:url
+      and JSON-LD ride on it. Resolved inside loadPage so a misconfigured
+      URL fails closed (degraded 503 page) instead of silently emitting
+      localhost canonicals that would pull the site out of the index. */
+  origin: string;
   menu: Menu;
   /** Secondary menu group — rendered as the footer navigation. */
   footerMenu: Menu;
@@ -95,6 +100,9 @@ export async function loadPage<T>(
   clientIp?: string | null,
 ): Promise<PageResult<T>> {
   try {
+    // Configuration first: without a usable own origin the site must not
+    // render (every canonical would point at the fallback host).
+    const origin = siteOrigin();
     // A valid session cookie upgrades the whole page read to the visitor's
     // own bearer: /users/me* resources (profile hub, settings) need it, and
     // public reads simply stay public. No token → anonymous client.
@@ -111,11 +119,12 @@ export async function loadPage<T>(
       // The shell's site payload doubles as loader input — display
       // settings (comments per page, window order) shape resource reads.
       const value = await resource(client, site);
-      return { ok: true, site, menu, footerMenu, user, locale, degraded: false, value };
+      return { ok: true, site, origin, menu, footerMenu, user, locale, degraded: false, value };
     } catch (error) {
       return {
         ok: false,
         site,
+        origin,
         menu,
         footerMenu,
         user,
@@ -135,6 +144,7 @@ export async function loadPage<T>(
     return {
       ok: false,
       site: fallbackSite,
+      origin: '',
       menu: { location: 'primary', items: fallbackSite.blocks.primary },
       footerMenu: { location: 'secondary', items: fallbackSite.blocks.secondary },
       user: null,

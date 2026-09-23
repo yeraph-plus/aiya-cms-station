@@ -14,7 +14,7 @@
     "start": "node --env-file-if-exists=.env ./dist/server/entry.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
-    "verify": "npm run check && npm run test && npm run build",
+    "verify": "npm run check && npm run test && npm run format:check && npm run build",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },

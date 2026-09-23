@@ -12,7 +12,6 @@
 import AppShell from '@/components/layout/AppShell.astro';
 import PostLoop from '@/components/islands/feed/PostLoop';
 import { websiteJsonLd } from '@/lib/seo';
-import { siteOrigin } from '@/lib/core/server';
 import { loadPage } from '@/lib/page.server';
 import { iconInner } from '@/lib/icons';
 import { cloakPostSummaryMedia } from '@/lib/media';
@@ -24,24 +23,28 @@ interface ResolvedSection {
   posts: PostSummary[];
 }
 
-const page = await loadPage(async (client, site) => {
-  const resolved = await Promise.all(
-    site.blocks.sections.map(async (section): Promise<ResolvedSection | null> => {
-      const category = section.categories.join(',');
-      try {
-        const result =
-          section.type === 'resource'
-            ? await client.resources({ category, perPage: section.count })
-            : await client.posts({ category, perPage: section.count });
-        return result.data.length > 0 ? { section, posts: result.data } : null;
-      } catch {
-        // One broken query skips its section, never the whole homepage.
-        return null;
-      }
-    }),
-  );
-  return resolved.filter((entry): entry is ResolvedSection => entry !== null);
-}, Astro.cookies, Astro.locals.visitorIp);
+const page = await loadPage(
+  async (client, site) => {
+    const resolved = await Promise.all(
+      site.blocks.sections.map(async (section): Promise<ResolvedSection | null> => {
+        const category = section.categories.join(',');
+        try {
+          const result =
+            section.type === 'resource'
+              ? await client.resources({ category, perPage: section.count })
+              : await client.posts({ category, perPage: section.count });
+          return result.data.length > 0 ? { section, posts: result.data } : null;
+        } catch {
+          // One broken query skips its section, never the whole homepage.
+          return null;
+        }
+      }),
+    );
+    return resolved.filter((entry): entry is ResolvedSection => entry !== null);
+  },
+  Astro.cookies,
+  Astro.locals.visitorIp,
+);
 if (!page.ok) Astro.response.status = page.error.status;
 const copy = t(page.locale);
 // The explicit override wins; otherwise the type's own archive path with
@@ -54,16 +57,17 @@ const archiveHref = (section: HomeSection): string => {
       : '';
   return section.type === 'resource' ? `/resources/${query}` : `/posts/${query}`;
 };
-let origin = 'http://localhost:4321';
-try {
-  origin = siteOrigin();
-} catch {
-  /* degraded env */
-}
+const origin = page.origin;
 const jsonLd = page.ok ? [websiteJsonLd(page.site, origin)] : [];
 ---
 
-<AppShell page={page} title="" description={page.site.description} canonicalPath="/" jsonLd={jsonLd}>
+<AppShell
+  page={page}
+  title=""
+  description={page.site.description}
+  canonicalPath="/"
+  jsonLd={jsonLd}
+>
   <h1 class="sr-only">{page.site.name}</h1>
   {
     page.ok && page.value.length > 0 && (

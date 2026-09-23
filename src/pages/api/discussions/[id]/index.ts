@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import type { DiscussionUpdate } from '@/lib/core/contracts';
-import { errorCode, errorStatus, jsonResponse, visitorIp } from '@/lib/api-auth';
+import { errorCode, errorStatus, jsonResponse, visitorIp, readJsonBody } from '@/lib/api-auth';
 import { authClient } from '@/lib/core/server';
 import { readSessionToken } from '@/lib/core/session';
 
@@ -14,7 +14,7 @@ export const PATCH: APIRoute = async ({ cookies, params, request, clientAddress 
   if (!Number.isInteger(id) || id < 1) return jsonResponse({ ok: false }, 400);
   const token = readSessionToken(cookies);
   if (!token) return jsonResponse({ ok: false }, 401);
-  const body = (await request.json().catch(() => null)) as DiscussionUpdate | null;
+  const body = (await readJsonBody(request)) as DiscussionUpdate | null;
   if (!body || typeof body !== 'object' || Object.keys(body).length === 0) {
     return jsonResponse({ ok: false }, 400);
   }

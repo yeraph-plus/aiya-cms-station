@@ -20,8 +20,7 @@ interface Props {
 }
 
 const { view, hideTitle = false } = Astro.props;
-const { page, pageNumber, archiveBase, pagePattern, feed, filter, title, emptyText, locale } =
-  view;
+const { page, pageNumber, archiveBase, pagePattern, feed, filter, title, emptyText, locale } = view;
 const copy = t(locale);
 const showList = page.ok && !(pageNumber > 1 && pageNumber > page.value.pagination.totalPages);
 // Tag archives are thin content by nature — never indexed.

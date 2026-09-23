@@ -85,9 +85,7 @@ export function CategoryCard({ card, defaultCover, href }: CardProps) {
                 {card.typeLabel}
               </span>
             </span>
-            <span className="shrink-0 text-sm tabular-nums text-white/85">
-              {card.countText}
-            </span>
+            <span className="shrink-0 text-sm tabular-nums text-white/85">{card.countText}</span>
           </div>
           {card.description !== '' && (
             <p className="line-clamp-2 text-sm leading-5 text-white/80">{card.description}</p>

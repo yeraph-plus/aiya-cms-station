@@ -106,34 +106,38 @@ export async function loadCategoriesIndex(astro: {
   page: Awaited<ReturnType<typeof loadPage<CategoryCard[]>>>;
   title: string;
 }> {
-  const page = await loadPage<CategoryCard[]>(async (client) => {
-    const [postTerms, resourceTerms, pageTerms] = await Promise.all([
-      client.terms('category', 'post'),
-      client.terms('category', 'resource'),
-      client.terms('category', 'page'),
-    ]);
-    const cards: CategoryCard[] = [];
-    const sources = [
-      ['posts', postTerms.data],
-      ['resources', resourceTerms.data],
-      ['pages', pageTerms.data],
-    ] as const;
-    for (const [type, terms] of sources) {
-      for (const term of terms) {
-        if (term.taxonomy !== 'category') continue;
-        cards.push({
-          slug: term.slug,
-          name: term.name,
-          description: term.description,
-          cover: term.cover,
-          count: term.count,
-          type,
-          icon: term.icon,
-        });
+  const page = await loadPage<CategoryCard[]>(
+    async (client) => {
+      const [postTerms, resourceTerms, pageTerms] = await Promise.all([
+        client.terms('category', 'post'),
+        client.terms('category', 'resource'),
+        client.terms('category', 'page'),
+      ]);
+      const cards: CategoryCard[] = [];
+      const sources = [
+        ['posts', postTerms.data],
+        ['resources', resourceTerms.data],
+        ['pages', pageTerms.data],
+      ] as const;
+      for (const [type, terms] of sources) {
+        for (const term of terms) {
+          if (term.taxonomy !== 'category') continue;
+          cards.push({
+            slug: term.slug,
+            name: term.name,
+            description: term.description,
+            cover: term.cover,
+            count: term.count,
+            type,
+            icon: term.icon,
+          });
+        }
       }
-    }
-    return cards;
-  }, astro.cookies, astro.locals.visitorIp);
+      return cards;
+    },
+    astro.cookies,
+    astro.locals.visitorIp,
+  );
   return { page, title: t(page.locale).categories.title };
 }
 
@@ -141,16 +145,24 @@ export async function loadCategoriesIndex(astro: {
     resources → pages) and delegates to the term archive loader — the
     unified /categories/[slug]/ first-level route. */
 export async function loadCategoryHub(
-  astro: { response: { status?: number }; url: URL; cookies: AstroCookies;
-    locals: { breadcrumbs?: Crumb[]; visitorIp?: string | null } },
+  astro: {
+    response: { status?: number };
+    url: URL;
+    cookies: AstroCookies;
+    locals: { breadcrumbs?: Crumb[]; visitorIp?: string | null };
+  },
   props: { slug: string; page: number },
 ): Promise<TermArchiveView> {
   const errorView = async (error: unknown): Promise<TermArchiveView> => {
     // Frame the failure through loadPage so the shell (site/menu/locale)
     // stays complete and pageError maps the status (404/502/...).
-    const page = await loadPage<TermArchiveValue>(async () => {
-      throw error;
-    }, astro.cookies, astro.locals.visitorIp);
+    const page = await loadPage<TermArchiveValue>(
+      async () => {
+        throw error;
+      },
+      astro.cookies,
+      astro.locals.visitorIp,
+    );
     // The resource always throws: the union is guaranteed to be the error
     // branch here.
     if (page.ok) throw new Error('unreachable: error view resource threw');
@@ -192,7 +204,9 @@ export async function loadCategoryHub(
       })(),
     ]);
     for (let i = 0; i < CATEGORY_TYPES.length; i += 1) {
-      if (probes[i].data.some((entry) => entry.slug === props.slug && entry.taxonomy === 'category')) {
+      if (
+        probes[i].data.some((entry) => entry.slug === props.slug && entry.taxonomy === 'category')
+      ) {
         resolved = CATEGORY_TYPES[i];
         break;
       }
@@ -203,13 +217,12 @@ export async function loadCategoryHub(
   if (resolved === null) {
     return errorView(new AiyaApiError('http', 404, undefined, 'aiya_not_found'));
   }
-  return loadTermArchive(
-    astro.response,
-    astro.url,
-    astro.cookies,
-    astro.locals,
-    { type: resolved, taxonomy: 'category', slug: props.slug, page: props.page },
-  );
+  return loadTermArchive(astro.response, astro.url, astro.cookies, astro.locals, {
+    type: resolved,
+    taxonomy: 'category',
+    slug: props.slug,
+    page: props.page,
+  });
 }
 
 /**
@@ -230,30 +243,34 @@ export async function loadTermArchive(
   const sort = url.searchParams.get('sort') === 'oldest' ? 'oldest' : 'newest';
   const archiveBase = `${config.base}${taxonomy}/${slug}/`;
 
-  const page = await loadPage<TermArchiveValue>(async (client) => {
-    const filter = taxonomy === 'category' ? { category: slug } : { tag: slug };
-    // pages+tag is never mounted; fall back to the category vocabulary
-    const [termsTaxonomy, termsType] = config.terms[taxonomy] ?? config.terms.category;
-    const [list, terms] = await Promise.all([
-      type === 'posts'
-        ? client.posts({ ...filter, page: pageNumber, sort })
-        : type === 'resources'
-          ? client.resources({ ...filter, page: pageNumber, sort })
-          : client.pages({ ...filter, page: pageNumber, sort }),
-      client.terms(termsTaxonomy, termsType),
-    ]);
-    const term = terms.data.find((entry) => entry.slug === slug && entry.taxonomy === taxonomy);
-    if (!term) throw new AiyaApiError('http', 404, undefined, 'aiya_not_found');
-    return {
-      items: list.data,
-      pagination: list.meta.pagination,
-      name: term.name,
-      description: term.description,
-      cover: term.cover,
-      count: term.count,
-      icon: term.icon ? iconInner(term.icon) : null,
-    };
-  }, cookies, locals.visitorIp);
+  const page = await loadPage<TermArchiveValue>(
+    async (client) => {
+      const filter = taxonomy === 'category' ? { category: slug } : { tag: slug };
+      // pages+tag is never mounted; fall back to the category vocabulary
+      const [termsTaxonomy, termsType] = config.terms[taxonomy] ?? config.terms.category;
+      const [list, terms] = await Promise.all([
+        type === 'posts'
+          ? client.posts({ ...filter, page: pageNumber, sort })
+          : type === 'resources'
+            ? client.resources({ ...filter, page: pageNumber, sort })
+            : client.pages({ ...filter, page: pageNumber, sort }),
+        client.terms(termsTaxonomy, termsType),
+      ]);
+      const term = terms.data.find((entry) => entry.slug === slug && entry.taxonomy === taxonomy);
+      if (!term) throw new AiyaApiError('http', 404, undefined, 'aiya_not_found');
+      return {
+        items: list.data,
+        pagination: list.meta.pagination,
+        name: term.name,
+        description: term.description,
+        cover: term.cover,
+        count: term.count,
+        icon: term.icon ? iconInner(term.icon) : null,
+      };
+    },
+    cookies,
+    locals.visitorIp,
+  );
 
   if (!page.ok) response.status = page.error.status;
   // Empty archives (totalPages 0) must render their empty state, not 404.

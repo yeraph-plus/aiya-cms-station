@@ -108,6 +108,8 @@ const faviconHref = site.favicon ? rewriteMediaUrl(site.favicon.url) : '/favicon
         async
         src={`https://www.googletagmanager.com/gtag/js?id=${site.defaults.gaId}`}
       />
+      {/* prettier-ignore — the astro plugin cannot parse `arguments` inside
+          a define:vars inline script and hard-errors the whole check */}
       <script is:inline define:vars={{ gaId: site.defaults.gaId }}>
         window.dataLayer = window.dataLayer || [];
         function gtag() {

@@ -25,22 +25,13 @@ interface Props {
 }
 
 const { view } = Astro.props;
-const {
-  page,
-  pageNumber,
-  base,
-  title,
-  description,
-  noindex,
-  boardHref,
-  listHref,
-  canPost,
-} = view;
+const { page, pageNumber, base, title, description, noindex, boardHref, listHref, canPost } = view;
 const copy = t(page.locale);
 const overRange = page.ok && pageNumber > page.value.pagination.totalPages;
 const showList = page.ok && !overRange;
 // The rail highlights the board whose path we are on ('' for the all feed).
-const currentBoard = base === '/community/' ? '' : base.replace('/community/board/', '').replace(/\/+$/, '');
+const currentBoard =
+  base === '/community/' ? '' : base.replace('/community/board/', '').replace(/\/+$/, '');
 
 const boardClass = (active: boolean) =>
   `flex items-center justify-between gap-1.5 rounded-md px-2 py-1.5 text-sm whitespace-nowrap transition-colors ${
@@ -67,40 +58,40 @@ const boardBadgeClass = (active: boolean) =>
       <div class="mx-auto w-full max-w-[896px]">
         {pageNumber === 1 ? (
           <div class="flex w-full flex-col gap-5 sm:flex-row sm:gap-6">
-          <aside class="shrink-0 sm:w-28" aria-label={copy.community.boardFilter}>
-            <nav
-              class:list={[
-                'flex gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
-                '-mx-4 px-4 py-0.5 sm:mx-0 sm:flex-col sm:gap-1 sm:px-0',
-              ]}
-            >
-              <a
-                href={boardHref('')}
-                aria-current={currentBoard === '' ? 'page' : undefined}
-                class:list={[boardClass(currentBoard === ''), 'shrink-0 sm:w-full']}
+            <aside class="shrink-0 sm:w-28" aria-label={copy.community.boardFilter}>
+              <nav
+                class:list={[
+                  'flex gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+                  '-mx-4 px-4 py-0.5 sm:mx-0 sm:flex-col sm:gap-1 sm:px-0',
+                ]}
               >
-                <span class="flex items-center gap-1 truncate">
-                  <Icon name="chevron-right" size={13} />
-                  {copy.community.all}
-                </span>
-              </a>
-              {page.value.boards.map((board) => (
                 <a
-                  href={boardHref(board.slug)}
-                  aria-current={board.slug === currentBoard ? 'page' : undefined}
-                  class:list={[boardClass(board.slug === currentBoard), 'shrink-0 sm:w-full']}
+                  href={boardHref('')}
+                  aria-current={currentBoard === '' ? 'page' : undefined}
+                  class:list={[boardClass(currentBoard === ''), 'shrink-0 sm:w-full']}
                 >
                   <span class="flex items-center gap-1 truncate">
                     <Icon name="chevron-right" size={13} />
-                    {board.name}
-                  </span>
-                  <span class:list={[boardBadgeClass(board.slug === currentBoard)]}>
-                    {board.threads}
+                    {copy.community.all}
                   </span>
                 </a>
-              ))}
-            </nav>
-          </aside>
+                {page.value.boards.map((board) => (
+                  <a
+                    href={boardHref(board.slug)}
+                    aria-current={board.slug === currentBoard ? 'page' : undefined}
+                    class:list={[boardClass(board.slug === currentBoard), 'shrink-0 sm:w-full']}
+                  >
+                    <span class="flex items-center gap-1 truncate">
+                      <Icon name="chevron-right" size={13} />
+                      {board.name}
+                    </span>
+                    <span class:list={[boardBadgeClass(board.slug === currentBoard)]}>
+                      {board.threads}
+                    </span>
+                  </a>
+                ))}
+              </nav>
+            </aside>
 
             <div class="w-full min-w-0 max-w-[760px]">
               <CommunityFeed
@@ -114,9 +105,7 @@ const boardBadgeClass = (active: boolean) =>
                   page.user
                     ? {
                         name: page.user.nickname,
-                        avatarUrl: page.user.avatar
-                          ? rewriteMediaUrl(page.user.avatar.url)
-                          : null,
+                        avatarUrl: page.user.avatar ? rewriteMediaUrl(page.user.avatar.url) : null,
                       }
                     : null
                 }

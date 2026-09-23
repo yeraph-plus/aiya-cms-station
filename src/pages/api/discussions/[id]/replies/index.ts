@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { errorCode, errorStatus, jsonResponse, visitorIp } from '@/lib/api-auth';
+import { errorCode, errorStatus, jsonResponse, visitorIp, readJsonBody } from '@/lib/api-auth';
 import { authClient, serverClient } from '@/lib/core/server';
 import { readSessionToken } from '@/lib/core/session';
 import { cloakReply } from '@/lib/community';
@@ -34,7 +34,7 @@ export const POST: APIRoute = async ({ cookies, params, request, clientAddress }
   if (!Number.isInteger(id) || id < 1) return jsonResponse({ ok: false }, 400);
   const token = readSessionToken(cookies);
   if (!token) return jsonResponse({ ok: false }, 401);
-  const body = (await request.json().catch(() => null)) as { content?: unknown } | null;
+  const body = (await readJsonBody(request)) as { content?: unknown } | null;
   if (!body || typeof body.content !== 'string' || body.content.trim() === '') {
     return jsonResponse({ ok: false }, 400);
   }

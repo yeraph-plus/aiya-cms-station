@@ -2,7 +2,14 @@ import type { APIRoute } from 'astro';
 import { loginRequestSchema } from '@/lib/core/contracts';
 import { authClient } from '@/lib/core/server';
 import { setSessionCookie } from '@/lib/core/session';
-import { errorCode, errorStatus, jsonResponse, requesterLocale, visitorIp } from '@/lib/api-auth';
+import {
+  errorCode,
+  errorStatus,
+  jsonResponse,
+  requesterLocale,
+  visitorIp,
+  readJsonBody,
+} from '@/lib/api-auth';
 import { aiyaErrorCopy, t } from '@/lib/i18n';
 
 /** Same-origin login proxy: forwards to WP, then turns the bearer into the session cookie. */
@@ -13,7 +20,7 @@ export const POST: APIRoute = async (Astro) => {
 
   let body: unknown;
   try {
-    body = await Astro.request.json();
+    body = await readJsonBody(Astro.request);
   } catch {
     return jsonResponse({ ok: false, message: copy.errors.aiya_invalid_param }, 400);
   }

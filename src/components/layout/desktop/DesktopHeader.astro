@@ -18,15 +18,8 @@ interface Props {
   user: UserCenterUser | null;
   authCopy: UserCenterCopy;
 }
-const {
-  menuToggleLabel,
-  colorModeLabel,
-  registrationOpen,
-  localeTag,
-  locale,
-  user,
-  authCopy,
-} = Astro.props;
+const { menuToggleLabel, colorModeLabel, registrationOpen, localeTag, locale, user, authCopy } =
+  Astro.props;
 
 // The search box mirrors the results already on screen: on /search/{key}/
 // it seeds keyword and scope straight from the address bar, so the SSR
@@ -56,7 +49,7 @@ const scopeParam = Astro.url.searchParams.get('type') ?? '';
   >
     <Icon name="menu" size={18} />
   </button>
-<SearchBox
+  <SearchBox
     client:load
     locale={locale}
     value={normalizeKeyword(decodedKey)}

@@ -80,9 +80,7 @@ export default function WalletPanel({
                 </span>
                 <span
                   className={
-                    entitlement.status === 'active'
-                      ? 'text-xs text-primary'
-                      : 'text-xs text-error'
+                    entitlement.status === 'active' ? 'text-xs text-primary' : 'text-xs text-error'
                   }
                 >
                   {entitlement.status === 'active'
@@ -118,9 +116,7 @@ export default function WalletPanel({
                   <span className="text-xs text-body-muted">{entry.ref}</span>
                   <span
                     className={
-                      entry.direction === 'in'
-                        ? 'text-sm text-primary'
-                        : 'text-sm text-foreground'
+                      entry.direction === 'in' ? 'text-sm text-primary' : 'text-sm text-foreground'
                     }
                   >
                     {entry.direction === 'in' ? '+' : '−'}

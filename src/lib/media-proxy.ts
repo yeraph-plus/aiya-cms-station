@@ -89,7 +89,17 @@ export async function proxyMedia(pathname: string, request: Request): Promise<Re
     if (value) requestHeaders[name] = value;
   }
 
-  const upstream = await fetch(target, { headers: requestHeaders });
+  // Same resilience posture as the API client: a hung WP must not hold the
+  // proxy connection open indefinitely, and redirects are not a media
+  // semantic (the target is already the canonical WP origin).
+  const upstream = await fetch(target, {
+    headers: requestHeaders,
+    signal: AbortSignal.timeout(30_000),
+    redirect: 'error',
+  }).catch((error: unknown) => {
+    if (error instanceof TypeError) return new Response('Upstream redirect', { status: 502 });
+    return new Response('Upstream timeout', { status: 504 });
+  });
   const responseHeaders = new Headers();
   for (const name of PASSTHROUGH_HEADERS) {
     const value = upstream.headers.get(name);
@@ -110,8 +120,16 @@ export async function proxyMedia(pathname: string, request: Request): Promise<Re
     }
   }
 
-  if (upstream.status === 200) {
+  if (upstream.status === 200 || upstream.status === 206) {
+    // Uploads are effectively immutable: full responses and Range slices
+    // (audio/video seeking) share the long cache. no-store here would
+    // invalidate revalidated copies and force a full re-fetch per seek.
     responseHeaders.set('Cache-Control', 'public, max-age=604800');
+  } else if (upstream.status === 304) {
+    // A revalidation hit must not carry no-store: RFC 9111 has clients
+    // discard a stored 200 response when a 304 for it says no-store, which
+    // would turn every conditional request into a full transfer.
+    responseHeaders.delete('Cache-Control');
   } else {
     responseHeaders.set('Cache-Control', 'no-store');
   }

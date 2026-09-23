@@ -358,7 +358,8 @@ const zh_CN = {
     queueCycles: (granted: number, total: number) => `${granted} / ${total} 周期`,
     cycleDays: (days: number) => `${days} 天`,
     checkinTitle: '每日签到',
-    checkinPolicy: (credits: number, days: number) => `每天可领 ${credits} 积分，有效期 ${days} 天。`,
+    checkinPolicy: (credits: number, days: number) =>
+      `每天可领 ${credits} 积分，有效期 ${days} 天。`,
     checkinClosed: '签到暂未开放。',
     checkinAction: '签到',
     checkinDone: '今天已经签到过了。',
@@ -464,6 +465,14 @@ const zh_CN = {
     aiya_source_not_found: '文件不存在或已被移除。',
     aiya_source_invalid: '文件服务返回了无法识别的内容。',
     aiya_credit_insufficient: '积分不足，无法完成这次下载。',
+    // review closure: codes the backend can answer that callers here can hit
+    aiya_thread_locked: '该讨论已关闭，无法再回复。',
+    aiya_identity_required: '请先登录后再参与评论。',
+    aiya_credit_duplicate: '刚请求过该文件，正在处理中，请稍候。',
+    aiya_invalid_return_url: '支付回跳地址无效，请联系站长。',
+    aiya_forbidden: '没有执行该操作的权限。',
+    aiya_counter_missing_post: '原内容已不存在，无法计数。',
+    aiya_counter_not_supported: '该内容不支持此操作。',
     aiya_account_disabled: '该账号已被停用。',
     // comments / security / uploads (backend codes without a call site yet)
     aiya_comment_flood: '评论太快了，请稍后再试。',

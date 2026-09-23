@@ -174,7 +174,14 @@ describe('file download contract (grouped lists, links only on claim)', () => {
   it('accepts a folder row, which carries no link of its own', () => {
     const parsed = downloadsResponseSchema.safeParse({
       meta,
-      data: { lists: [{ ...downloads.lists[0], items: [{ ...entry, name: 'opt', kind: 'dir', type: 'folder', size: 0 }] }] },
+      data: {
+        lists: [
+          {
+            ...downloads.lists[0],
+            items: [{ ...entry, name: 'opt', kind: 'dir', type: 'folder', size: 0 }],
+          },
+        ],
+      },
     });
     expect(parsed.success).toBe(true);
   });
@@ -290,7 +297,12 @@ describe('error envelope', () => {
 // ---------------------------------------------------------------------------
 
 describe('authored link targets accept both shapes', () => {
-  const image = { url: 'http://localhost:8000/wp-content/uploads/x.jpg', alt: 'x', width: 4, height: 4 };
+  const image = {
+    url: 'http://localhost:8000/wp-content/uploads/x.jpg',
+    alt: 'x',
+    width: 4,
+    height: 4,
+  };
 
   it('accepts a site-relative path on ads and menu rows', () => {
     expect(adSlotSchema.safeParse({ url: '/promo/', label: '促销', image }).success).toBe(true);

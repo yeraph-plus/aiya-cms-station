@@ -72,13 +72,13 @@ export default function FavoriteButton({
   };
 
   return (
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => void toggle()}
-        aria-pressed={favorited}
-        disabled={busy}
-      >
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={() => void toggle()}
+      aria-pressed={favorited}
+      disabled={busy}
+    >
       {busy ? (
         <LoaderCircleIcon className="size-4 animate-spin" aria-hidden="true" />
       ) : (

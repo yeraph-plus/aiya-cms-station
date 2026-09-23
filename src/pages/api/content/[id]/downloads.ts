@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { errorCode, errorStatus, jsonResponse, visitorIp } from '@/lib/api-auth';
+import { errorCode, errorStatus, jsonResponse, visitorIp, readJsonBody } from '@/lib/api-auth';
 import { authClient } from '@/lib/core/server';
 import { readSessionToken } from '@/lib/core/session';
 
@@ -18,9 +18,7 @@ export const POST: APIRoute = async (Astro) => {
   const id = Number(Astro.params.id);
   if (!Number.isInteger(id) || id < 1) return jsonResponse({ ok: false }, 400);
 
-  const body = (await Astro.request.json().catch(() => null)) as
-    | { listId?: unknown; ref?: unknown }
-    | null;
+  const body = (await readJsonBody(Astro.request)) as { listId?: unknown; ref?: unknown } | null;
   const listId = typeof body?.listId === 'string' ? body.listId : '';
   const ref = typeof body?.ref === 'string' ? body.ref : '';
   if (listId === '' || ref === '') return jsonResponse({ ok: false }, 400);

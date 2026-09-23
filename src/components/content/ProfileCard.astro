@@ -25,6 +25,8 @@ interface Props {
   /** ISO registration timestamp; formatted with the page locale. */
   registeredAt: string;
   locale: Locale;
+  /** Site calendar timezone (from /site). */
+  timezone?: string;
   stats?: ProfileStats | null;
   class?: string;
 }
@@ -88,7 +90,7 @@ const paddedId = String(id).padStart(5, '0');
         <span class="text-xs text-body-muted">ID {paddedId}</span>
         <span class="text-xs text-body-muted">
           {copy.profile.joined}
-          {displayDate(registeredAt, locale)}
+          {displayDate(registeredAt, locale, timezone)}
         </span>
       </div>
       <p

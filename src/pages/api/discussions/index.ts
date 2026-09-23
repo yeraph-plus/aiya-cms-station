@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { errorCode, errorStatus, jsonResponse, visitorIp } from '@/lib/api-auth';
+import { errorCode, errorStatus, jsonResponse, visitorIp, readJsonBody } from '@/lib/api-auth';
 import { authClient, serverClient } from '@/lib/core/server';
 import { readSessionToken } from '@/lib/core/session';
 import { cloakDiscussion } from '@/lib/community';
@@ -45,7 +45,7 @@ export const POST: APIRoute = async ({ cookies, request, clientAddress }) => {
   const ip = visitorIp(request, clientAddress);
   const token = readSessionToken(cookies);
   if (!token) return jsonResponse({ ok: false }, 401);
-  const body = (await request.json().catch(() => null)) as {
+  const body = (await readJsonBody(request)) as {
     title?: unknown;
     board?: unknown;
     content?: unknown;

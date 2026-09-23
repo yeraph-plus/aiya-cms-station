@@ -9,9 +9,14 @@ import { rewriteMediaUrl } from '@/lib/media';
 import { t } from '@/lib/i18n';
 import { loadPage } from '@/lib/page.server';
 import { setCrumbs } from '@/lib/breadcrumbs';
-import { readSessionToken } from '@/lib/core/session';
+import { currentUser, readSessionToken } from '@/lib/core/session';
 
 if (!readSessionToken(Astro.cookies)) {
+  return Astro.redirect('/');
+}
+// A revoked/expired cookie must degrade to guest (home), not masquerade as
+// a backend outage: currentUser swallows every failure into null.
+if (!(await currentUser(Astro.cookies))) {
   return Astro.redirect('/');
 }
 

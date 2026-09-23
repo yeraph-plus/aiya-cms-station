@@ -22,10 +22,14 @@ const tag = (Astro.url.searchParams.get('tag') ?? '').slice(0, 200);
 const sort = Astro.url.searchParams.get('sort') === 'oldest' ? 'oldest' : 'newest';
 const filtered = q !== '' || category !== '' || tag !== '';
 
-const page = await loadPage(async (client) => {
-  const posts = await client.posts({ page: n, q, category, tag, sort });
-  return { posts: posts.data, pagination: posts.meta.pagination };
-}, Astro.cookies, Astro.locals.visitorIp);
+const page = await loadPage(
+  async (client) => {
+    const posts = await client.posts({ page: n, q, category, tag, sort });
+    return { posts: posts.data, pagination: posts.meta.pagination };
+  },
+  Astro.cookies,
+  Astro.locals.visitorIp,
+);
 if (!page.ok) Astro.response.status = page.error.status;
 const overRange = page.ok && n > page.value.pagination.totalPages;
 if (overRange) Astro.response.status = 404;
@@ -47,8 +51,8 @@ const title = q !== '' ? copy.posts.searchTitle(q) : copy.posts.pageOf(n);
   noindex={filtered || overRange}
 >
   {
-    page.ok && (
-      showList ? (
+    page.ok &&
+      (showList ? (
         <>
           <h1 class="sr-only">{title}</h1>
           <PostLoop
@@ -78,7 +82,6 @@ const title = q !== '' ? copy.posts.searchTitle(q) : copy.posts.pageOf(n);
           retry="/posts/"
           retryLabel={copy.common.retry}
         />
-      )
-    )
+      ))
   }
 </AppShell>

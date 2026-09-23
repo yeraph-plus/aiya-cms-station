@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { errorCode, errorStatus, jsonResponse, visitorIp } from '@/lib/api-auth';
+import { errorCode, errorStatus, jsonResponse, visitorIp, readJsonBody } from '@/lib/api-auth';
 import { authClient, serverClient } from '@/lib/core/server';
 import { readSessionToken } from '@/lib/core/session';
 import { rewriteMediaUrl } from '@/lib/media';
@@ -59,7 +59,7 @@ export const POST: APIRoute = async ({ cookies, params, request, clientAddress }
   // guests pass through anonymously and the backend's comment_registration
   // switch decides whether they may post (401 when the wall is on).
   const token = readSessionToken(cookies);
-  const body = (await request.json().catch(() => null)) as {
+  const body = (await readJsonBody(request)) as {
     body?: unknown;
     parentId?: unknown;
     authorName?: unknown;

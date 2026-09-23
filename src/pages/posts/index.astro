@@ -14,19 +14,23 @@ const q = (Astro.url.searchParams.get('q') ?? '').slice(0, 100);
 const category = (Astro.url.searchParams.get('category') ?? '').slice(0, 200);
 const tag = (Astro.url.searchParams.get('tag') ?? '').slice(0, 200);
 const sort = Astro.url.searchParams.get('sort') === 'oldest' ? 'oldest' : 'newest';
-const page = await loadPage(async (client) => {
-  const [posts, terms, tagTerms] = await Promise.all([
-    client.posts({ q, category, tag, sort }),
-    client.terms('category', 'post'),
-    client.terms('tag', 'post'),
-  ]);
-  return {
-    posts: posts.data,
-    pagination: posts.meta.pagination,
-    categories: terms.data.filter((term) => term.taxonomy === 'category'),
-    tags: tagTerms.data.filter((term) => term.taxonomy === 'tag'),
-  };
-}, Astro.cookies, Astro.locals.visitorIp);
+const page = await loadPage(
+  async (client) => {
+    const [posts, terms, tagTerms] = await Promise.all([
+      client.posts({ q, category, tag, sort }),
+      client.terms('category', 'post'),
+      client.terms('tag', 'post'),
+    ]);
+    return {
+      posts: posts.data,
+      pagination: posts.meta.pagination,
+      categories: terms.data.filter((term) => term.taxonomy === 'category'),
+      tags: tagTerms.data.filter((term) => term.taxonomy === 'tag'),
+    };
+  },
+  Astro.cookies,
+  Astro.locals.visitorIp,
+);
 if (!page.ok) Astro.response.status = page.error.status;
 const copy = t(page.locale);
 if (page.ok) setCrumbs(Astro.locals, page.locale, [{ label: copy.posts.title }]);

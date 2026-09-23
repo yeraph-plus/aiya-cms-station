@@ -4,6 +4,12 @@
  * Pure functions — safe outside Astro.
  */
 
+/** Hex color as the Frontend settings page should produce; anything else is
+    admin-side misconfiguration, not content to render. */
+export function isHexColor(value: string): boolean {
+  return /^#[0-9a-fA-F]{3,8}$/.test(value);
+}
+
 /** Readable text color on top of a brand background (YIQ luminance rule). */
 export function foregroundOn(hex: string): string {
   const r = parseInt(hex.slice(1, 3), 16);
@@ -19,5 +25,9 @@ export function foregroundOn(hex: string): string {
  * wins specificity over tokens.css regardless of order.
  */
 export function brandThemeStyle(primary: string): string {
-  return `:root:root{--primary:${primary};--primary-foreground:${foregroundOn(primary)};}`;
+  // The style rides an inline <style set:html> — an unvalidated value could
+  // break out of the CSS context (`</style>…` / `}` injecting rules). The
+  // default palette stands in for anything that is not a plain hex color.
+  const safe = isHexColor(primary) ? primary : '#e94f69';
+  return `:root:root{--primary:${safe};--primary-foreground:${foregroundOn(safe)};}`;
 }

@@ -11,7 +11,13 @@ import {
 } from '@/components/islands/detail/parts';
 import PostDiscussions from '@/components/islands/detail/PostDiscussions';
 import { Card, CardContent } from '@/components/ui/card';
-import type { Comment, FileList, PostDetail, PostSummary, SiteComments } from '@/lib/core/contracts';
+import type {
+  Comment,
+  FileList,
+  PostDetail,
+  PostSummary,
+  SiteComments,
+} from '@/lib/core/contracts';
 import type { FeedThread } from '@/lib/community';
 import { t, type Locale } from '@/lib/i18n';
 
@@ -37,6 +43,8 @@ export interface DetailShellProps {
   /** Viewer is the author — the sidebar follow button disables. */
   isSelf: boolean;
   locale: Locale;
+  /** Site calendar timezone (from /site); dates render in it. */
+  timezone?: string;
 }
 
 /** Post detail shell: two columns — the article left, author + related right. */
@@ -54,6 +62,7 @@ export default function PostDetail({
   authorBio,
   isSelf,
   locale,
+  timezone,
   window,
 }: DetailShellProps & {
   related: PostSummary[];
@@ -78,7 +87,13 @@ export default function PostDetail({
           />
           <CardContent className="px-6 py-6">
             <ArticleBody post={post} locale={locale} />
-            <DownloadSection lists={downloads} postId={post.id} loggedIn={loggedIn} locale={locale} />
+            <DownloadSection
+              lists={downloads}
+              postId={post.id}
+              loggedIn={loggedIn}
+              locale={locale}
+              timezone={timezone}
+            />
           </CardContent>
         </Card>
         <PrevNextNav post={post} locale={locale} />
@@ -89,12 +104,13 @@ export default function PostDetail({
           settings={settings}
           loggedIn={loggedIn}
           locale={locale}
+          timezone={timezone}
           window={window}
         />
       </div>
       <aside className="mt-10 flex flex-col gap-5 lg:mt-0">
         <AuthorCard post={post} bio={authorBio} isSelf={isSelf} locale={locale} />
-        <RelatedList related={related} locale={locale} />
+        <RelatedList related={related} locale={locale} timezone={timezone} />
         <PostDiscussions
           postId={post.id}
           initialThreads={threads}
@@ -102,6 +118,7 @@ export default function PostDetail({
           boards={boards}
           canPost={loggedIn}
           locale={locale}
+          timezone={timezone}
         />
       </aside>
     </article>

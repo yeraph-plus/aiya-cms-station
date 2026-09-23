@@ -9,8 +9,20 @@ import {
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { PostEditorBlock } from '@/components/islands/user-center/RichEditor';
 import { t, type Locale } from '@/lib/i18n';
 import { displayDate } from '@/lib/format';
@@ -38,6 +50,7 @@ export interface PostDiscussionsProps {
   /** Guests get the login dialog via the `aiya:open-auth` bridge instead. */
   canPost: boolean;
   locale: Locale;
+  timezone?: string;
 }
 
 /** Same upload path as the community feed composer: same-origin proxy in,
@@ -66,6 +79,7 @@ export default function PostDiscussions({
   boards,
   canPost,
   locale,
+  timezone,
 }: PostDiscussionsProps) {
   const copy = t(locale);
   const community = copy.community;
@@ -85,15 +99,25 @@ export default function PostDiscussions({
   /** Target board; defaults to the first board like the feed composer. */
   const [board, setBoard] = useState(boards[0]?.slug ?? '');
   const hasDraft =
-    images.length > 0 ||
-    /<img/.test(draftHtml) ||
-    draftHtml.replace(/<[^>]*>/g, '').trim() !== '';
+    images.length > 0 || /<img/.test(draftHtml) || draftHtml.replace(/<[^>]*>/g, '').trim() !== '';
 
   const templates = [
     { value: 'none', label: community.templateNone, body: '' },
-    { value: 'broken-link', label: community.templateBrokenLink, body: community.templateBrokenLinkBody },
-    { value: 'update-request', label: community.templateUpdateRequest, body: community.templateUpdateRequestBody },
-    { value: 'new-release', label: community.templateNewRelease, body: community.templateNewReleaseBody },
+    {
+      value: 'broken-link',
+      label: community.templateBrokenLink,
+      body: community.templateBrokenLinkBody,
+    },
+    {
+      value: 'update-request',
+      label: community.templateUpdateRequest,
+      body: community.templateUpdateRequestBody,
+    },
+    {
+      value: 'new-release',
+      label: community.templateNewRelease,
+      body: community.templateNewReleaseBody,
+    },
     { value: 'errata', label: community.templateErrata, body: community.templateErrataBody },
   ];
 
@@ -174,7 +198,9 @@ export default function PostDiscussions({
       <h2 className="flex items-center gap-1.5 font-display text-lg font-semibold text-foreground">
         <MessageSquareDotIcon className="size-5" aria-hidden="true" />
         {community.relatedThreads}
-        {total > 0 && <span className="text-sm font-normal text-body-muted tabular-nums">{total}</span>}
+        {total > 0 && (
+          <span className="text-sm font-normal text-body-muted tabular-nums">{total}</span>
+        )}
       </h2>
       <Button
         variant="outline"
@@ -193,9 +219,15 @@ export default function PostDiscussions({
           {community.relatedThreadsEmpty}
         </p>
       ) : (
-        <div className={loading ? 'flex flex-col gap-3 opacity-60 transition-opacity' : 'flex flex-col gap-3 transition-opacity'}>
+        <div
+          className={
+            loading
+              ? 'flex flex-col gap-3 opacity-60 transition-opacity'
+              : 'flex flex-col gap-3 transition-opacity'
+          }
+        >
           {threads.map((thread) => (
-            <SidebarThread key={thread.id} thread={thread} locale={locale} />
+            <SidebarThread key={thread.id} thread={thread} locale={locale} timezone={timezone} />
           ))}
         </div>
       )}
@@ -268,7 +300,12 @@ export default function PostDiscussions({
               }}
             />
             <div className="flex items-center justify-end gap-2">
-              <Button variant="ghost" size="sm" disabled={publishing} onClick={() => setOpen(false)}>
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={publishing}
+                onClick={() => setOpen(false)}
+              >
                 {community.cancel}
               </Button>
               <Button size="sm" disabled={publishing || !hasDraft} onClick={() => void publish()}>
@@ -289,13 +326,24 @@ export default function PostDiscussions({
 
 /** One bound thread as a bare sidebar row: title (or excerpt) over the
  *  status/author/date/replies meta line, whole row linking into /community/. */
-function SidebarThread({ thread, locale }: { thread: FeedThread; locale: Locale }) {
+function SidebarThread({
+  thread,
+  locale,
+  timezone,
+}: {
+  thread: FeedThread;
+  locale: Locale;
+  timezone?: string;
+}) {
   const copy = t(locale).community;
   const excerpt =
     thread.title !== ''
       ? thread.title
-      : thread.contentSafe.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60) ||
-        copy.searchPlaceholder;
+      : thread.contentSafe
+          .replace(/<[^>]*>/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+          .slice(0, 60) || copy.searchPlaceholder;
   return (
     <a href={thread.url} className="group flex items-start gap-3">
       <span
@@ -311,7 +359,7 @@ function SidebarThread({ thread, locale }: { thread: FeedThread; locale: Locale 
         <span className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-xs text-body-muted">
           <span>{thread.status === 'open' ? copy.status_open : copy.status_closed}</span>
           <span>{thread.author.name}</span>
-          <span>{displayDate(thread.publishedAt, locale)}</span>
+          <span>{displayDate(thread.publishedAt, locale, timezone)}</span>
           <span className="inline-flex items-center gap-1">
             <MessageCircleIcon className="size-3" aria-hidden="true" />
             {thread.replies}

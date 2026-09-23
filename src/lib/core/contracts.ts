@@ -71,6 +71,15 @@ export const imageSchema = z.object({
   width: id.nullable(),
   height: id.nullable(),
 });
+/**
+ * The public profile route key shape: the headless registration path
+ * generates UUID nicenames, so this is the only shape the frontend
+ * route, its client assertion and the sitemap collector accept — every
+ * consumer MUST use this one predicate or sitemap entries and links go
+// dead for slugs outside it.
+ */
+export const PROFILE_SLUG_PATTERN = /^[a-z0-9-]{1,64}$/;
+
 export const authorSchema = z.object({
   id: count,
   /** Public profile route key (/profile/{slug}/); system-generated nicename. */
@@ -246,7 +255,6 @@ export const smiliesPackSchema = z.object({
   slug: z.string(),
   items: z.array(smiliesItemSchema),
 });
-
 
 export const menuItemSchema: z.ZodType<MenuItem> = z.object({
   id,

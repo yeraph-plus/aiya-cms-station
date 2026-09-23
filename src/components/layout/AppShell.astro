@@ -12,7 +12,7 @@ import Breadcrumb from '@/components/layout/Breadcrumb.astro';
 import AdSpace from '@/components/islands/AdSpace';
 import { siteOrigin } from '@/lib/core/server';
 import { t, toBcp47 } from '@/lib/i18n';
-import { rewriteMediaUrl } from '@/lib/media';
+import { cssUrl, rewriteMediaUrl } from '@/lib/media';
 import { brandThemeStyle } from '@/lib/theme';
 import { Toaster } from '@/components/ui/sonner';
 import type { PageResult } from '@/lib/page.server';
@@ -42,12 +42,9 @@ const {
   jsonLd = [],
 } = Astro.props;
 const copy = t(page.locale);
-let origin = 'http://localhost:4321';
-try {
-  origin = siteOrigin();
-} catch {
-  /* degraded env: canonical falls back to localhost */
-}
+// Resolved inside loadPage and fail-closed there: '' only on a degraded
+// shell, which is noindex anyway and renders no canonical.
+const origin = page.origin;
 // Degraded shells and error states never get indexed.
 const noIndexFinal = noindex || !page.ok || page.degraded;
 const sessionUser = page.user
@@ -85,8 +82,17 @@ const authCopy = {
   notificationsError: copy.shell.notificationsError,
 };
 const brandStyle = brandThemeStyle(page.site.defaults.theme.primary);
-// Banner src goes through the media proxy like every WP asset.
-const bannerUrl = page.site.banner ? rewriteMediaUrl(page.site.banner.url) : null;
+// Banner src goes through the media proxy like every WP asset; the CSS
+// string escapes quotes so the style attribute cannot be broken out of.
+const bannerUrl = page.site.banner ? cssUrl(rewriteMediaUrl(page.site.banner.url)) : null;
+// Ad artwork rides the same single-origin rewrite before it reaches the
+// island — the raw contract URL would send the browser straight at WP.
+const cloakSlot = (slot: (typeof page.site.blocks.adsTop)[number]) => ({
+  ...slot,
+  image: { ...slot.image, url: rewriteMediaUrl(slot.image.url) },
+});
+const adsTop = page.site.blocks.adsTop.map(cloakSlot);
+const adsBottom = page.site.blocks.adsBottom.map(cloakSlot);
 // Banner underlays the nav on the homepage only.
 const isHome = Astro.url.pathname === '/';
 const showBanner = bannerUrl !== null && isHome;
@@ -154,11 +160,7 @@ const showBanner = bannerUrl !== null && isHome;
           id="main-content"
           class="mx-auto w-full max-w-[1510px] flex-1 px-4 pb-10 pt-4 min-[992px]:px-[clamp(1.5rem,4vw,4.5rem)] min-[992px]:pb-12"
         >
-          {
-            page.site.blocks.adsTop.length > 0 && (
-              <AdSpace client:load slots={page.site.blocks.adsTop} />
-            )
-          }
+          {page.site.blocks.adsTop.length > 0 && <AdSpace client:load slots={adsTop} />}
           <Breadcrumb />
           {
             page.ok ? (
@@ -177,7 +179,7 @@ const showBanner = bannerUrl !== null && isHome;
           {
             page.site.blocks.adsBottom.length > 0 && (
               <div class="mt-6">
-                <AdSpace client:visible slots={page.site.blocks.adsBottom} />
+                <AdSpace client:visible slots={adsBottom} />
               </div>
             )
           }

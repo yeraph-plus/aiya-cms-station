@@ -20,18 +20,22 @@ const tag = (Astro.url.searchParams.get('tag') ?? '').slice(0, 200);
 const sort = Astro.url.searchParams.get('sort') === 'oldest' ? 'oldest' : 'newest';
 const filtered = q !== '' || category !== '' || tag !== '';
 
-const page = await loadPage(async (client) => {
-  const [list, terms] = await Promise.all([
-    client.resources({ q, category, tag, sort }),
-    client.terms('all', 'resource'),
-  ]);
-  return {
-    resources: list.data,
-    pagination: list.meta.pagination,
-    categories: terms.data.filter((term) => term.taxonomy === 'category'),
-    tags: terms.data.filter((term) => term.taxonomy === 'tag'),
-  };
-}, Astro.cookies, Astro.locals.visitorIp);
+const page = await loadPage(
+  async (client) => {
+    const [list, terms] = await Promise.all([
+      client.resources({ q, category, tag, sort }),
+      client.terms('all', 'resource'),
+    ]);
+    return {
+      resources: list.data,
+      pagination: list.meta.pagination,
+      categories: terms.data.filter((term) => term.taxonomy === 'category'),
+      tags: terms.data.filter((term) => term.taxonomy === 'tag'),
+    };
+  },
+  Astro.cookies,
+  Astro.locals.visitorIp,
+);
 if (!page.ok) Astro.response.status = page.error.status;
 const copy = t(page.locale);
 if (page.ok) setCrumbs(Astro.locals, page.locale, [{ label: copy.resources.title }]);

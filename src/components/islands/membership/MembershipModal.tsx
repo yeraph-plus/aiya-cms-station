@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react';
 
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import type { TiersPayload } from '@/lib/core/contracts';
 import { t, type Locale } from '@/lib/i18n';
 import { MembershipPlans } from './MembershipPlans';
@@ -63,9 +69,7 @@ export function MembershipModal({
         {!failed && !tiers && (
           <p className="py-8 text-center text-sm text-body-muted">{copy.modalLoading}</p>
         )}
-        {tiers && (
-          <MembershipPlans locale={locale} channels={tiers.channels} items={tiers.items} />
-        )}
+        {tiers && <MembershipPlans locale={locale} channels={tiers.channels} items={tiers.items} />}
       </DialogContent>
     </Dialog>
   );

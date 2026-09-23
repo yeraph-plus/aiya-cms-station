@@ -56,7 +56,15 @@ const SITE_A = {
     commentOrder: 'asc',
     commentRegistration: true,
   },
-  defaults: { colorMode: 'system', thumb: null, emptyImage: null, theme: { primary: '#e94f69' }, seoKeywords: '', seoDescription: '', gaId: '' },
+  defaults: {
+    colorMode: 'system',
+    thumb: null,
+    emptyImage: null,
+    theme: { primary: '#e94f69' },
+    seoKeywords: '',
+    seoDescription: '',
+    gaId: '',
+  },
   footer: { links: [], hitokoto: false },
   blocks: { primary: [], secondary: [], adsTop: [], adsBottom: [], sections: [] },
 };
