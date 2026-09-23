@@ -30,6 +30,7 @@ const scope: SearchScope = isSearchScope(scopeParam) ? scopeParam : 'all';
 const page = await loadPage(
   async (client) => loadSearchPage(client, { key, scope, page: n }),
   Astro.cookies,
+  Astro.locals.visitorIp,
 );
 if (!page.ok) Astro.response.status = page.error.status;
 const overRange = page.ok && n > page.value.pagination.totalPages;

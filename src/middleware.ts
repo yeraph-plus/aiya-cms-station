@@ -1,10 +1,20 @@
 import { defineMiddleware } from 'astro:middleware';
+import { visitorIp } from '@/lib/api-auth';
 import { backend } from '@/lib/core/health';
 import { gateResponse } from '@/lib/gate';
 import { normalizeLocale, t } from '@/lib/i18n';
 import { proxyMedia } from '@/lib/media-proxy';
 
 export const onRequest = defineMiddleware(async (context, next) => {
+  // Resolve the visitor address once per request; every SSR read threads it
+  // into its client so the backend sees the real visitor, not this server's
+  // REMOTE_ADDR (rate limiting / guest dedup / comment IP share one bucket
+  // otherwise).
+  context.locals.visitorIp = visitorIp(
+    context.request,
+    typeof context.clientAddress === 'string' ? context.clientAddress : null,
+  );
+
   // Media proxy runs before routing: `trailingSlash: 'always'` would 404
   // file-like paths (no trailing slash) before any route could match.
   if (context.url.pathname.startsWith('/media/')) {

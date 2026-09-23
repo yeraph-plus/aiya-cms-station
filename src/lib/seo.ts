@@ -4,6 +4,16 @@ import { rewriteMediaUrl } from '@/lib/media';
 
 /** Pure JSON-LD builders; BaseHead serializes whatever these return. */
 
+/**
+ * JSON.stringify, with `<` escaped so a `</script>` inside any text field
+ * (post title, author name, term label — all end up in JSON-LD) cannot close
+ * the embedding element early: the HTML parser terminates a script on the
+ * first `</script` byte sequence and knows nothing about JSON string syntax.
+ */
+export function serializeJsonLd(data: unknown): string {
+  return JSON.stringify(data).replace(/</g, '\\u003c');
+}
+
 export function absoluteUrl(origin: string, path: string): string {
   return new URL(path, origin).href;
 }

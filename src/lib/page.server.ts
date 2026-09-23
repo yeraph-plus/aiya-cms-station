@@ -89,13 +89,17 @@ const fallbackSite: Site = {
 export async function loadPage<T>(
   resource: (client: AiyaClient, site: Site) => Promise<T>,
   cookies: AstroCookies,
+  // Resolved by the middleware (App.locals.visitorIp): every SSR read rides
+  // the proxy bridge with the real visitor address, or the backend's rate
+  // limiting and guest dedup collapse this whole site into one REMOTE_ADDR.
+  clientIp?: string | null,
 ): Promise<PageResult<T>> {
   try {
     // A valid session cookie upgrades the whole page read to the visitor's
     // own bearer: /users/me* resources (profile hub, settings) need it, and
     // public reads simply stay public. No token → anonymous client.
     const token = readSessionToken(cookies);
-    const client = token ? authClient(token) : serverClient();
+    const client = token ? authClient(token, clientIp) : serverClient(clientIp);
     const [siteResult, user] = await Promise.all([client.site(), currentUser(cookies)]);
     const site = siteResult.data;
     // The shell's dynamic blocks ride the /site payload (0.83.0 merge):

@@ -101,6 +101,7 @@ export interface CategoryCard {
 export async function loadCategoriesIndex(astro: {
   response: { status?: number };
   cookies: AstroCookies;
+  locals: { visitorIp?: string | null };
 }): Promise<{
   page: Awaited<ReturnType<typeof loadPage<CategoryCard[]>>>;
   title: string;
@@ -132,7 +133,7 @@ export async function loadCategoriesIndex(astro: {
       }
     }
     return cards;
-  }, astro.cookies);
+  }, astro.cookies, astro.locals.visitorIp);
   return { page, title: t(page.locale).categories.title };
 }
 
@@ -140,7 +141,8 @@ export async function loadCategoriesIndex(astro: {
     resources → pages) and delegates to the term archive loader — the
     unified /categories/[slug]/ first-level route. */
 export async function loadCategoryHub(
-  astro: { response: { status?: number }; url: URL; cookies: AstroCookies; locals: { breadcrumbs?: Crumb[] } },
+  astro: { response: { status?: number }; url: URL; cookies: AstroCookies;
+    locals: { breadcrumbs?: Crumb[]; visitorIp?: string | null } },
   props: { slug: string; page: number },
 ): Promise<TermArchiveView> {
   const errorView = async (error: unknown): Promise<TermArchiveView> => {
@@ -148,7 +150,7 @@ export async function loadCategoryHub(
     // stays complete and pageError maps the status (404/502/...).
     const page = await loadPage<TermArchiveValue>(async () => {
       throw error;
-    }, astro.cookies);
+    }, astro.cookies, astro.locals.visitorIp);
     // The resource always throws: the union is guaranteed to be the error
     // branch here.
     if (page.ok) throw new Error('unreachable: error view resource threw');
@@ -177,15 +179,15 @@ export async function loadCategoryHub(
     const probes = await Promise.all([
       // Same-origin server client only — resolution needs no cookies.
       (async () => {
-        const client = (await import('@/lib/core/server')).serverClient();
+        const client = (await import('@/lib/core/server')).serverClient(astro.locals.visitorIp);
         return client.terms('category', 'post');
       })(),
       (async () => {
-        const client = (await import('@/lib/core/server')).serverClient();
+        const client = (await import('@/lib/core/server')).serverClient(astro.locals.visitorIp);
         return client.terms('category', 'resource');
       })(),
       (async () => {
-        const client = (await import('@/lib/core/server')).serverClient();
+        const client = (await import('@/lib/core/server')).serverClient(astro.locals.visitorIp);
         return client.terms('category', 'page');
       })(),
     ]);
@@ -220,7 +222,7 @@ export async function loadTermArchive(
   response: { status?: number },
   url: URL,
   cookies: AstroCookies,
-  locals: { breadcrumbs?: Crumb[] },
+  locals: { breadcrumbs?: Crumb[]; visitorIp?: string | null },
   props: TermArchiveProps,
 ): Promise<TermArchiveView> {
   const { type, taxonomy, slug, page: pageNumber } = props;
@@ -251,7 +253,7 @@ export async function loadTermArchive(
       count: term.count,
       icon: term.icon ? iconInner(term.icon) : null,
     };
-  }, cookies);
+  }, cookies, locals.visitorIp);
 
   if (!page.ok) response.status = page.error.status;
   // Empty archives (totalPages 0) must render their empty state, not 404.

@@ -33,6 +33,7 @@ const scope: SearchScope = isSearchScope(scopeParam) ? scopeParam : 'all';
 const page = await loadPage(
   async (client) => loadSearchPage(client, { key, scope, page: 1 }),
   Astro.cookies,
+  Astro.locals.visitorIp,
 );
 if (!page.ok) Astro.response.status = page.error.status;
 const copy = t(page.locale);

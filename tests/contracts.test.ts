@@ -317,6 +317,16 @@ describe('authored link targets accept both shapes', () => {
       expect(adSlotSchema.safeParse({ url, label: '促销', image }).success, url).toBe(false);
     }
   });
+
+  it('accepts site-relative paths carrying a query string (backend normalizeUrl keeps it)', () => {
+    for (const url of ['/posts/?category=tech', '/search/wp/?type=resource', '/promo/?x=1&y=2']) {
+      expect(adSlotSchema.safeParse({ url, label: '促销', image }).success, url).toBe(true);
+    }
+    // Traversal must still be refused when it hides in the path segment.
+    expect(adSlotSchema.safeParse({ url: '/a/../..?x=1', label: '促销', image }).success).toBe(
+      false,
+    );
+  });
 });
 
 // ---------------------------------------------------------------------------

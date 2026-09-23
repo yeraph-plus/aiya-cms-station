@@ -47,7 +47,7 @@ const page = await loadPage(async (client, site) => {
     authorId: detail.data.author.id,
     window: { order, perPage },
   };
-}, Astro.cookies);
+}, Astro.cookies, Astro.locals.visitorIp);
 if (!page.ok) Astro.response.status = page.error.status;
 const copy = t(page.locale);
 const post = page.ok ? page.value.post : null;

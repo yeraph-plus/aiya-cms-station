@@ -26,7 +26,7 @@ const page = await loadPage(async (client) => {
   const profile = await client.profile(slug);
   const posts = await client.posts({ author: slug, page: 1, perPage: 12, sort });
   return { profile: profile.data, posts: posts.data, postsPagination: posts.meta.pagination };
-}, Astro.cookies);
+}, Astro.cookies, Astro.locals.visitorIp);
 if (!page.ok) Astro.response.status = page.error.status;
 const copy = t(page.locale);
 const profile = page.ok ? page.value.profile : null;

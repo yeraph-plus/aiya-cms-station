@@ -27,7 +27,7 @@ const page = await loadPage(async (client) => {
     pagination: pages.meta.pagination,
     categories: terms.data.filter((term) => term.taxonomy === 'category'),
   };
-}, Astro.cookies);
+}, Astro.cookies, Astro.locals.visitorIp);
 if (!page.ok) Astro.response.status = page.error.status;
 const copy = t(page.locale);
 if (page.ok) setCrumbs(Astro.locals, page.locale, [{ label: copy.pages.title }]);

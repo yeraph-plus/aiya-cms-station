@@ -6,7 +6,9 @@ const slug = Astro.params.slug ?? '';
 const n = Number(Astro.params.n);
 // Page 1 lives at the board root; anything non-numeric 404s.
 if (!Number.isInteger(n) || n < 2) {
-  return Astro.redirect(`/community/board/${slug}/`);
+  // Astro params arrive decoded; re-encode the segment (a raw CJK slug
+  // would break the Location header).
+  return Astro.redirect(`/community/board/${encodeURIComponent(slug)}/`);
 }
 const view = await loadCommunityBoard(Astro.response, Astro.url, Astro.cookies, Astro.locals, {
   boardSlug: slug,

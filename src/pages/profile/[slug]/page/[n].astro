@@ -15,7 +15,8 @@ const slug = (Astro.params.slug ?? '').slice(0, 100);
 const sort = Astro.url.searchParams.get('sort') === 'oldest' ? 'oldest' : 'newest';
 const n = Number(Astro.params.n);
 if (!/^[a-z0-9_-]+$/.test(slug) || !Number.isInteger(n) || n < 2) {
-  return Astro.redirect(`/profile/${slug}/`);
+  // Re-encode: params arrive decoded and a raw CJK slug breaks the header.
+  return Astro.redirect(`/profile/${encodeURIComponent(slug)}/`);
 }
 
 const page = await loadPage(async (client) => {
@@ -24,7 +25,7 @@ const page = await loadPage(async (client) => {
   const profile = await client.profile(slug);
   const posts = await client.posts({ author: slug, page: n, perPage: 12, sort });
   return { profile: profile.data, posts: posts.data, postsPagination: posts.meta.pagination };
-}, Astro.cookies);
+}, Astro.cookies, Astro.locals.visitorIp);
 if (!page.ok) Astro.response.status = page.error.status;
 const overRange = page.ok && n > page.value.postsPagination.totalPages;
 if (overRange) Astro.response.status = 404;

@@ -5,14 +5,18 @@ import { readSessionToken } from '@/lib/core/session';
 import { cloakReply } from '@/lib/community';
 
 /** GET /api/discussions/{id}/replies/: public paged reply list; the island
-    fetches these lazily when a thread's reply section expands. */
-export const GET: APIRoute = async ({ params, url, request, clientAddress }) => {
+    fetches these lazily when a thread's reply section expands. The session
+    rides along so the backend derives real canEdit/canDelete flags — a
+    guest-context fetch would strip them and hide the delete affordance. */
+export const GET: APIRoute = async ({ cookies, params, url, request, clientAddress }) => {
   const ip = visitorIp(request, clientAddress);
   const id = Number(params.id);
   if (!Number.isInteger(id) || id < 1) return jsonResponse({ ok: false }, 400);
   const pageNum = Math.max(1, Number(url.searchParams.get('page') ?? 1) || 1);
   try {
-    const result = await serverClient(ip).discussionReplies(id, pageNum);
+    const token = readSessionToken(cookies);
+    const client = token ? authClient(token, ip) : serverClient(ip);
+    const result = await client.discussionReplies(id, pageNum);
     return jsonResponse({
       ok: true,
       items: result.data.map(cloakReply),

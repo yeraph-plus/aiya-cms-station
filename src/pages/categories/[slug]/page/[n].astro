@@ -6,7 +6,9 @@ const slug = Astro.params.slug ?? '';
 const n = Number(Astro.params.n);
 // Page 1 lives at the hub entry; anything non-numeric 404s.
 if (!Number.isInteger(n) || n < 2) {
-  return Astro.redirect(`/categories/${slug}/`);
+  // Astro params arrive decoded; a raw CJK/control slug would break the
+  // Location header (non-ASCII throws in Headers). Re-encode the segment.
+  return Astro.redirect(`/categories/${encodeURIComponent(slug)}/`);
 }
 const view = await loadCategoryHub(Astro, {
   slug,

@@ -9,7 +9,7 @@ import PageState from '@/components/layout/PageState.astro';
 import { t } from '@/lib/i18n';
 import { loadPage } from '@/lib/page.server';
 
-const page = await loadPage(async () => undefined, Astro.cookies);
+const page = await loadPage(async () => undefined, Astro.cookies, Astro.locals.visitorIp);
 Astro.response.status = 404;
 const copy = t(page.locale);
 ---

@@ -15,7 +15,7 @@ if (!readSessionToken(Astro.cookies)) {
   return Astro.redirect('/');
 }
 
-const page = await loadPage((client) => client.me(), Astro.cookies);
+const page = await loadPage((client) => client.me(), Astro.cookies, Astro.locals.visitorIp);
 if (!page.ok) Astro.response.status = page.error.status;
 const copy = t(page.locale);
 if (page.ok) setCrumbs(Astro.locals, page.locale, [{ label: copy.settings.title }]);

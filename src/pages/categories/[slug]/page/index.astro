@@ -1,5 +1,9 @@
 ---
 // Page-number-less shape: bounce to the archive root ('page' guard as above).
 const slug = Astro.params.slug ?? '';
-return Astro.redirect(slug === 'page' ? '/categories/' : `/categories/${slug}/`);
+// Astro params arrive decoded; re-encode the segment (a raw CJK slug
+// would break the Location header).
+return Astro.redirect(
+  slug === 'page' ? '/categories/' : `/categories/${encodeURIComponent(slug)}/`,
+);
 ---

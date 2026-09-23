@@ -74,12 +74,12 @@ SEO）、路由与请求器（pages/ → loadPage → HTTP 状态）全归 Astro
 | 路由 | 主体实现 |
 | --- | --- |
 | `/posts/` `/resources/` `/pages/`（列表/分类/标签/分页） | `PostLoop` 岛（筛选面板/排序/多选/排队请求） |
-| `/posts/{slug}/` `/resources/{slug}/` `/pages/{slug}/` 详情 | 正文 SSR（净化 HTML + 灯箱 class 注入）+ 交互岛：`LikeButton`（post/page）、`RatingRow`（resource）、`FavoriteButton`、`CommentSection`（关闭态内置）、`UnlockGate`（密码锁原位换内容）；上下篇仅 post；相关文章 SSR 列表；资源附件面板；可见性门禁（登录/会员）占位面板 |
+| `/posts/{slug}/` `/resources/{slug}/` `/pages/{slug}/` 详情 | 正文 SSR（净化 HTML + 灯箱 class 注入）+ 交互岛：`LikeButton`（post/page）、`RatingRow`（resource）、`FavoriteButton`、`CommentSection`（关闭态内置）、`UnlockGate`（密码锁原位换内容）、`PostDiscussions`（社区贴，仅 post）；上下篇仅 post；相关文章 SSR 列表；文件下载面板（`parts.tsx` 的 FileServe 面板，`/api/content/{id}/downloads`）；可见性门禁（登录/会员）占位面板 |
 | `/categories/` `/categories/{slug}/` | `CategoryCards` 岛（汇总网格 + 详情页头复用） |
 | `/search/{key}/`（+`page/[n]/`） | 顶栏 `SearchBox` 岛的提交目标；结果是 `PostLoop` 岛（无筛选器，左槽 `heading` 显示关键词）；范围 `?type=`（全部=三类型并集轮转读，见 `lib/search.ts`） |
 | `/community/`（板块/首页） | `CommunityFeed` + 社区表单岛 |
 | `/profile/{slug}/` `/profile/me` `/settings` `/reset-password` | `UserCenter` / `SettingsPanel` / `ResetPasswordPanel` 等账号岛 |
-| `/membership/` | `MembershipPanel` 岛（档位定价/每日签到/积分账本/兑换/收银台） |
+| 会员/积分（无独立路由） | 钱包气泡 `WalletBubble` + 会员弹窗 `MembershipModal`（内含 `MembershipPlans` 档位定价/兑换/收银台与 `WalletPanel` 签到/账本），挂于 `UserCenter`（/profile/me） |
 | 旧 `/category/` `/tag/` 形态 | 已整树删除（404）——分类统一入口为一级路由 `/categories/`，标签过滤为列表页 `?tag=` 参数态 |
 
 详情页交互约定：评论关闭（后端 `commentsOpen=false`）时评论区渲染禁用态而非
@@ -93,7 +93,7 @@ span[data-clipboard-slot]/part-button`），剪贴板零件由正文零件的 ef
 类型分工——`PostDetail`/`ResourceDetail` 两栏（左正文、右侧栏作者卡/附件/
 相关文章），`PageDetail` 全宽；零件全部拆进 `detail/parts.tsx`（DetailMeta/
 BadgeChips/TaxonomyChips/ArticleBody/ActionRow/PrevNextNav/RelatedList/
-AuthorCard/AttachmentPanel/CommentsBlock/useViewPing），壳负责组装， hydration
+AuthorCard/DownloadPanel/CommentsBlock/useViewPing），壳负责组装， hydration
 边界只在壳上。SSR 页只做取数 + SEO 头，`loadPage` 把 /site 载荷传进取数闭包
 （评论每页数/窗口方向随设置取）。
 

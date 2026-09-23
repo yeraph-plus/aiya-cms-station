@@ -17,7 +17,7 @@ if (!Number.isInteger(n) || n < 2) {
 const page = await loadPage(async (client) => {
   const list = await client.pages({ page: n });
   return { pages: list.data.map(cloakPostSummaryMedia), pagination: list.meta.pagination };
-}, Astro.cookies);
+}, Astro.cookies, Astro.locals.visitorIp);
 if (!page.ok) Astro.response.status = page.error.status;
 const overRange = page.ok && n > page.value.pagination.totalPages;
 if (overRange) Astro.response.status = 404;

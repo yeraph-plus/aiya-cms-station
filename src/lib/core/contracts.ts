@@ -22,14 +22,22 @@ export const apiVersion = '1' as const;
 const id = z.number().int().positive();
 const count = z.number().int().nonnegative();
 
-/** Site-relative path only: no protocol relativity, no traversal, no encoded separators. */
+/**
+ * Site-relative path with an optional query string: no protocol relativity,
+ * no traversal, no encoded separators. The query must survive — the backend's
+ * `ContentBlocks::normalizeUrl()` deliberately preserves it (a menu row
+ * pointing at a filtered list such as `/posts/?category=tech` is authored
+ * output), so rejecting `?` here bricks the whole site off one /site payload.
+ */
 export const sitePathSchema = z
   .string()
-  .regex(/^\/(?!\/)[^\\\s?#]*$/)
-  .refine(
-    (value) => !/%(?:2f|5c|2e)/i.test(value) && !value.split('/').includes('..'),
-    'Expected a safe site-relative path',
-  );
+  .regex(/^\/(?!\/)[^\\\s?#]*(\?[^\\\s?#]*)?$/)
+  .refine((value) => {
+    // Traversal checks speak path semantics; the query string is opaque data
+    // (a literal `%2f` inside a query value is a legal encoded argument).
+    const path = value.split('?')[0] ?? value;
+    return !/%(?:2f|5c|2e)/i.test(path) && !path.split('/').includes('..');
+  }, 'Expected a safe site-relative path');
 
 export const httpUrlSchema = z.url({ protocol: /^https?$/ }).refine((value) => {
   // zod does not wrap refine exceptions: an unparseable URL must reject,

@@ -149,7 +149,7 @@ function PlanCard({
           disabled={methods.length === 0}
           onClick={() => {
             setError(null);
-            onOrder(tier.key, method, (code) => setError(code ?? 'generic'));
+            onOrder(tier.key, method, (code) => setError(message(code)));
           }}
         >
           {copy.buyAction}

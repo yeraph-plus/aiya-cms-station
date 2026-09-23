@@ -26,7 +26,7 @@ const page = await loadPage(async (client) => {
     categories: terms.data.filter((term) => term.taxonomy === 'category'),
     tags: tagTerms.data.filter((term) => term.taxonomy === 'tag'),
   };
-}, Astro.cookies);
+}, Astro.cookies, Astro.locals.visitorIp);
 if (!page.ok) Astro.response.status = page.error.status;
 const copy = t(page.locale);
 if (page.ok) setCrumbs(Astro.locals, page.locale, [{ label: copy.posts.title }]);

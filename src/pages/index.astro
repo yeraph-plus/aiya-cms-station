@@ -41,7 +41,7 @@ const page = await loadPage(async (client, site) => {
     }),
   );
   return resolved.filter((entry): entry is ResolvedSection => entry !== null);
-}, Astro.cookies);
+}, Astro.cookies, Astro.locals.visitorIp);
 if (!page.ok) Astro.response.status = page.error.status;
 const copy = t(page.locale);
 // The explicit override wins; otherwise the type's own archive path with

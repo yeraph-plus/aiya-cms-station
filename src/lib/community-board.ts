@@ -44,7 +44,7 @@ export async function loadCommunityBoard(
   response: { status?: number },
   url: URL,
   cookies: AstroCookies,
-  locals: { breadcrumbs?: Crumb[] },
+  locals: { breadcrumbs?: Crumb[]; visitorIp?: string | null },
   props: { boardSlug: string; page: number },
 ): Promise<CommunityBoardView> {
   const { boardSlug, page: pageNumber } = props;
@@ -65,7 +65,7 @@ export async function loadCommunityBoard(
       boardName: board?.name ?? '',
       boardDescription: board?.description ?? '',
     };
-  }, cookies);
+  }, cookies, locals.visitorIp);
 
   if (!page.ok) response.status = page.error.status;
   // Empty archives (totalPages 0) must render their empty state, not 404.

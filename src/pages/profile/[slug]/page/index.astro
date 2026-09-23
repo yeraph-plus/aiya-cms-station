@@ -1,5 +1,7 @@
 ---
 // Page-number-less shape: bounce to the profile root.
 const slug = Astro.params.slug ?? '';
-return Astro.redirect(`/profile/${slug}/`);
+// Astro params arrive decoded; re-encode the segment (a raw CJK slug
+// would break the Location header).
+return Astro.redirect(`/profile/${encodeURIComponent(slug)}/`);
 ---
