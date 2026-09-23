@@ -727,7 +727,15 @@ plans` 匿名可读），故游客看得到定价与登录提示，不做重定�
 - **SEO**：后端不可达时整站失败闭锁（robots 全禁、sitemap 空 urlset、门禁页 noindex）；
   筛选 / 搜索态 noindex，canonical 由 href 构造器生成；结构化数据经 `lib/seo.ts`。
 - **错误文案**：`aiyaErrorCopy(error, locale)`；后端 message 永不透出。错误码字典在
-  `lib/i18n/dictionaries/*`，新增后端错误码时四个字典同步补齐。
+  `lib/i18n/dictionaries/*`，新增后端错误码时四个字典同步补齐（`tests/i18n.test.ts`
+  有后端访客可达码 ⊆ 字典的执法测试）。
+- **部署前提（`AIYA_CLIENT_IP_HEADER`）**：配置该头后，访客地址取自边缘代理盖章的
+  头（如 `X-Real-IP`）；边缘**必须先剥离客户端自带的同名头**，否则访客可伪造地址
+  绕过限流与去重。缺省（socket 地址）无此前提。
+- **保留 slug**：首段 `page`（各列表 `/x/page/` 形态）、`me`（`/profile/me/`，已显式
+  404）、`board`（`/community/board/`）为路由保留字——内容 slug 撞上时永远落到兜底
+  重定向而非内容；后端保存侧如无校验，此处仅记录不拦截。`/membership/` 路由已退役
+  （会员入口迁往 `/profile/me/` 的钱包气泡 + 会员弹窗），旧链由 middleware 308 兜底。
 - **已知线上形状注记**：讨论详情的 `replies` 是回复数组（后端 `array_merge` 以数组
   覆盖列表项中的计数）；计数以 `GET /discussions/{id}/replies` 的 meta.pagination 为准。
 - **后端 0.29.0/0.36.1 起** `/site` 携带 shell 配置（`defaults.colorMode`/

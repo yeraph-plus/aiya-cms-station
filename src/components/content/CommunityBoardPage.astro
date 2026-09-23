@@ -117,7 +117,11 @@ const boardBadgeClass = (active: boolean) =>
           <>
             <div class="flex w-full max-w-[760px] flex-col gap-3">
               {page.value.list.map((discussion) => (
-                <DiscussionCard discussion={discussion} locale={page.locale} />
+                <DiscussionCard
+                  discussion={discussion}
+                  locale={page.locale}
+                  timezone={page.site.timezone}
+                />
               ))}
             </div>
             <Pagination

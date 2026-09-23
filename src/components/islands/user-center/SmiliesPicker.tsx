@@ -20,7 +20,11 @@ async function loadPacks(): Promise<SmiliesPack[]> {
   inflight ??= fetch('/api/smilies/')
     .then((r) => r.json())
     .then((j) => {
-      cache = (j?.data ?? []) as SmiliesPack[];
+      // An HTTP failure still resolves (the proxy answers JSON errors) —
+      // only a genuinely successful envelope may populate the cache, or a
+      // transient 5xx would blank the picker for the whole page lifetime.
+      if (!j?.ok || !Array.isArray(j.data)) throw new Error('smilies unavailable');
+      cache = j.data as SmiliesPack[];
       return cache;
     })
     .finally(() => {

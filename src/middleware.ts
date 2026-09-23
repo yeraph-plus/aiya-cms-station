@@ -15,21 +15,33 @@ export const onRequest = defineMiddleware(async (context, next) => {
     typeof context.clientAddress === 'string' ? context.clientAddress : null,
   );
 
-  // Media proxy runs before routing: `trailingSlash: 'always'` would 404
-  // file-like paths (no trailing slash) before any route could match.
+  // Media proxy runs before routing: a route-level trailing-slash rule would
+  // 404 file-like paths (no trailing slash) before any route could match.
   if (context.url.pathname.startsWith('/media/')) {
     const response = await proxyMedia(context.url.pathname, context.request);
     response.headers.set('X-Content-Type-Options', 'nosniff');
     return response;
   }
 
-  // Trailing-slash normalization: with 'always', the bare form of every
-  // route would 404 (Astro dev does not redirect on its own). GET/HEAD page
-  // requests bounce 308 to the slash form — dot-bearing last segments
-  // (robots.txt, sitemap.xml) and the API surface are exempt.
-  const { pathname } = context.url;
+  // Canonical URL shape (astro.config keeps trailingSlash 'ignore' so the
+  // media paths above and dot segments never 404 at the router): GET/HEAD
+  // page requests bounce 308 to the slash form — dot-bearing last segments
+  // (robots.txt, sitemap.xml) and the API surface are exempt. Leading
+  // double slashes collapse first: a `//x` Location would parse as
+  // protocol-relative and bounce the visitor to an external host.
+  let { pathname } = context.url;
   const safeMethod = context.request.method === 'GET' || context.request.method === 'HEAD';
+  if (safeMethod && pathname.startsWith('//')) {
+    pathname = pathname.replace(/^\/+/, '/');
+    return context.redirect(pathname + context.url.search, 308);
+  }
   const lastSegment = pathname.split('/').filter(Boolean).pop() ?? '';
+
+  // Retired routes: the membership page folded into the account hub
+  // (wallet bubble + membership modal on /profile/me/).
+  if (safeMethod && (pathname === '/membership' || pathname === '/membership/')) {
+    return context.redirect('/profile/me/', 308);
+  }
   if (
     safeMethod &&
     pathname !== '/' &&
@@ -57,9 +69,14 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const response = await next();
   // Crawler-facing endpoints are cheap to cache briefly (the sitemap walks
   // up to hundreds of upstream list pages); everything else stays uncached
-  // until the public projection and its invalidation are designed.
+  // until the public projection and its invalidation are designed. A
+  // transient empty sitemap (upstream hiccup mid-walk) must not be cached:
+  // the route marks it and the cache window is skipped.
+  const emptySitemap =
+    context.url.pathname === '/sitemap.xml' && response.headers.get('X-Aiya-Sitemap-Empty') === '1';
   if (
     response.status === 200 &&
+    !emptySitemap &&
     (context.url.pathname === '/sitemap.xml' || context.url.pathname === '/robots.txt')
   ) {
     response.headers.set('Cache-Control', 'public, max-age=300');

@@ -595,7 +595,9 @@ export function ActionRow({
           initialCount={post.metrics.ratingCount}
           labels={{
             rating: copy.posts.rating,
-            countText: copy.posts.ratingCount(post.metrics.ratingCount ?? 0),
+            // The formatter rides along so a successful rating re-renders
+            // the "n raters" line with the fresh count immediately.
+            countText: copy.posts.ratingCount,
             thanks: copy.posts.ratingThanks,
             failed: copy.posts.ratingFailed,
           }}
@@ -1038,7 +1040,7 @@ export function DownloadPanel({
       const cached = claims[key];
       if (cached !== undefined) return cached.url;
       try {
-        const response = await fetch(`/api/content/${postId}/downloads`, {
+        const response = await fetch(`/api/content/${postId}/downloads/`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ listId, ref }),

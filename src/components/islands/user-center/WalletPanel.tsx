@@ -49,6 +49,10 @@ export default function WalletPanel({
         setLedger((current) => [...current, ...json.entries!]);
         setPage(next);
         setMore(Boolean(json.pagination?.hasNext));
+      } else {
+        // A failed page fetch must not read as "the ledger just ended":
+        // keep the button alive so the visitor can retry.
+        setMore(true);
       }
     } finally {
       setBusy(false);

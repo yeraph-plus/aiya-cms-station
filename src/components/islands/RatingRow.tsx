@@ -8,7 +8,7 @@ export interface RatingRowProps {
   initialScore: number | null;
   initialCount: number | null;
   /** Localized labels: sr-only verb, the "n raters" formatter, thanks copy. */
-  labels: { rating: string; countText: string; thanks: string; failed: string };
+  labels: { rating: string; countText: (n: number) => string; thanks: string; failed: string };
   /** Guests cannot write interactions — clicks are intercepted with a toast. */
   loggedIn?: boolean;
   /** Toast copy for the guest intercept. */
@@ -121,7 +121,7 @@ export default function RatingRow({
       ) : (
         <span className="text-sm font-medium text-foreground">{score !== null ? score : '—'}</span>
       )}
-      {count > 0 && <span className="text-xs text-body-muted">{labels.countText}</span>}
+      {count > 0 && <span className="text-xs text-body-muted">{labels.countText(count)}</span>}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import type { Breadcrumb, PostDetail, Site } from '@/lib/core/contracts';
-import { toBcp47, type Locale } from '@/lib/i18n/locale';
+import { resolveLocale, toBcp47, type Locale } from '@/lib/i18n/locale';
 import { rewriteMediaUrl } from '@/lib/media';
 
 /** Pure JSON-LD builders; BaseHead serializes whatever these return. */
@@ -30,6 +30,7 @@ export function websiteJsonLd(site: Site, origin: string): Record<string, unknow
 
 export function articleJsonLd(
   post: PostDetail,
+  site: Site,
   origin: string,
   locale: Locale,
 ): Record<string, unknown> {
@@ -39,7 +40,16 @@ export function articleJsonLd(
     headline: post.title,
     datePublished: post.publishedAt,
     dateModified: post.updatedAt,
-    inLanguage: toBcp47(locale),
+    // The site default language, not the visitor's session locale: this
+    // describes the CONTENT, and a viewer preferring English must not flip
+    // a Chinese article's declared language.
+    inLanguage: toBcp47(resolveLocale({ site: site.language })),
+    // Google's Article rich results look for the publisher reference.
+    publisher: {
+      '@type': 'Organization',
+      name: site.name,
+      url: absoluteUrl(origin, '/'),
+    },
     // Same single-origin rewrite as og:image: the raw contract URL points at
     // the WP host, which the JSON-LD must not leak.
     ...(post.thumbnail ? { image: absoluteUrl(origin, rewriteMediaUrl(post.thumbnail.url)) } : {}),

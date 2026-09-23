@@ -1,7 +1,34 @@
 import type { APIRoute } from 'astro';
-import { errorCode, errorStatus, jsonResponse, visitorIp } from '@/lib/api-auth';
+import type { DiscussionReplyUpdate } from '@/lib/core/contracts';
+import { errorCode, errorStatus, jsonResponse, visitorIp, readJsonBody } from '@/lib/api-auth';
 import { authClient } from '@/lib/core/server';
 import { readSessionToken } from '@/lib/core/session';
+
+/**
+ * PATCH /api/discussions/{id}/replies/{replyId}/: reply author edits the
+ * body (client.updateDiscussionReply already exposes it). DELETE: reply
+ * author or admin — both flags are server-derived upstream.
+ */
+export const PATCH: APIRoute = async ({ cookies, params, request, clientAddress }) => {
+  const ip = visitorIp(request, clientAddress);
+  const id = Number(params.id);
+  const replyId = Number(params.replyId);
+  if (!Number.isInteger(id) || id < 1 || !Number.isInteger(replyId) || replyId < 1) {
+    return jsonResponse({ ok: false }, 400);
+  }
+  const token = readSessionToken(cookies);
+  if (!token) return jsonResponse({ ok: false }, 401);
+  const body = (await readJsonBody(request)) as DiscussionReplyUpdate | null;
+  if (!body || typeof body.content !== 'string' || body.content.trim() === '') {
+    return jsonResponse({ ok: false }, 400);
+  }
+  try {
+    await authClient(token, ip).updateDiscussionReply(id, replyId, body);
+    return jsonResponse({ ok: true });
+  } catch (error) {
+    return jsonResponse({ ok: false, code: errorCode(error) }, errorStatus(error));
+  }
+};
 
 /** DELETE /api/discussions/{id}/replies/{replyId}/: reply author or admin. */
 export const DELETE: APIRoute = async ({ cookies, params, request, clientAddress }) => {

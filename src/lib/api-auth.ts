@@ -20,15 +20,26 @@ export function visitorIp(request: Request, clientAddress: string | null): strin
  * aiya/server pins this module to the Astro server.
  */
 
-/** Locale of the requester: site language for guests (pre-login calls only). */
+let cachedLanguage: { value: string | null } | null = null;
+
+/**
+ * Locale of the requester: site language for guests (pre-login calls only).
+ * The language rides the /site payload, which this proxy cannot otherwise
+ * justify fetching on every failed login — one read per process, then the
+ * cached value stands (site language changes need a restart to show in
+ * these error copies, an acceptable trade on a rate-limited endpoint).
+ */
 export async function requesterLocale(): Promise<Locale> {
-  let language: string | null = null;
-  try {
-    language = (await serverClient().site()).data.language;
-  } catch {
-    /* default locale below */
+  if (!cachedLanguage) {
+    let language: string | null = null;
+    try {
+      language = (await serverClient().site()).data.language;
+    } catch {
+      /* default locale below */
+    }
+    cachedLanguage = { value: language };
   }
-  return resolveLocale({ site: language });
+  return resolveLocale({ site: cachedLanguage.value });
 }
 
 /** Only our own backend statuses pass through; anything else is a 502. */

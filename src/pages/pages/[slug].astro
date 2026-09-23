@@ -54,7 +54,10 @@ if (page.ok && post) {
 const origin = page.origin;
 const jsonLd =
   page.ok && post
-    ? [articleJsonLd(post, origin, page.locale), breadcrumbJsonLd(post.breadcrumbs, origin)]
+    ? [
+        articleJsonLd(post, page.site, origin, page.locale),
+        breadcrumbJsonLd(post.breadcrumbs, origin),
+      ]
     : [];
 const cover = post?.featured ?? post?.thumbnail ?? null;
 const seoTitle = post?.seo.title || post?.title || copy.state.notFoundTitle;

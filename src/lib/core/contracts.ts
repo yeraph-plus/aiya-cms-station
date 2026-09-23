@@ -351,8 +351,16 @@ export const discussionBoardSchema = z.object({
   threads: count,
 });
 
-/** Thread-embedded images: URLs mirror whatever the composer stored
-    (/media/ proxy paths included) and dimensions may be absent (0). */
+/**
+ * Thread-embedded images: URLs mirror whatever the composer stored
+ * (/media/ proxy paths included) and dimensions may be absent (0).
+ * Deliberately looser than the backend's `list<Image>` docblock (which
+ * promises absolute http URLs): the backend DiscussionPresenter currently
+ * emits relative /media/ paths with 0 width/height, and this schema
+ * tolerates that divergence until the presenter is normalized — the strict
+ * imageSchema would fail every discussion payload. Contract snapshots only
+ * pin type labels, so this drift is documented here, not enforced.
+ */
 export const discussionImageSchema = imageSchema.extend({
   url: z.string().min(1),
   width: z.number().int().min(0).nullable(),

@@ -19,6 +19,8 @@ export interface UserCenterProps {
   localeTag: string;
   /** Locale the wallet bubble renders its copy with. */
   locale: Locale;
+  /** Site calendar timezone (from /site) for wallet date rendering. */
+  timezone?: string;
   copy: UserCenterCopy;
 }
 
@@ -38,6 +40,7 @@ export default function UserCenter({
   registrationOpen,
   localeTag,
   locale,
+  timezone,
   copy,
 }: UserCenterProps) {
   const [dialogMode, setDialogMode] = useState<AuthMode | null>(null);
@@ -60,7 +63,7 @@ export default function UserCenter({
   if (user) {
     return (
       <div className="flex items-center gap-1.5">
-        <WalletBubble locale={locale} />
+        <WalletBubble locale={locale} timezone={timezone} />
         <NotificationPopover copy={copy} localeTag={localeTag} />
         <UserMenu user={user} copy={copy} />
       </div>

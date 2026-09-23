@@ -187,7 +187,9 @@ class FeedErrorBoundary extends React.Component<
     return { message: error instanceof Error ? `${error.name}: ${error.message}` : String(error) };
   }
   componentDidCatch(error: unknown) {
-    // Surface the stack in the DOM as well for headless inspection.
+    // The stack rides along in dev only — production visitors should not
+    // see internal paths, and the browser console keeps it regardless.
+    if (!import.meta.env.DEV) return;
     this.setState((prev) => ({
       message:
         (prev.message ?? '') +
@@ -444,6 +446,9 @@ function CommunityFeedInner({
       } else {
         toast.error(copy.failed);
       }
+    } catch {
+      // Network-level rejection: the fetch itself threw — same user message.
+      toast.error(copy.failed);
     } finally {
       setPublishing(false);
     }
@@ -567,6 +572,8 @@ function CommunityFeedInner({
       } else {
         toast.error(copy.failed);
       }
+    } catch {
+      toast.error(copy.failed);
     } finally {
       setReplyBusy(null);
     }

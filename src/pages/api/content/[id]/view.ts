@@ -14,14 +14,16 @@ export const POST: APIRoute = async (Astro) => {
   const ip = visitorIp(Astro.request, Astro.clientAddress);
   const id = Number(Astro.params.id);
   if (!Number.isInteger(id) || id < 1) {
-    return jsonResponse({ views: null }, 400);
+    return jsonResponse({ ok: false }, 400);
   }
 
   const token = readSessionToken(Astro.cookies);
   try {
     const result = token ? await authClient(token, ip).view(id) : await serverClient(ip).view(id);
-    return jsonResponse(result, 200);
+    // Only the count crosses; the upstream envelope's meta (requestId,
+    // apiVersion) stays server-side like on every other proxy route.
+    return jsonResponse({ ok: true, views: result.data.views }, 200);
   } catch (error) {
-    return jsonResponse({ views: null, code: errorCode(error) }, errorStatus(error));
+    return jsonResponse({ ok: false, code: errorCode(error) }, errorStatus(error));
   }
 };

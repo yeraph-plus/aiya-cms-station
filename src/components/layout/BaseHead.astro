@@ -57,7 +57,9 @@ const faviconHref = site.favicon ? rewriteMediaUrl(site.favicon.url) : '/favicon
 }
 <meta name="robots" content={robots} />
 {canonical && <link rel="canonical" href={canonical} />}
-<link rel="icon" type="image/svg+xml" href={faviconHref} />
+<!-- no type attribute: the WP icon may be png/jpg; a wrong type hint
+     makes some browsers skip the candidate -->
+<link rel="icon" href={faviconHref} />
 <ClientRouter />
 {
   /* Color mode pre-paint: stored choice → site default → system. Runs

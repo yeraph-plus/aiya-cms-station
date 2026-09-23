@@ -145,6 +145,7 @@ const showBanner = bannerUrl !== null && isHome;
             authCopy={authCopy}
             localeTag={toBcp47(page.locale)}
             locale={page.locale}
+            timezone={page.site.timezone}
           />
         </div>
         <MobilePendingBanner text={copy.shell.mobilePending} />
@@ -155,6 +156,7 @@ const showBanner = bannerUrl !== null && isHome;
           registrationOpen={page.site.registrationOpen}
           localeTag={toBcp47(page.locale)}
           locale={page.locale}
+          timezone={page.site.timezone}
         />
         <main
           id="main-content"
@@ -210,6 +212,22 @@ const showBanner = bannerUrl !== null && isHome;
   );
   document.addEventListener('astro:after-swap', () => progress()?.removeAttribute('data-active'));
   document.addEventListener('astro:page-load', () => progress()?.removeAttribute('data-active'));
+
+  // GA4 across ClientRouter navigations: the gtag bootstrap only runs on the
+  // first full load, so SPA route changes must push page_view themselves or
+  // every in-site hop disappears from analytics. Guarded — the tag only
+  // exists when the backend carries a measurement id in production.
+  document.addEventListener('astro:page-load', () => {
+    const w = window as Window & {
+      dataLayer?: unknown[];
+      gtag?: (...args: unknown[]) => void;
+    };
+    if (!Array.isArray(w.dataLayer) || typeof w.gtag !== 'function') return;
+    w.gtag('event', 'page_view', {
+      page_path: location.pathname + location.search,
+      page_title: document.title,
+    });
+  });
 
   // Back-to-top: slides in past 100px of scroll, hidden at the top.
   // Document-level listeners survive ClientRouter swaps; the button element

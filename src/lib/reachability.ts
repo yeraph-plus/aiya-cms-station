@@ -77,8 +77,12 @@ export function createReachability(options: ReachabilityOptions): Reachability {
         await probe();
         reachable = true;
       } catch (caught) {
-        // Any failure — network, timeout, contract drift, bad config —
-        // means the backend cannot serve this request.
+        // Deliberately NOT isBackendOutage: the probe treats EVERY failure
+        // as down, including 4xx. A /site 404 means the shell contract is
+        // missing (plugin inactive) — the site cannot serve, and walling
+        // visitors out behind the clean 503 gate beats serving every route
+        // its own error card. Page loaders use the looser isBackendOutage
+        // so a single 404 resource stays a 404, not a fake outage.
         reachable = false;
         error = caught;
       }

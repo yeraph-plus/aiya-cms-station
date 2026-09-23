@@ -125,6 +125,9 @@ const WRITE_ALLOWLIST: ReadonlyArray<{ method: WriteMethod; pattern: RegExp }> =
   },
   { method: 'POST', pattern: /^users\/me\/(favorites|password)$/ },
   { method: 'POST', pattern: /^uploads\/image$/ },
+  // The multipart uploads bypass request() (FormData bodies) — listed so
+  // the allowlist stays the complete map of writable routes.
+  { method: 'POST', pattern: /^users\/me\/avatar$/ },
   { method: 'POST', pattern: /^content\/\d+\/(like|view|rating|comments|unlock|downloads)$/ },
   { method: 'POST', pattern: /^discussions$/ },
   { method: 'POST', pattern: /^discussions\/\d+\/replies$/ },
@@ -180,9 +183,12 @@ export function createAiyaClient(options: ClientOptions) {
   }
   const fetcher = options.fetcher ?? fetch;
 
-  /** Detail reads are slug-keyed; one path segment, no separators. */
+  /** Detail reads are slug-keyed: one path segment, no separators, and no
+      %-escape/?/# bytes — those change what the URL points at (query and
+      fragment separators truncate the path; encoded separators lean on the
+      origin server's decoding policy). */
   function assertSlug(slug: string): void {
-    if (!/^[^/\\]{1,200}$/.test(slug) || slug === '' || slug === '.' || slug === '..') {
+    if (!/^[^/\\%?#]{1,200}$/.test(slug) || slug === '' || slug === '.' || slug === '..') {
       throw new AiyaApiError('configuration', 400);
     }
   }
@@ -536,7 +542,10 @@ export function createAiyaClient(options: ClientOptions) {
               requestId = error.data.meta.requestId;
               code = error.data.error.code;
             }
-          } catch {
+          } catch (inner) {
+            // A timeout while reading the error body must keep its identity:
+            // rethrow so the outer catch maps it to 'timeout', not 'http'.
+            if (controller.signal.aborted) throw inner;
             /* non-envelope error */
           }
           throw new AiyaApiError('http', response.status, requestId, code);
@@ -586,7 +595,10 @@ export function createAiyaClient(options: ClientOptions) {
               requestId = error.data.meta.requestId;
               code = error.data.error.code;
             }
-          } catch {
+          } catch (inner) {
+            // A timeout while reading the error body must keep its identity:
+            // rethrow so the outer catch maps it to 'timeout', not 'http'.
+            if (controller.signal.aborted) throw inner;
             /* non-envelope error */
           }
           throw new AiyaApiError('http', response.status, requestId, code);

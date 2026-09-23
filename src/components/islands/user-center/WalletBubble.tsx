@@ -8,6 +8,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { MembershipModal } from '@/components/islands/membership/MembershipModal';
 import type { MembershipState } from '@/lib/core/contracts';
 import { t, type Locale } from '@/lib/i18n';
+import { displayDay } from '@/lib/membership';
+import { DEFAULT_TIMEZONE } from '@/lib/format';
 
 /** The local marker that today's auto check-in attempt already happened. */
 const checkinMarker = (): string => `aiya-checkin-${new Date().toISOString().slice(0, 10)}`;
@@ -26,7 +28,7 @@ const checkinMarker = (): string => `aiya-checkin-${new Date().toISOString().sli
  * result is visible), guarded by a local once-per-day marker so page
  * navigation never re-fires it.
  */
-export function WalletBubble({ locale }: { locale: Locale }) {
+export function WalletBubble({ locale, timezone }: { locale: Locale; timezone?: string }) {
   const dict = t(locale);
   const copy = dict.membership;
   const errorCopy = dict.errors as Record<string, string | undefined>;
@@ -118,9 +120,14 @@ export function WalletBubble({ locale }: { locale: Locale }) {
         next.checkin.enabled &&
         !localStorage.getItem(checkinMarker())
       ) {
-        localStorage.setItem(checkinMarker(), '1');
         setOpen(true);
-        await claimCheckin();
+        const result = await claimCheckin();
+        // Mark only after the backend settled the day (grant or 409): a
+        // network blip must not burn the day's only automatic attempt — the
+        // backend dedups anyway, so erring toward another attempt is safe.
+        if (result === 'granted' || result === 'done') {
+          localStorage.setItem(checkinMarker(), '1');
+        }
       }
     })();
   }, []);
@@ -192,7 +199,7 @@ export function WalletBubble({ locale }: { locale: Locale }) {
                 {currentPlan
                   ? `${currentPlan.tierName} · ${copy.statusActive}${
                       currentPlan.endsAt
-                        ? ` · ${copy.expiresLabel} ${currentPlan.endsAt.slice(0, 10)}`
+                        ? ` · ${copy.expiresLabel} ${displayDay(currentPlan.endsAt, locale, timezone ?? DEFAULT_TIMEZONE)}`
                         : ''
                     }`
                   : copy.statusInactive}

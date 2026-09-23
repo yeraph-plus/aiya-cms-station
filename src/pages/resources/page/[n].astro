@@ -39,15 +39,9 @@ if (page.ok)
   ]);
 const showList = page.ok && !overRange;
 const listTitle = q !== '' ? copy.resources.searchTitle(q) : copy.resources.pageOf(n);
-const canonical = (() => {
-  const base = `/resources/page/${n}/`;
-  if (!filtered) return base;
-  const params = new URLSearchParams();
-  if (q !== '') params.set('q', q);
-  if (category !== '') params.set('category', category);
-  if (tag !== '') params.set('tag', tag);
-  return `${base}?${params.toString()}`;
-})();
+// Bare canonical: the filtered shape is noindex, so carrying the filter
+// into the canonical buys nothing (posts/page/[n] does the same).
+const canonical = `/resources/page/${n}/`;
 ---
 
 <AppShell

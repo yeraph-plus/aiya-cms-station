@@ -15,11 +15,21 @@ interface Props {
   localeTag: string;
   /** The search island imports its own copy, so it needs the locale. */
   locale: Locale;
+  /** Site calendar timezone (from /site) forwarded to the wallet bubble. */
+  timezone?: string;
   user: UserCenterUser | null;
   authCopy: UserCenterCopy;
 }
-const { menuToggleLabel, colorModeLabel, registrationOpen, localeTag, locale, user, authCopy } =
-  Astro.props;
+const {
+  menuToggleLabel,
+  colorModeLabel,
+  registrationOpen,
+  localeTag,
+  locale,
+  timezone,
+  user,
+  authCopy,
+} = Astro.props;
 
 // The search box mirrors the results already on screen: on /search/{key}/
 // it seeds keyword and scope straight from the address bar, so the SSR
@@ -72,6 +82,7 @@ const scopeParam = Astro.url.searchParams.get('type') ?? '';
       registrationOpen={registrationOpen}
       localeTag={localeTag}
       locale={locale}
+      timezone={timezone}
       copy={authCopy}
     />
   </div>

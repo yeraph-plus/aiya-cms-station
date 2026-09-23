@@ -79,7 +79,7 @@ describe('JSON-LD builders', () => {
   });
 
   it('builds an Article node from a post detail', () => {
-    const data = articleJsonLd(detail, 'https://aiya.example.com', 'zh_CN');
+    const data = articleJsonLd(detail, site, 'https://aiya.example.com', 'zh_CN');
     expect(data['@type']).toBe('Article');
     expect(data.headline).toBe('你好世界');
     expect(data.image).toBe('https://cdn.example.com/cover.jpg');

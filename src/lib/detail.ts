@@ -3,9 +3,11 @@ import { safeContent } from '@/lib/content';
 import type { PostDetail } from '@/lib/core/contracts';
 
 /**
- * Detail routes are slug-keyed; Astro leaves params percent-encoded for
- * non-ASCII slugs (e.g. WP's `%e4%b8%ad...` post_name forms), so decode
- * once, tolerantly — an already-decoded string just passes through.
+ * Detail routes are slug-keyed. Astro 7 DECODES route params before render
+ * (validateAndDecodePathname), so this is a defensive no-op kept as a guard:
+ * an already-decoded string passes through untouched. Do not add another
+ * decode layer on top of route params — double-decoding `%25`-escapes would
+ * corrupt slugs that legitimately contain `%`.
  */
 export function detailSlug(raw: string | undefined): string {
   const value = (raw ?? '').trim();

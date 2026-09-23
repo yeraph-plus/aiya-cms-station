@@ -78,6 +78,16 @@ function reverseAtDepth(nodes: CommentNode[]): CommentNode[] {
 }
 
 /**
+ * Per-page display order for `commentOrder=desc`: each page's window reads
+ * reversed (newest first), pages themselves stay newest-window → oldest.
+ * Replies whose parent lives on another page surface as top-level entries
+ * inside their own page — the accepted cost of windowed threading.
+ */
+function reversePages(pages: Comment[][], threaded: boolean): CommentNode[] {
+  return pages.flatMap((page) => reverseAtDepth(buildTree(page, threaded)));
+}
+
+/**
  * Post comment section island: renders the SSR'd first page structured by
  * the site's discussion settings (threading + depth, display order), loads
  * deeper windows through the same-origin proxy, and hosts the shared
@@ -112,7 +122,10 @@ export default function CommentSection({
     smile: copy.smilies,
   };
 
-  const [items, setItems] = useState<Comment[]>(initial);
+  // One slot per fetched page: `commentOrder=desc` windows come newest
+  // first, so display order reverses WITHIN a page — a whole-array reversal
+  // would hoist an older page above the newer one after "load more".
+  const [pages, setPages] = useState<Comment[][]>([initial]);
   const [page, setPage] = useState(pagination.page);
   const [hasNext, setHasNext] = useState(pagination.hasNext);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -130,13 +143,15 @@ export default function CommentSection({
   // depth cap folds deeper replies onto the last visible level, and the
   // display order reverses every level when the site wants newest-first.
   const tree = useMemo(
-    () => buildTree(items, settings.threadComments),
-    [items, settings.threadComments],
+    () => buildTree(pages.flat(), settings.threadComments),
+    [pages, settings.threadComments],
   );
-  const ordered = useMemo(
-    () => (settings.commentOrder === 'desc' ? reverseAtDepth(tree) : tree),
-    [tree, settings.commentOrder],
-  );
+  const ordered = useMemo(() => {
+    if (settings.commentOrder !== 'desc') return tree;
+    // Reverse within each fetched page's own window only: page N+1 is an
+    // OLDER window (desc mode), so it must render after page N, not above.
+    return reversePages(pages, settings.threadComments);
+  }, [pages, tree, settings.commentOrder]);
 
   const canComment = !closed && (loggedIn || !settings.commentRegistration);
 
@@ -152,7 +167,7 @@ export default function CommentSection({
         pagination?: Pagination;
       } | null;
       if (json?.ok && json.items) {
-        setItems((prev) => [...prev, ...(json.items ?? [])]);
+        setPages((prev) => [...prev, json.items ?? []]);
         setPage(json.pagination?.page ?? page + 1);
         setHasNext(json.pagination?.hasNext ?? false);
       }
@@ -355,7 +370,7 @@ export default function CommentSection({
       )}
 
       <div className="mt-5 flex flex-col gap-3" data-comment-list>
-        {items.length === 0 && total === 0 ? (
+        {pages.flat().length === 0 && total === 0 ? (
           <Empty className="rounded-lg border border-dashed border-border">
             <EmptyHeader>
               <EmptyMedia variant="icon">
