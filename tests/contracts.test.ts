@@ -8,7 +8,9 @@ import {
   errorEnvelopeSchema,
   paginationSchema,
   postSummarySchema,
-  resourceAttachmentsResponseSchema,
+  downloadsResponseSchema,
+  fileDownloadResponseSchema,
+  downloadRequestSchema,
   siteThemeSchema,
   userSchema,
   notificationsResponseSchema,
@@ -84,7 +86,6 @@ describe('discussion thread contract (0.26.0 form)', () => {
     author,
     tags: ['求助'],
     images: [],
-    postRef: { id: 101, type: 'post', title: '你好世界', url: '/posts/101/' },
     replies: 2,
     lastReplyAt: '2026-09-09T12:00:00+08:00',
     publishedAt: '2026-09-09T11:00:00+08:00',
@@ -99,7 +100,7 @@ describe('discussion thread contract (0.26.0 form)', () => {
     expect(
       discussionsResponseSchema.safeParse({
         ...listResponse,
-        data: [{ ...discussion, lastReplyAt: '', postRef: null }],
+        data: [{ ...discussion, lastReplyAt: '' }],
       }).success,
     ).toBe(true);
   });
@@ -126,37 +127,92 @@ describe('discussion thread contract (0.26.0 form)', () => {
   });
 });
 
-describe('resource attachments contract (0.49.0 gate-free shape)', () => {
-  const attachments = {
-    items: [
+describe('file download contract (grouped lists, links only on claim)', () => {
+  const entry = {
+    ref: '9f2ab7c41d0e5a86',
+    name: 'pack.zip',
+    kind: 'file',
+    size: 1024,
+    type: 'archive',
+    modified: '2026-08-01T00:00:00+00:00',
+  };
+  const downloads = {
+    lists: [
       {
-        name: 'pack.zip',
-        size: 1024,
-        type: 'zip',
-        modified: '2026-08-01T00:00:00Z',
-        url: null,
-        ready: true,
+        id: '1',
+        adapter: 'openlist_list',
+        title: '文档目录',
+        price: 5,
+        items: [entry],
       },
     ],
   };
 
-  it('accepts the items envelope', () => {
-    expect(resourceAttachmentsResponseSchema.safeParse({ data: attachments, meta }).success).toBe(
-      true,
-    );
+  it('accepts one list per data group', () => {
+    expect(downloadsResponseSchema.safeParse({ data: downloads, meta }).success).toBe(true);
   });
 
-  it('strips the retired gate-matrix wrapper fields', () => {
-    const legacy = {
-      ...attachments,
-      gated: true,
-      canSeeLinks: false,
-    };
-    const parsed = resourceAttachmentsResponseSchema.safeParse({ data: legacy, meta });
+  it('accepts a free drive-share list whose row carries no link', () => {
+    const parsed = downloadsResponseSchema.safeParse({
+      meta,
+      data: {
+        lists: [
+          {
+            ...downloads.lists[0],
+            id: '2',
+            adapter: 'platform',
+            title: '夸克网盘',
+            price: 0,
+            items: [{ ...entry, name: '夸克网盘', type: 'unknown', size: 0 }],
+          },
+        ],
+      },
+    });
     expect(parsed.success).toBe(true);
-    if (parsed.success) {
-      expect(parsed.data.data).toEqual(attachments);
-    }
+  });
+
+  it('accepts a folder row, which carries no link of its own', () => {
+    const parsed = downloadsResponseSchema.safeParse({
+      meta,
+      data: { lists: [{ ...downloads.lists[0], items: [{ ...entry, name: 'opt', kind: 'dir', type: 'folder', size: 0 }] }] },
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it('rejects a row from no known kind of node', () => {
+    expect(
+      downloadsResponseSchema.safeParse({
+        meta,
+        data: { lists: [{ ...downloads.lists[0], items: [{ ...entry, kind: 'symlink' }] }] },
+      }).success,
+    ).toBe(false);
+  });
+
+  it('accepts a claim answer with its link, code and balance', () => {
+    const parsed = fileDownloadResponseSchema.safeParse({
+      meta,
+      data: {
+        url: 'https://files.example.com/d/docs/pack.zip?sign=abc',
+        code: 'x7k2',
+        price: 5,
+        balance: 15,
+      },
+    });
+    expect(parsed.success).toBe(true);
+
+    // A free delivery reports no new balance, and no code when the source has none.
+    expect(
+      fileDownloadResponseSchema.safeParse({
+        meta,
+        data: { url: 'https://pan.quark.cn/s/abc', code: null, price: 0, balance: null },
+      }).success,
+    ).toBe(true);
+  });
+
+  it('rejects a claim for a row that is not addressed by list and ref', () => {
+    expect(downloadRequestSchema.safeParse({ listId: '1', ref: entry.ref }).success).toBe(true);
+    expect(downloadRequestSchema.safeParse({ listId: '', ref: entry.ref }).success).toBe(false);
+    expect(downloadRequestSchema.safeParse({ ref: entry.ref }).success).toBe(false);
   });
 });
 
@@ -173,6 +229,7 @@ describe('user and notification contracts', () => {
       locale: 'zh_CN',
       registeredAt: '2026-01-01T00:00:00+08:00',
       role: 'subscriber',
+      banned: false,
       avatar: { url: '', thumbUrl: '' },
       stats: { favorites: 3, contributions: 1, followers: 0 },
     };
@@ -180,7 +237,7 @@ describe('user and notification contracts', () => {
     expect(userSchema.safeParse({ ...user, role: 'editor' }).success).toBe(false);
   });
 
-  it('limits notifications to the announcement kind', () => {
+  it('parses the notifications feed shape (top-level items + paginated meta)', () => {
     const notification = {
       id: 3,
       type: 'announcement',
@@ -189,14 +246,19 @@ describe('user and notification contracts', () => {
       createdAt: '2026-09-01T08:00:00+08:00',
     };
     expect(
-      notificationsResponseSchema.safeParse({ data: { items: [notification] }, meta }).success,
+      notificationsResponseSchema.safeParse({
+        items: [notification],
+        meta: { ...meta, pagination },
+      }).success,
     ).toBe(true);
+    // The action system writes per-kind types; the front end never branches
+    // on them, so any string parses.
     expect(
       notificationsResponseSchema.safeParse({
-        data: { items: [{ ...notification, type: 'reply' }] },
-        meta,
+        items: [{ ...notification, type: 'comment_replied' }],
+        meta: { ...meta, pagination },
       }).success,
-    ).toBe(false);
+    ).toBe(true);
   });
 });
 
@@ -220,6 +282,44 @@ describe('error envelope', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Authored click targets (shell blocks, 2026-09-19). The WordPress admin lets
+// an operator type either a bare front-end path or an external URL, and the
+// backend normalizer collapses same-site values to a path. An absolute-only
+// schema here fails /site validation, which the middleware gate reads as
+// "backend unreachable" — one relative ad URL took the whole site to 503.
+// ---------------------------------------------------------------------------
+
+describe('authored link targets accept both shapes', () => {
+  const image = { url: 'http://localhost:8000/wp-content/uploads/x.jpg', alt: 'x', width: 4, height: 4 };
+
+  it('accepts a site-relative path on ads and menu rows', () => {
+    expect(adSlotSchema.safeParse({ url: '/promo/', label: '促销', image }).success).toBe(true);
+    expect(
+      menuItemSchema.safeParse({
+        id: 1,
+        label: '关于本站',
+        url: '/pages/sample-page/',
+        target: 'self',
+        icon: null,
+        children: [],
+      }).success,
+    ).toBe(true);
+  });
+
+  it('still accepts an external URL', () => {
+    expect(
+      adSlotSchema.safeParse({ url: 'https://ext.example/promo', label: '促销', image }).success,
+    ).toBe(true);
+  });
+
+  it('still rejects unsafe paths and credentialed URLs', () => {
+    for (const url of ['//evil.example/x', '/a/../../b', '/a%2fb', 'https://u:p@ext.example/x']) {
+      expect(adSlotSchema.safeParse({ url, label: '促销', image }).success, url).toBe(false);
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Backend contract snapshot consistency (0.33.0): the JSON is generated by
 // `wp aiya contracts snapshot` from aiya-core Api/Contract DTOs and
 // committed as src/lib/core/contracts.snapshot.json. Regenerate + re-run
@@ -230,18 +330,20 @@ import { readFileSync } from 'node:fs';
 import { z } from 'zod';
 import {
   adSlotSchema,
-  attachmentItemSchema,
+  fileEntrySchema,
+  fileListSchema,
+  fileDownloadSchema,
   authSessionSchema,
   authorSchema,
   beianLinkSchema,
   avatarImageSchema,
   breadcrumbSchema,
-  carouselSlideSchema,
   checkinPolicySchema,
   commentAuthorSchema,
   commentSchema,
   discussionBoardSchema,
   discussionDetailSchema,
+  homeSectionSchema,
   discussionReplySchema,
   discussionSchema,
   imageSchema,
@@ -253,7 +355,6 @@ import {
   planChannelsSchema,
   postDetailSchema,
   postMetricsSchema,
-  postRefSchema,
   profileSchema,
   profileStatsSchema,
   searchGroupSchema,
@@ -282,13 +383,14 @@ const snapshot: Snapshot = JSON.parse(
 
 const manifest: Record<string, z.ZodType> = {
   AdSlot: adSlotSchema,
-  Attachment: attachmentItemSchema,
+  FileEntry: fileEntrySchema,
+  FileList: fileListSchema,
+  FileDownload: fileDownloadSchema,
   AuthSession: authSessionSchema,
   Author: authorSchema,
   BeianLink: beianLinkSchema,
   AvatarImage: avatarImageSchema,
   Breadcrumb: breadcrumbSchema,
-  CarouselSlide: carouselSlideSchema,
   CheckinPolicy: checkinPolicySchema,
   Comment: commentSchema,
   CommentAuthor: commentAuthorSchema,
@@ -299,6 +401,7 @@ const manifest: Record<string, z.ZodType> = {
   DiscussionBoard: discussionBoardSchema,
   DiscussionDetail: discussionDetailSchema,
   DiscussionReply: discussionReplySchema,
+  HomeSection: homeSectionSchema,
   Image: imageSchema,
   Membership: membershipBadgeSchema,
   MembershipCodeGrant: membershipCodeGrantSchema,
@@ -310,7 +413,6 @@ const manifest: Record<string, z.ZodType> = {
   PlanChannels: planChannelsSchema,
   PostDetail: postDetailSchema,
   PostMetrics: postMetricsSchema,
-  PostRef: postRefSchema,
   PostSummary: postSummarySchema,
   Profile: profileSchema,
   ProfileStats: profileStatsSchema,

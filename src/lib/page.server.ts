@@ -71,7 +71,7 @@ const fallbackSite: Site = {
     secondary: [],
     adsTop: [],
     adsBottom: [],
-    carousel: [],
+    sections: [],
   },
 };
 

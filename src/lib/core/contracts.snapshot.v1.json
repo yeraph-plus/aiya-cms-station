@@ -1,35 +1,20 @@
 {
     "contractVersion": "1",
     "dtos": {
-        "Attachment": [
-            {
-                "name": "name",
-                "type": "string",
-                "nullable": false
-            },
-            {
-                "name": "size",
-                "type": "int",
-                "nullable": false
-            },
-            {
-                "name": "type",
-                "type": "string",
-                "nullable": false
-            },
-            {
-                "name": "modified",
-                "type": "string",
-                "nullable": true
-            },
+        "AdSlot": [
             {
                 "name": "url",
                 "type": "string",
-                "nullable": true
+                "nullable": false
             },
             {
-                "name": "ready",
-                "type": "bool",
+                "name": "label",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "image",
+                "type": "Image",
                 "nullable": false
             }
         ],
@@ -84,6 +69,28 @@
                 "nullable": false
             }
         ],
+        "BeianLink": [
+            {
+                "name": "label",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "url",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "icon",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "iconUrl",
+                "type": "string",
+                "nullable": false
+            }
+        ],
         "Breadcrumb": [
             {
                 "name": "label",
@@ -94,6 +101,138 @@
                 "name": "url",
                 "type": "string",
                 "nullable": true
+            }
+        ],
+        "CheckinPolicy": [
+            {
+                "name": "enabled",
+                "type": "bool",
+                "nullable": false
+            },
+            {
+                "name": "credits",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "validityDays",
+                "type": "int",
+                "nullable": false
+            }
+        ],
+        "Comment": [
+            {
+                "name": "id",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "parentId",
+                "type": "int",
+                "nullable": true
+            },
+            {
+                "name": "author",
+                "type": "CommentAuthor",
+                "nullable": false
+            },
+            {
+                "name": "body",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "bodyHtml",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "publishedAt",
+                "type": "string",
+                "nullable": false
+            }
+        ],
+        "CommentAuthor": [
+            {
+                "name": "id",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "name",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "avatar",
+                "type": "string",
+                "nullable": true
+            }
+        ],
+        "CreditBalance": [
+            {
+                "name": "balance",
+                "type": "int",
+                "nullable": false
+            }
+        ],
+        "CreditEntry": [
+            {
+                "name": "id",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "direction",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "source",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "ref",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "amount",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "remaining",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "createdAt",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "expiresAt",
+                "type": "string",
+                "nullable": true
+            }
+        ],
+        "CreditGrant": [
+            {
+                "name": "granted",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "balance",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "expiresAt",
+                "type": "string",
+                "nullable": false
             }
         ],
         "Discussion": [
@@ -126,11 +265,6 @@
                 "name": "author",
                 "type": "Author",
                 "nullable": false
-            },
-            {
-                "name": "postRef",
-                "type": "PostRef",
-                "nullable": true
             },
             {
                 "name": "replies",
@@ -170,6 +304,38 @@
             {
                 "name": "canReply",
                 "type": "bool",
+                "nullable": false
+            },
+            {
+                "name": "contentHtml",
+                "type": "string",
+                "nullable": false
+            }
+        ],
+        "DiscussionBoard": [
+            {
+                "name": "id",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "slug",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "name",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "description",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "threads",
+                "type": "int",
                 "nullable": false
             }
         ],
@@ -205,11 +371,6 @@
                 "nullable": false
             },
             {
-                "name": "postRef",
-                "type": "PostRef",
-                "nullable": true
-            },
-            {
                 "name": "replies",
                 "type": "array",
                 "nullable": false
@@ -250,6 +411,11 @@
                 "nullable": false
             },
             {
+                "name": "contentHtml",
+                "type": "string",
+                "nullable": false
+            },
+            {
                 "name": "content",
                 "type": "object",
                 "nullable": false
@@ -272,6 +438,11 @@
                 "nullable": false
             },
             {
+                "name": "images",
+                "type": "array",
+                "nullable": false
+            },
+            {
                 "name": "publishedAt",
                 "type": "string",
                 "nullable": false
@@ -279,6 +450,87 @@
             {
                 "name": "canDelete",
                 "type": "bool",
+                "nullable": false
+            }
+        ],
+        "FileDownload": [
+            {
+                "name": "url",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "code",
+                "type": "string",
+                "nullable": true
+            },
+            {
+                "name": "price",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "balance",
+                "type": "int",
+                "nullable": true
+            }
+        ],
+        "FileEntry": [
+            {
+                "name": "ref",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "name",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "kind",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "size",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "type",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "modified",
+                "type": "string",
+                "nullable": true
+            }
+        ],
+        "FileList": [
+            {
+                "name": "id",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "adapter",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "title",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "price",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "items",
+                "type": "array",
                 "nullable": false
             }
         ],
@@ -314,6 +566,102 @@
                 "name": "renewsAt",
                 "type": "string",
                 "nullable": true
+            }
+        ],
+        "MembershipCodeGrant": [
+            {
+                "name": "tierKey",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "tierName",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "cycles",
+                "type": "int",
+                "nullable": false
+            }
+        ],
+        "MembershipEntitlement": [
+            {
+                "name": "tierKey",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "tierName",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "cycleDays",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "creditsPerCycle",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "cyclesTotal",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "cyclesGranted",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "startsAt",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "endsAt",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "status",
+                "type": "string",
+                "nullable": false
+            }
+        ],
+        "MembershipState": [
+            {
+                "name": "active",
+                "type": "bool",
+                "nullable": false
+            },
+            {
+                "name": "expiresAt",
+                "type": "string",
+                "nullable": true
+            },
+            {
+                "name": "nextGrantAt",
+                "type": "string",
+                "nullable": true
+            },
+            {
+                "name": "balance",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "queue",
+                "type": "array",
+                "nullable": false
+            },
+            {
+                "name": "checkin",
+                "type": "CheckinPolicy",
+                "nullable": false
             }
         ],
         "MenuItem": [
@@ -407,6 +755,23 @@
                 "nullable": false
             }
         ],
+        "PlanChannels": [
+            {
+                "name": "epay",
+                "type": "bool",
+                "nullable": false
+            },
+            {
+                "name": "afdian",
+                "type": "bool",
+                "nullable": false
+            },
+            {
+                "name": "methods",
+                "type": "array",
+                "nullable": false
+            }
+        ],
         "PostDetail": [
             {
                 "name": "id",
@@ -479,8 +844,38 @@
                 "nullable": false
             },
             {
+                "name": "badges",
+                "type": "array",
+                "nullable": false
+            },
+            {
                 "name": "content",
                 "type": "object",
+                "nullable": false
+            },
+            {
+                "name": "locked",
+                "type": "bool",
+                "nullable": false
+            },
+            {
+                "name": "visibility",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "gated",
+                "type": "bool",
+                "nullable": false
+            },
+            {
+                "name": "commentsOpen",
+                "type": "bool",
+                "nullable": false
+            },
+            {
+                "name": "hasManualExcerpt",
+                "type": "bool",
                 "nullable": false
             },
             {
@@ -524,28 +919,16 @@
                 "name": "comments",
                 "type": "int",
                 "nullable": false
-            }
-        ],
-        "PostRef": [
+            },
             {
-                "name": "id",
+                "name": "ratingScore",
                 "type": "int",
-                "nullable": false
+                "nullable": true
             },
             {
-                "name": "type",
-                "type": "string",
-                "nullable": false
-            },
-            {
-                "name": "title",
-                "type": "string",
-                "nullable": false
-            },
-            {
-                "name": "url",
-                "type": "string",
-                "nullable": false
+                "name": "ratingCount",
+                "type": "int",
+                "nullable": true
             }
         ],
         "PostSummary": [
@@ -618,6 +1001,11 @@
                 "name": "metrics",
                 "type": "PostMetrics",
                 "nullable": false
+            },
+            {
+                "name": "badges",
+                "type": "array",
+                "nullable": false
             }
         ],
         "Profile": [
@@ -682,6 +1070,40 @@
                 "name": "contributions",
                 "type": "int",
                 "nullable": false
+            },
+            {
+                "name": "followers",
+                "type": "int",
+                "nullable": false
+            }
+        ],
+        "SearchGroup": [
+            {
+                "name": "items",
+                "type": "array",
+                "nullable": false
+            },
+            {
+                "name": "total",
+                "type": "int",
+                "nullable": false
+            }
+        ],
+        "SearchResult": [
+            {
+                "name": "posts",
+                "type": "SearchGroup",
+                "nullable": false
+            },
+            {
+                "name": "pages",
+                "type": "SearchGroup",
+                "nullable": false
+            },
+            {
+                "name": "resources",
+                "type": "SearchGroup",
+                "nullable": false
             }
         ],
         "Seo": [
@@ -728,8 +1150,18 @@
                 "nullable": true
             },
             {
+                "name": "banner",
+                "type": "Image",
+                "nullable": true
+            },
+            {
                 "name": "registrationOpen",
                 "type": "bool",
+                "nullable": false
+            },
+            {
+                "name": "comments",
+                "type": "SiteComments",
                 "nullable": false
             },
             {
@@ -740,6 +1172,90 @@
             {
                 "name": "footer",
                 "type": "SiteFooter",
+                "nullable": false
+            },
+            {
+                "name": "blocks",
+                "type": "SiteBlocks",
+                "nullable": false
+            }
+        ],
+        "SiteBlocks": [
+            {
+                "name": "primary",
+                "type": "array",
+                "nullable": false
+            },
+            {
+                "name": "secondary",
+                "type": "array",
+                "nullable": false
+            },
+            {
+                "name": "adsTop",
+                "type": "array",
+                "nullable": false
+            },
+            {
+                "name": "adsBottom",
+                "type": "array",
+                "nullable": false
+            }
+        ],
+        "SiteComments": [
+            {
+                "name": "requireNameEmail",
+                "type": "bool",
+                "nullable": false
+            },
+            {
+                "name": "commentMaxLinks",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "moderation",
+                "type": "bool",
+                "nullable": false
+            },
+            {
+                "name": "previouslyApproved",
+                "type": "bool",
+                "nullable": false
+            },
+            {
+                "name": "threadComments",
+                "type": "bool",
+                "nullable": false
+            },
+            {
+                "name": "threadCommentsDepth",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "pageComments",
+                "type": "bool",
+                "nullable": false
+            },
+            {
+                "name": "commentsPerPage",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "defaultCommentsPage",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "commentOrder",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "commentRegistration",
+                "type": "bool",
                 "nullable": false
             }
         ],
@@ -763,6 +1279,21 @@
                 "name": "theme",
                 "type": "SiteTheme",
                 "nullable": false
+            },
+            {
+                "name": "seoKeywords",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "seoDescription",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "gaId",
+                "type": "string",
+                "nullable": false
             }
         ],
         "SiteFooter": [
@@ -781,6 +1312,30 @@
             {
                 "name": "primary",
                 "type": "string",
+                "nullable": false
+            }
+        ],
+        "SmiliesItem": [
+            {
+                "name": "code",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "url",
+                "type": "string",
+                "nullable": false
+            }
+        ],
+        "SmiliesPack": [
+            {
+                "name": "slug",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "items",
+                "type": "array",
                 "nullable": false
             }
         ],
@@ -818,6 +1373,114 @@
             {
                 "name": "count",
                 "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "vocabulary",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "icon",
+                "type": "string",
+                "nullable": true
+            },
+            {
+                "name": "cover",
+                "type": "Image",
+                "nullable": true
+            }
+        ],
+        "Tier": [
+            {
+                "name": "key",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "name",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "price",
+                "type": "float",
+                "nullable": false
+            },
+            {
+                "name": "cycleDays",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "creditsPerCycle",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "enabled",
+                "type": "bool",
+                "nullable": false
+            },
+            {
+                "name": "cycles",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "description",
+                "type": "string",
+                "nullable": false
+            }
+        ],
+        "TiersPayload": [
+            {
+                "name": "channels",
+                "type": "PlanChannels",
+                "nullable": false
+            },
+            {
+                "name": "items",
+                "type": "array",
+                "nullable": false
+            }
+        ],
+        "UploadResult": [
+            {
+                "name": "image",
+                "type": "UploadedImage",
+                "nullable": false
+            },
+            {
+                "name": "url",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "path",
+                "type": "string",
+                "nullable": false
+            }
+        ],
+        "UploadedImage": [
+            {
+                "name": "width",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "height",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "mime",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "title",
+                "type": "string",
                 "nullable": false
             }
         ],
@@ -873,31 +1536,19 @@
                 "nullable": false
             },
             {
+                "name": "banned",
+                "type": "bool",
+                "nullable": false
+            },
+            {
                 "name": "avatar",
                 "type": "AvatarImage",
                 "nullable": false
-            }
-        ],
-        "BeianLink": [
-            {
-                "name": "label",
-                "type": "string",
-                "nullable": false
             },
             {
-                "name": "url",
-                "type": "string",
-                "nullable": false
-            },
-            {
-                "name": "icon",
-                "type": "string",
-                "nullable": false
-            },
-            {
-                "name": "iconUrl",
-                "type": "string",
-                "nullable": false
+                "name": "stats",
+                "type": "ProfileStats",
+                "nullable": true
             }
         ]
     }

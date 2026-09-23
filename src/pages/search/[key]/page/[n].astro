@@ -1,0 +1,85 @@
+---
+/**
+ * Search pagination — /search/{key}/page/[n]/ (n ≥ 2). Same body as page
+ * one (SearchResults owns the loop props); this route only resolves the
+ * page number, the over-range 404 and the SEO frame.
+ */
+import AppShell from '@/components/layout/AppShell.astro';
+import PageState from '@/components/layout/PageState.astro';
+import SearchResults from '@/components/content/SearchResults.astro';
+import { t } from '@/lib/i18n';
+import { loadPage } from '@/lib/page.server';
+import { setCrumbs } from '@/lib/breadcrumbs';
+import {
+  isSearchScope,
+  loadSearchPage,
+  normalizeKeyword,
+  searchPath,
+  type SearchScope,
+} from '@/lib/search';
+
+const key = normalizeKeyword(Astro.params.key ?? '');
+const n = Number(Astro.params.n);
+if (key === '' || !Number.isInteger(n) || n < 2) {
+  return Astro.redirect(key === '' ? '/' : searchPath(key));
+}
+
+const scopeParam = Astro.url.searchParams.get('type') ?? '';
+const scope: SearchScope = isSearchScope(scopeParam) ? scopeParam : 'all';
+
+const page = await loadPage(
+  async (client) => loadSearchPage(client, { key, scope, page: n }),
+  Astro.cookies,
+);
+if (!page.ok) Astro.response.status = page.error.status;
+const overRange = page.ok && n > page.value.pagination.totalPages;
+if (overRange) Astro.response.status = 404;
+const copy = t(page.locale);
+if (page.ok) {
+  setCrumbs(Astro.locals, page.locale, [
+    { label: copy.search.title(key), href: searchPath(key) },
+    { label: copy.search.pageOf(key, n) },
+  ]);
+}
+const showList = page.ok && !overRange;
+const title = copy.search.pageOf(key, n);
+---
+
+<AppShell page={page} title={title} description={title} canonicalPath={searchPath(key, n)} noindex>
+  {
+    page.ok ? (
+      showList ? (
+        <>
+          <h1 class="sr-only">{copy.search.title(key)}</h1>
+          <SearchResults
+            key={key}
+            scope={scope}
+            page={n}
+            items={page.value.items}
+            pagination={page.value.pagination}
+            locale={page.locale}
+            errorText={copy.state.backendMessage}
+          />
+        </>
+      ) : (
+        <PageState
+          image={page.site.defaults.emptyImage}
+          error
+          title={copy.state.notFoundTitle}
+          message={copy.state.notFoundMessage}
+          retry={searchPath(key)}
+          retryLabel={copy.common.retry}
+        />
+      )
+    ) : (
+      <PageState
+        image={page.site.defaults.emptyImage}
+        error
+        title={page.error.title}
+        message={page.error.message}
+        retry="/"
+        retryLabel={copy.common.backHome}
+      />
+    )
+  }
+</AppShell>

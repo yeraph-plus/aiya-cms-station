@@ -39,7 +39,7 @@ const site = {
     secondary: [],
     adsTop: [],
     adsBottom: [],
-    carousel: [],
+    sections: [],
   },
 };
 const detail = {
@@ -135,6 +135,7 @@ describe('robotsTxt', () => {
   it('allows crawling with the API/query blacklists, AI groups and the sitemap pointer', () => {
     const body = robotsTxt(true, 'https://aiya.example.com/sitemap.xml');
     expect(body).toContain('Disallow: /api/');
+    expect(body).toContain('Disallow: /search/');
     expect(body).toContain('Disallow: /*?*');
     expect(body).toContain('User-agent: GPTBot');
     expect(body).toContain('User-agent: ClaudeBot');

@@ -18,6 +18,8 @@ export interface UserCenterCopy {
   profile: string;
   favorites: string;
   followingTitle: string;
+  /** /profile/me/?tab=wallet entry (credit ledger + membership orders). */
+  wallet: string;
   accountSettings: string;
   emailLabel: string;
   passwordLabel: string;

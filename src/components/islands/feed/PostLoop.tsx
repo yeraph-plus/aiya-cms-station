@@ -90,6 +90,15 @@ export interface PostLoopProps {
       clicks filter the loop client-side (筛选重置页码). */
   chips?: LoopChip[];
   filterAriaLabel?: string;
+  /** Standing label of the toolbar's left slot for the filter-less mode
+      (author archives and other lists that carry no chips): it takes the
+      place the chips row would occupy, so the row keeps a visible section
+      title and the view toggle stays anchored right. Ignored when chips
+      render — the two never share the slot. */
+  heading?: string;
+  /** Inner SVG of the heading's lucide icon, resolved server-side through
+      the lucide lookup; null/absent renders the label only. */
+  headingIcon?: string | null;
   /** Tag filter groups for the collapsible panel under the toolbar;
       absent (or all empty) hides the panel's toggle button. */
   tagGroups?: TagGroup[];
@@ -97,13 +106,22 @@ export interface PostLoopProps {
       dangle under the section header — the preference still applies from
       any full list page. */
   showViewToggle?: boolean;
+  /** "More" link pinned right of the heading row (homepage sections):
+      the archive target the section's window summarizes. Rendered only
+      when provided; pages with a view toggle never pass it. */
+  more?: { href: string; label: string };
   /** Infinite scroll: the next page appends automatically when its
       sentinel enters the viewport (main entrances only; archives keep
       explicit pagination). No history entries are pushed — back/forward
       still swaps to the SSR page the visitor navigated to. */
   autoLoad?: boolean;
-  /** Initial layout; the visitor's toggle persists over it (localStorage). */
+  /** Initial layout; the visitor's toggle persists over it (localStorage).
+      Summary feeds pin their own: pass `stickyView={false}` there. */
   defaultView?: LoopView;
+  /** When false the stored layout preference is ignored and defaultView
+      stands — homepage sections fix their card-grid look regardless of
+      what the visitor chose on a full list page. */
+  stickyView?: boolean;
   emptyText: string;
   errorText: string;
   locale: Locale;
@@ -309,7 +327,13 @@ function CardInfo({
         {category && (
           <span className="shrink-0 text-xs font-normal text-body-muted">{category}</span>
         )}
-        <span className={`min-w-0 ${vertical ? 'line-clamp-2' : 'truncate'}`}>{item.title}</span>
+        <span
+          className={`min-w-0 ${vertical ? 'line-clamp-2' : 'truncate'} ${
+            item.title === '' ? 'text-body-muted font-normal' : ''
+          }`}
+        >
+          {item.title === '' ? copy.posts.untitled : item.title}
+        </span>
       </h2>
       {/* Row 2: excerpt — one fixed-height line on phones, two lines from
           sm up (card view reserves both lines so heights stay locked) */}
@@ -474,10 +498,14 @@ export default function PostLoop({
   perPage,
   chips,
   filterAriaLabel,
+  heading,
+  headingIcon,
   tagGroups,
   showViewToggle = true,
+  more,
   autoLoad = false,
   defaultView = 'list',
+  stickyView = true,
   emptyText,
   errorText,
   locale,
@@ -495,9 +523,10 @@ export default function PostLoop({
   const [panelOpen, setPanelOpen] = useState(false);
   const [activeTags, setActiveTags] = useState<string[] | null>(null);
   useEffect(() => {
+    if (!stickyView) return;
     const stored = readStoredView();
     if (stored && stored !== defaultView) setView(stored);
-  }, [defaultView]);
+  }, [defaultView, stickyView]);
   const toggleView = (next: LoopView) => {
     setView(next);
     try {
@@ -738,7 +767,11 @@ export default function PostLoop({
   const vertical = view === 'grid';
   const groups = (tagGroups ?? []).filter((group) => group.items.length > 0);
   const hasTags = groups.length > 0;
-  const hasChips = Boolean(chips && chips.length > 0);
+  const chipItems = chips ?? [];
+  const hasChips = chipItems.length > 0;
+  // The heading takes the left slot only in the filter-less mode: chips win
+  // it whenever they render, so a page never shows both.
+  const hasHeading = !hasChips && Boolean(heading);
   const categorySet = activeCategories ?? splitSlugs(state.query.category);
   const tagSet = activeTags ?? splitSlugs(state.query.tag);
   const chipActive = (slug: string) =>
@@ -751,16 +784,18 @@ export default function PostLoop({
     : 'flex flex-col gap-3';
   return (
     <div aria-busy={loading}>
-      {/* Toolbar: chips scroll horizontally on the left (no visible
-          scrollbar); the separator, filter chevron, clear-filter button and
-          view toggles sit pinned right. */}
+      {/* Toolbar: the left slot holds the taxonomy chips (filter mode) or,
+          for filter-less lists, the standing heading the page passed; it
+          scrolls horizontally when it overflows (no visible scrollbar). The
+          separator, filter chevron, clear-filter button and view toggles sit
+          pinned right. */}
       <div className="mb-3 flex items-center gap-3">
-        {chips && chips.length > 0 && (
+        {hasChips && (
           <nav
             className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             aria-label={filterAriaLabel}
           >
-            {chips.map((chip) => {
+            {chipItems.map((chip) => {
               const active = chipActive(chip.slug);
               return (
                 <Button
@@ -800,11 +835,42 @@ export default function PostLoop({
             })}
           </nav>
         )}
+        {hasHeading && (
+          <h2 className="flex min-w-0 flex-1 items-center gap-2 font-display text-lg font-semibold text-foreground">
+            {headingIcon && (
+              <svg
+                viewBox="0 0 24 24"
+                width={20}
+                height={20}
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+                className="shrink-0"
+                dangerouslySetInnerHTML={{ __html: headingIcon }}
+              />
+            )}
+            <span className="truncate">{heading}</span>
+          </h2>
+        )}
+        {more && (
+          <a
+            href={more.href}
+            className="ml-auto shrink-0 text-sm text-body-muted transition-colors hover:text-primary"
+          >
+            {more.label} →
+          </a>
+        )}
         {showViewToggle && (
-          <>
-            {/* Leading separator only when chips sit to its left — archives
-                without chips would otherwise show a dangling line. */}
-            {hasChips && <div aria-hidden="true" className="h-5 w-px shrink-0 bg-border" />}
+          <div className="ml-auto flex shrink-0 items-center gap-3">
+            {/* Leading separator only when the left slot is occupied —
+                archives without chips or heading would otherwise show a
+                dangling line. */}
+            {(hasChips || hasHeading) && (
+              <div aria-hidden="true" className="h-5 w-px shrink-0 bg-border" />
+            )}
             {hasTags && tagSet.length > 0 && (
               <Button
                 variant="outline"
@@ -864,7 +930,7 @@ export default function PostLoop({
                 <span className="sr-only">{copy.posts.viewGrid}</span>
               </Button>
             </div>
-          </>
+          </div>
         )}
       </div>
       {panelOpen && hasTags && (

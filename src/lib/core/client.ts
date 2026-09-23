@@ -53,7 +53,9 @@ import {
   registerRequestSchema,
   resourcesQuerySchema,
   resourcesResponseSchema,
-  resourceAttachmentsResponseSchema,
+  downloadsResponseSchema,
+  fileDownloadResponseSchema,
+  downloadRequestSchema,
   resetValidatedSchema,
   afdianOrderUrlResponseSchema,
   redeemSchema,
@@ -77,6 +79,7 @@ import {
   type PasswordResetRequest,
   type ProfileUpdate,
   type RegisterRequest,
+  type SearchType,
   uploadResultSchema,
 } from './contracts';
 import { AiyaApiError } from './errors';
@@ -121,7 +124,7 @@ const WRITE_ALLOWLIST: ReadonlyArray<{ method: WriteMethod; pattern: RegExp }> =
   },
   { method: 'POST', pattern: /^users\/me\/(favorites|password)$/ },
   { method: 'POST', pattern: /^uploads\/image$/ },
-  { method: 'POST', pattern: /^content\/\d+\/(like|view|rating|comments|unlock)$/ },
+  { method: 'POST', pattern: /^content\/\d+\/(like|view|rating|comments|unlock|downloads)$/ },
   { method: 'POST', pattern: /^discussions$/ },
   { method: 'POST', pattern: /^discussions\/\d+\/replies$/ },
   { method: 'POST', pattern: /^sponsorship\/orders$/ },
@@ -290,9 +293,16 @@ export function createAiyaClient(options: ClientOptions) {
         query: query.number === undefined ? {} : { number: query.number },
       });
     },
-    resourceAttachments: (id: number) => {
+    downloads: (id: number) => {
       if (!Number.isSafeInteger(id) || id < 1) throw new AiyaApiError('configuration', 400);
-      return request('GET', `resources/${id}/attachments`, resourceAttachmentsResponseSchema);
+      return request('GET', `content/${id}/downloads`, downloadsResponseSchema);
+    },
+    /** Claims one row: the backend prices it, charges the ledger and answers the link. */
+    claimDownload: (id: number, body: z.input<typeof downloadRequestSchema>) => {
+      if (!Number.isSafeInteger(id) || id < 1) throw new AiyaApiError('configuration', 400);
+      return request('POST', `content/${id}/downloads`, fileDownloadResponseSchema, {
+        body: downloadRequestSchema.parse(body),
+      });
     },
     discussionBoards: () => request('GET', 'discussions/boards', discussionBoardsResponseSchema),
     discussions: (query: DiscussionsListQuery = {}) =>
@@ -315,24 +325,32 @@ export function createAiyaClient(options: ClientOptions) {
         query: commentsQuerySchema.parse(query),
       });
     },
-    /** Cross-type search. Grouped answer (all three types, page one per
-        group) when `type` is absent; standard paged list for a single
-        type. Q shorter than 2 chars answers an empty payload. */
-    search: (query: z.input<typeof searchQuerySchema>) => {
+    /** Cross-type search, one type at a time: the endpoint's typed mode
+        (standard paged list, relevance-ordered). Q shorter than 2 chars
+        answers an empty page. */
+    search: (query: z.input<typeof searchQuerySchema> & { type: SearchType }) => {
       const parsed = searchQuerySchema.parse(query);
-      const qp: Record<string, string | number | undefined> = {
-        q: parsed.q,
-        page: parsed.page,
-        perPage: parsed.perPage,
-        type: parsed.type,
-      };
 
-      return request(
-        'GET',
-        'search',
-        parsed.type === undefined ? searchGroupedResponseSchema : postsResponseSchema,
-        { query: qp },
-      );
+      return request('GET', 'search', postsResponseSchema, {
+        query: {
+          q: parsed.q,
+          type: parsed.type,
+          page: parsed.page,
+          perPage: parsed.perPage,
+        },
+      });
+    },
+    /** The endpoint's grouped mode (no `type`): page one plus a total per
+        public type, and no pagination. The search page does not use it —
+        its "all" scope unions typed reads so paging stays available — but
+        this is the contract's other mode, and the shape a quick-results
+        panel would want. */
+    searchGrouped: (query: Pick<z.input<typeof searchQuerySchema>, 'q' | 'perPage'>) => {
+      const parsed = searchQuerySchema.parse(query);
+
+      return request('GET', 'search', searchGroupedResponseSchema, {
+        query: { q: parsed.q, perPage: parsed.perPage },
+      });
     },
     notifications: () => request('GET', 'notifications', notificationsResponseSchema),
 
@@ -477,10 +495,10 @@ export function createAiyaClient(options: ClientOptions) {
           .object({ id: z.number().int().min(1), password: z.string().min(1) })
           .parse({ id, password }),
       }),
-    /** Afdian deep link; `month` (1–36) pre-selects the cycle count there. */
-    afdianOrderUrl: (month?: number) =>
+    /** Afdian deep link; the tier's configured cycles pre-select there. */
+    afdianOrderUrl: (tierKey: string) =>
       request('GET', 'sponsorship/afdian/order-url', afdianOrderUrlResponseSchema, {
-        query: month === undefined ? {} : { month },
+        query: { tierKey },
       }),
     creditsBalance: () => request('GET', 'credits/balance', creditBalanceResponseSchema),
     creditsEntries: (query: Partial<CreditsQuery> = {}) =>

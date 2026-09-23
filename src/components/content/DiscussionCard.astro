@@ -45,17 +45,6 @@ const excerpt =
       ></span>
       {statusLabels[discussion.status]}
     </span>
-    {
-      discussion.postRef && (
-        <a
-          href={discussion.postRef.url}
-          class="max-w-[14rem] truncate rounded-full border border-border px-2 py-0.5 text-xs text-body-muted hover:text-foreground"
-          title={discussion.postRef.title}
-        >
-          {copy.community.relatedPost}: {discussion.postRef.title}
-        </a>
-      )
-    }
   </div>
   <h2 class="mt-2 truncate font-display text-base font-semibold text-foreground">
     {discussion.title !== '' ? discussion.title : excerpt}

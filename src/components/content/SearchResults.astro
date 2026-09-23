@@ -1,0 +1,58 @@
+---
+/**
+ * Search results body (/search/{key}/ and its page/[n]/ continuation). The
+ * loop props live here alone: the two routes only resolve parameters, HTTP
+ * status and SEO, so the filter-less contract they hand the island cannot
+ * drift between page one and page two.
+ */
+import PostLoop from '@/components/islands/feed/PostLoop';
+import { iconInner } from '@/lib/icons';
+import { cloakPostSummaryMedia } from '@/lib/media';
+import { t } from '@/lib/i18n';
+import type { Locale } from '@/lib/i18n/locale';
+import {
+  searchPagePattern,
+  searchPath,
+  SEARCH_PAGE_SIZE,
+  type SearchPagination,
+  type SearchScope,
+} from '@/lib/search';
+import type { PostSummary } from '@/lib/core/contracts';
+
+interface Props {
+  /** Normalized keyword (the routed key). */
+  key: string;
+  scope: SearchScope;
+  page: number;
+  items: PostSummary[];
+  pagination: SearchPagination;
+  locale: Locale;
+  errorText: string;
+}
+
+const { key, scope, page, items, pagination, locale, errorText } = Astro.props;
+const copy = t(locale);
+// The scope rides the query (the keyword owns the path); pagination carries
+// it along so a paged link never silently widens back to "everything".
+const query: Record<string, string> = scope === 'all' ? { q: key } : { q: key, type: scope };
+---
+
+<PostLoop
+  client:load
+  endpoint="/api/feed/search/"
+  items={items.map(cloakPostSummaryMedia)}
+  pagination={pagination}
+  page={page}
+  query={query}
+  route={{
+    index: searchPath(key),
+    pagePattern: searchPagePattern(key),
+    carry: ['type'],
+  }}
+  perPage={SEARCH_PAGE_SIZE}
+  heading={copy.search.title(key)}
+  headingIcon={iconInner('search')}
+  emptyText={copy.search.empty(key)}
+  errorText={errorText}
+  locale={locale}
+/>

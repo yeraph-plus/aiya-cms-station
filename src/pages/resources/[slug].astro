@@ -8,6 +8,7 @@ import { t } from '@/lib/i18n';
 import { loadPage } from '@/lib/page.server';
 import { setCrumbs } from '@/lib/breadcrumbs';
 import { cloakPostDetail, detailSlug } from '@/lib/detail';
+import { cloakDiscussion } from '@/lib/community';
 
 const slug = detailSlug(Astro.params.slug);
 if (slug === '') {
@@ -19,10 +20,14 @@ const page = await loadPage(async (client, site) => {
   const hidden = detail.data.locked || detail.data.gated;
   const perPage = site.comments.commentsPerPage;
   const order = site.comments.defaultCommentsPage === 'newest' ? ('desc' as const) : ('asc' as const);
-  const [comments, related, attachments] = await Promise.all([
+  const [comments, related, downloads, threads, boards] = await Promise.all([
     hidden ? Promise.resolve(null) : client.comments(detail.data.id, { page: 1, perPage, order }),
     client.related(detail.data.id),
-    client.resourceAttachments(detail.data.id).catch(() => null),
+    client.downloads(detail.data.id).catch(() => null),
+    // Bound community threads for the sidebar feedback part; both reads are
+    // best-effort — the sidebar renders its empty state when they fail.
+    client.discussions({ post: detail.data.id, perPage: 5, sort: 'newest' }).catch(() => null),
+    client.discussionBoards().catch(() => null),
   ]);
   const authorProfile = detail.data.author.slug
     ? await client.profile(detail.data.author.slug).catch(() => null)
@@ -34,7 +39,10 @@ const page = await loadPage(async (client, site) => {
     comments: comments?.data ?? [],
     commentsPagination: comments?.meta.pagination ?? null,
     related: related.data.map(cloakPostSummaryMedia),
-    attachments: attachments?.data.items ?? null,
+    downloads: downloads?.data.lists ?? null,
+    threads: threads?.data.map(cloakDiscussion) ?? [],
+    threadsTotal: threads?.meta.pagination.totalItems ?? 0,
+    boards: boards?.data ?? [],
     authorBio: authorProfile?.data.bio ?? '',
     authorId: detail.data.author.id,
     window: { order, perPage },
@@ -84,7 +92,10 @@ const noindex = !page.ok || Boolean(post?.seo.noindex);
         comments={page.value.comments}
         commentsPagination={page.value.commentsPagination ?? { page: 1, totalPages: 0, hasNext: false }}
         related={page.value.related}
-        attachments={page.value.attachments}
+        downloads={page.value.downloads}
+        threads={page.value.threads}
+        threadsTotal={page.value.threadsTotal}
+        boards={page.value.boards}
         authorBio={page.value.authorBio}
         isSelf={Boolean(page.user && page.user.id === page.value.authorId)}
         settings={page.site.comments}

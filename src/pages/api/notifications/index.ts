@@ -14,7 +14,7 @@ export const GET: APIRoute = async (Astro) => {
   if (!token) return jsonResponse({ ok: true, items: [] });
   try {
     const feed = await authClient(token, ip).notifications();
-    return jsonResponse({ ok: true, items: feed.data.items });
+    return jsonResponse({ ok: true, items: feed.items });
   } catch (error) {
     // Dead session / backend down: the bell degrades to an error note
     // instead of breaking the shell.

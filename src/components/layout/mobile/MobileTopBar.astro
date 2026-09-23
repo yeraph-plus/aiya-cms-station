@@ -4,6 +4,7 @@
  */
 import UserCenter from '@/components/islands/UserCenter';
 import type { UserCenterCopy, UserCenterUser } from '@/components/islands/user-center/types';
+import type { Locale } from '@/lib/i18n/locale';
 
 interface Props {
   siteName: string;
@@ -12,8 +13,10 @@ interface Props {
   registrationOpen: boolean;
   /** BCP 47 tag forwarded to the notification bubble for date formatting. */
   localeTag: string;
+  /** Locale forwarded to the wallet bubble for its copy. */
+  locale: Locale;
 }
-const { siteName, user, authCopy, registrationOpen, localeTag } = Astro.props;
+const { siteName, user, authCopy, registrationOpen, localeTag, locale } = Astro.props;
 ---
 
 <header
@@ -28,5 +31,6 @@ const { siteName, user, authCopy, registrationOpen, localeTag } = Astro.props;
     registrationOpen={registrationOpen}
     copy={authCopy}
     localeTag={localeTag}
+    locale={locale}
   />
 </header>

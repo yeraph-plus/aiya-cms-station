@@ -21,7 +21,7 @@ export interface LikeButtonProps {
 }
 
 /**
- * Like action for post/page details: a white button with the red heart
+ * Like action for post/page details: an outline button with the red heart
  * (hollow before the visitor's own like, filled after) and the counter
  * inside as `+N`; after the visitor's like the button disables (the
  * backend dedupes per visitor). Guests keep the button enabled — their
@@ -77,7 +77,7 @@ export default function LikeButton({
       aria-label={`${labels.sr} +${likes}`}
       disabled={busy || liked}
       title={liked ? labels.success : labels.sr}
-      className="bg-white text-red-500 hover:bg-white hover:text-red-500"
+      className="text-red-500 hover:text-red-500 dark:text-red-400 dark:hover:text-red-400"
     >
       {busy ? (
         <LoaderCircleIcon className="size-4 animate-spin" aria-hidden="true" />

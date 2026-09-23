@@ -31,6 +31,10 @@ export function safeContent(html: string): string {
       'em',
       's',
       'u',
+      // The related-post card (aiya-core Domain/Parts `post_id`): a `div`
+      // carrying only its own data attributes — never a class, so author
+      // content cannot borrow site styles.
+      'div',
       'span',
       'a',
       'pre',
@@ -47,14 +51,24 @@ export function safeContent(html: string): string {
     ],
     allowedAttributes: {
       a: ['href', 'title', 'class'],
+      div: ['data-post-card', 'data-post-card-body', 'data-card-type', 'data-badges'],
       // `class` survives so backend-injected smilies (`aiya-smilie`) can be
       // sized by CSS; content imgs simply rarely carry one. The lightbox
       // binding class (`aiya-lightbox`) rides the same attribute.
       img: ['src', 'srcset', 'sizes', 'alt', 'width', 'height', 'loading', 'decoding', 'class'],
       code: ['class'],
       // Template-part markup (aiya-core Domain/Parts): native list/collapse
-      // shapes plus the `<alert>` marker tag and the clipboard slot.
-      span: ['data-clipboard-slot'],
+      // shapes plus the `<alert>` marker tag, the clipboard slot and the
+      // related-post card (whose counters ride as raw data as well).
+      span: [
+        'data-clipboard-slot',
+        'data-post-card-part',
+        'data-views',
+        'data-likes',
+        'data-comments',
+        'data-rating',
+        'data-rating-count',
+      ],
       dl: ['data-ratio'],
       details: ['open'],
       alert: ['level', 'title'],
@@ -107,6 +121,9 @@ export function sanitizeDiscussionHtml(html: string): string {
       'em',
       's',
       'u',
+      // The related-post card, same terms as safeContent: data attributes
+      // only, no classes from content.
+      'div',
       'span',
       'a',
       'pre',
@@ -118,7 +135,16 @@ export function sanitizeDiscussionHtml(html: string): string {
     allowedAttributes: {
       a: ['href', 'title'],
       code: ['class'],
-      span: ['data-spoiler'],
+      div: ['data-post-card', 'data-post-card-body', 'data-card-type', 'data-badges'],
+      span: [
+        'data-spoiler',
+        'data-post-card-part',
+        'data-views',
+        'data-likes',
+        'data-comments',
+        'data-rating',
+        'data-rating-count',
+      ],
       img: ['src', 'alt', 'class'],
     },
     allowedSchemes: ['https', 'http', 'mailto'],

@@ -1,35 +1,46 @@
 ---
 import UserCenter from '@/components/islands/UserCenter';
+import SearchBox from '@/components/islands/SearchBox';
 import type { UserCenterCopy, UserCenterUser } from '@/components/islands/user-center/types';
 import Icon from '@/components/layout/Icon.astro';
+import { isSearchScope, normalizeKeyword } from '@/lib/search';
+import type { Locale } from '@/lib/i18n/locale';
 
 interface Props {
-  searchPlaceholder: string;
   menuToggleLabel: string;
   /** Aria/title copy for the color mode toggle (header-owned, not user center). */
   colorModeLabel: string;
-  /** Label of the membership entry the header carries directly. */
-  membershipLabel: string;
   registrationOpen: boolean;
   /** BCP 47 tag forwarded to the notification bubble for date formatting. */
   localeTag: string;
+  /** The search island imports its own copy, so it needs the locale. */
+  locale: Locale;
   user: UserCenterUser | null;
   authCopy: UserCenterCopy;
 }
 const {
-  searchPlaceholder,
   menuToggleLabel,
   colorModeLabel,
-  membershipLabel,
   registrationOpen,
   localeTag,
+  locale,
   user,
   authCopy,
 } = Astro.props;
 
-// The membership hub is a top-level destination, so it sits in the header
-// rather than the sidebar's content menu. Same active rule as the sidebar.
-const membershipActive = Astro.url.pathname.startsWith('/membership/');
+// The search box mirrors the results already on screen: on /search/{key}/
+// it seeds keyword and scope straight from the address bar, so the SSR
+// markup is correct and nothing has to be filled in after hydration.
+const segments = Astro.url.pathname.split('/').filter(Boolean);
+const routedKey = segments[0] === 'search' && segments[1] ? segments[1] : '';
+const decodedKey = (() => {
+  try {
+    return decodeURIComponent(routedKey);
+  } catch {
+    return '';
+  }
+})();
+const scopeParam = Astro.url.searchParams.get('type') ?? '';
 ---
 
 <header
@@ -45,39 +56,13 @@ const membershipActive = Astro.url.pathname.startsWith('/membership/');
   >
     <Icon name="menu" size={18} />
   </button>
-  <form
-    action="/posts/"
-    method="get"
-    role="search"
-    class="relative hidden min-w-0 flex-1 min-[992px]:block"
-  >
-    <Icon
-      name="search"
-      size={16}
-      class="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-body-muted"
-    />
-    <input
-      type="search"
-      name="q"
-      placeholder={searchPlaceholder}
-      aria-label={searchPlaceholder}
-      class="h-9 w-full max-w-[20rem] rounded-md border border-transparent bg-foreground/10 pl-9 pr-4 text-sm outline-none transition-colors placeholder:text-body-muted focus:border-focus-blue"
-    />
-  </form>
+<SearchBox
+    client:load
+    locale={locale}
+    value={normalizeKeyword(decodedKey)}
+    scope={isSearchScope(scopeParam) ? scopeParam : 'all'}
+  />
   <div class="ml-auto flex shrink-0 items-center gap-1.5">
-    <a
-      href="/membership/"
-      aria-current={membershipActive ? 'page' : undefined}
-      class:list={[
-        'flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-focus-blue',
-        membershipActive
-          ? 'bg-secondary font-medium text-primary'
-          : 'text-foreground hover:bg-secondary',
-      ]}
-    >
-      <Icon name="award" size={16} />
-      <span>{membershipLabel}</span>
-    </a>
     <button
       type="button"
       data-color-toggle
@@ -93,6 +78,7 @@ const membershipActive = Astro.url.pathname.startsWith('/membership/');
       user={user}
       registrationOpen={registrationOpen}
       localeTag={localeTag}
+      locale={locale}
       copy={authCopy}
     />
   </div>

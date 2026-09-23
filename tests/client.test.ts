@@ -58,7 +58,7 @@ const SITE_A = {
   },
   defaults: { colorMode: 'system', thumb: null, emptyImage: null, theme: { primary: '#e94f69' }, seoKeywords: '', seoDescription: '', gaId: '' },
   footer: { links: [], hitokoto: false },
-  blocks: { primary: [], secondary: [], adsTop: [], adsBottom: [], carousel: [] },
+  blocks: { primary: [], secondary: [], adsTop: [], adsBottom: [], sections: [] },
 };
 const okSite = () => okJson({ data: SITE_A, meta: META });
 
@@ -152,6 +152,7 @@ describe('reads and writes', () => {
               locale: 'zh_CN',
               registeredAt: '2026-01-01T00:00:00+08:00',
               role: 'subscriber',
+              banned: false,
               avatar: { url: '', thumbUrl: '' },
               stats: { favorites: 0, contributions: 0, followers: 0 },
             },
@@ -169,7 +170,6 @@ describe('reads and writes', () => {
               tags: [],
               images: [],
               author: { id: 1, slug: 'a', name: 'a', avatar: null },
-              postRef: null,
               lastReplyAt: '',
               publishedAt: '2026-01-01T00:00:00+08:00',
               canEdit: true,

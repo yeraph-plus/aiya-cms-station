@@ -5,17 +5,42 @@ import { Counter, Zoom } from 'yet-another-react-lightbox/plugins';
 import 'yet-another-react-lightbox/styles.css';
 
 import {
+  ArrowDownIcon,
+  ArrowUpDownIcon,
+  ArrowUpIcon,
+  BinaryIcon,
   CalendarIcon,
+  DiscIcon,
   DownloadIcon,
+  FileArchiveIcon,
+  FileCodeIcon,
+  FileIcon,
+  FileSpreadsheetIcon,
+  FileTextIcon,
+  FileTypeIcon,
+  FolderIcon,
+  ImageIcon,
+  LockIcon,
+  MusicIcon,
   NewspaperIcon,
   EyeIcon,
   HeartIcon,
   MessageCircleIcon,
+  LoaderCircleIcon,
+  PresentationIcon,
+  SendIcon,
+  SettingsIcon,
   StarIcon,
+  TypeIcon,
+  VideoIcon,
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Switch } from '@/components/ui/switch';
 
 import CommentSection from '@/components/islands/CommentSection';
 import { FollowButton } from '@/components/islands/user-center/FollowButton';
@@ -29,6 +54,8 @@ import { displayDate } from '@/lib/format';
 import { t, type Locale } from '@/lib/i18n';
 import type {
   Comment,
+  FileEntry,
+  FileList,
   PostDetail,
   PostSummary,
   SiteComments,
@@ -248,9 +275,9 @@ function TitleRow({
         <h1
           className={`min-w-0 truncate font-display text-2xl font-semibold leading-tight tracking-tight ${
             hero ? 'text-white drop-shadow' : 'text-foreground'
-          }`}
+          } ${post.title === '' ? 'text-body-muted' : ''}`}
         >
-          {post.title}
+          {post.title === '' ? t(locale).posts.untitled : post.title}
         </h1>
         <BadgeRow post={post} locale={locale} />
       </div>
@@ -631,51 +658,69 @@ export function PrevNextNav({ post, locale }: { post: PostDetail; locale: Locale
 /**
  * Sidebar related list: an xl icon heading over a vertical one-per-row
  * list — bare rows (no card shells), cover left, title + date stacked to
- * its right.
+ * its right. The section is permanent: an empty result renders a dashed
+ * placeholder, so the layout holds one shape regardless of matches.
  */
-export function RelatedList({ related, locale }: { related: PostSummary[]; locale: Locale }) {
+export function RelatedList({
+  related,
+  locale,
+  heading,
+  emptyText,
+}: {
+  related: PostSummary[];
+  locale: Locale;
+  /** Heading override (the resource shell answers "相关资源", not "相关文章"). */
+  heading?: string;
+  emptyText?: string;
+}) {
   const copy = t(locale);
-  if (related.length === 0) return null;
+  const items = related.slice(0, 6);
   return (
     <section>
       <h2 className="mb-3 flex items-center gap-1.5 font-display text-lg font-semibold text-foreground">
         <NewspaperIcon className="size-5" aria-hidden="true" />
-        {copy.posts.related}
+        {heading ?? copy.posts.related}
       </h2>
-      <div className="flex flex-col gap-4">
-        {related.slice(0, 6).map((item) => (
-          <a key={item.id} href={item.url} className="group flex items-start gap-3">
-            {item.thumbnail ? (
-              <img
-                src={item.thumbnail.url}
-                alt=""
-                width={96}
-                height={56}
-                className="h-14 w-24 flex-none rounded object-cover"
-                loading="lazy"
-                decoding="async"
-              />
-            ) : (
-              <span className="h-14 w-24 flex-none rounded bg-secondary" aria-hidden="true" />
-            )}
-            <span className="min-w-0 flex-1">
-              <span className="line-clamp-2 min-h-[2.75em] text-sm font-medium leading-snug text-foreground group-hover:text-primary">
-                {item.title}
-              </span>
-              <span className="mt-1 flex items-center gap-2.5 text-xs text-body-muted">
-                <span className="inline-flex items-center gap-1">
-                  <CalendarIcon className="size-3" aria-hidden="true" />
-                  {displayDate(item.publishedAt, locale)}
+      {items.length === 0 ? (
+        <p className="rounded-lg border border-dashed border-border bg-surface px-6 py-6 text-center text-sm text-body-muted">
+          {emptyText ?? copy.posts.relatedEmpty}
+        </p>
+      ) : (
+        <div className="flex flex-col gap-4">
+          {items.map((item) => (
+            <a key={item.id} href={item.url} className="group flex items-start gap-3">
+              {item.thumbnail ? (
+                <img
+                  src={item.thumbnail.url}
+                  alt=""
+                  width={96}
+                  height={56}
+                  className="h-14 w-24 flex-none rounded object-cover"
+                  loading="lazy"
+                  decoding="async"
+                />
+              ) : (
+                <span className="h-14 w-24 flex-none rounded bg-secondary" aria-hidden="true" />
+              )}
+              <span className="min-w-0 flex-1">
+                <span className="line-clamp-2 min-h-[2.75em] text-sm font-medium leading-snug text-foreground group-hover:text-primary">
+                  {item.title}
                 </span>
-                <span className="inline-flex items-center gap-1">
-                  <EyeIcon className="size-3" aria-hidden="true" />
-                  {item.metrics.views}
+                <span className="mt-1 flex items-center gap-2.5 text-xs text-body-muted">
+                  <span className="inline-flex items-center gap-1">
+                    <CalendarIcon className="size-3" aria-hidden="true" />
+                    {displayDate(item.publishedAt, locale)}
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <EyeIcon className="size-3" aria-hidden="true" />
+                    {item.metrics.views}
+                  </span>
                 </span>
               </span>
-            </span>
-          </a>
-        ))}
-      </div>
+            </a>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
@@ -756,49 +801,615 @@ export function AuthorCard({
   );
 }
 
-/** OpenList attachment panel; metadata is public, links arrive per-viewer. */
-export function AttachmentPanel({
-  attachments,
+/** `bytes` as a short human size; null when the source reports nothing usable. */
+function fileSizeText(bytes: number): string | null {
+  if (bytes <= 0) return null;
+  if (bytes >= 1073741824) return `${(bytes / 1073741824).toFixed(1)} GB`;
+  if (bytes >= 1048576) return `${(bytes / 1048576).toFixed(1)} MB`;
+  if (bytes >= 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${bytes} B`;
+}
+
+/**
+ * Icon category (decided by the backend from the file name) → glyph. The
+ * buckets are the legacy panel's extension groups, so the map stays a plain
+ * lookup with a generic file as the fallback.
+ */
+const FILE_ICONS: Record<string, typeof FileIcon> = {
+  folder: FolderIcon,
+  archive: FileArchiveIcon,
+  image: ImageIcon,
+  audio: MusicIcon,
+  video: VideoIcon,
+  text: FileTextIcon,
+  document: FileTextIcon,
+  pdf: FileTextIcon,
+  docx: FileTypeIcon,
+  pptx: PresentationIcon,
+  xlsx: FileSpreadsheetIcon,
+  spreadsheet: FileSpreadsheetIcon,
+  code: FileCodeIcon,
+  binary: BinaryIcon,
+  mirrorfile: DiscIcon,
+  encryption: LockIcon,
+  font: TypeIcon,
+};
+
+type SortKey = 'name' | 'size' | 'modified';
+
+/** Client-side sort of one list; the backend order stands until a column is clicked. */
+function sortEntries(items: FileEntry[], sort: { key: SortKey; dir: 'asc' | 'desc' } | null): FileEntry[] {
+  if (sort === null) return items;
+  const factor = sort.dir === 'asc' ? 1 : -1;
+  const weight = (file: FileEntry): string | number => {
+    if (sort.key === 'name') return file.name;
+    if (sort.key === 'size') return file.size;
+    return Date.parse(file.modified ?? '') || 0;
+  };
+  return [...items].sort((a, b) => {
+    // A row with no stamp at all keeps the bottom of the table either way.
+    const missing = sort.key === 'modified' ? Number(a.modified === null) - Number(b.modified === null) : 0;
+    if (missing !== 0) return missing;
+    const left = weight(a);
+    const right = weight(b);
+    if (typeof left === 'string' || typeof right === 'string') {
+      return factor * String(left).localeCompare(String(right));
+    }
+    return factor * (left - right);
+  });
+}
+
+/** aria2 connection the visitor configured; the one piece of panel state that outlives a page. */
+const ARIA2_CONFIG_KEY = 'aiya_aria2_config';
+
+/** Cross-instance sync: flipping the switch in any panel updates them all. */
+const ARIA2_SYNC_EVENT = 'aiya:aria2-config';
+
+const ARIA2_PRESETS: Array<{ name: string; url: string }> = [
+  { name: 'Aria2Core', url: 'http://localhost:6800/jsonrpc' },
+  { name: 'MotrixNext', url: 'http://localhost:16800/jsonrpc' },
+  { name: 'Motrix', url: 'http://localhost:16800/jsonrpc' },
+];
+
+interface Aria2Config {
+  /** When on, every row's action button becomes a push into the RPC. */
+  enabled: boolean;
+  rpcUrl: string;
+  token: string;
+}
+
+/** Why a claim did not answer a link; the row shows one line per kind. */
+type ClaimFailure = 'login' | 'limited' | 'credits' | 'failed';
+
+/** Classify a refused claim; the proxy hands the backend's `aiya_*` code through. */
+function claimFailure(status: number, payload: { code?: string | null } | null): ClaimFailure {
+  if (status === 401) return 'login';
+  if (status === 429) return 'limited';
+  if (payload?.code === 'aiya_credit_insufficient') return 'credits';
+  return 'failed';
+}
+
+function readAria2Config(): Aria2Config {
+  const fallback: Aria2Config = { enabled: false, rpcUrl: ARIA2_PRESETS[0].url, token: '' };
+  if (typeof window === 'undefined') return fallback;
+  try {
+    const raw = window.localStorage.getItem(ARIA2_CONFIG_KEY);
+    if (raw === null) return fallback;
+    const stored = JSON.parse(raw) as Partial<Aria2Config>;
+    return {
+      enabled: stored.enabled === true,
+      rpcUrl: typeof stored.rpcUrl === 'string' && stored.rpcUrl !== '' ? stored.rpcUrl : fallback.rpcUrl,
+      token: typeof stored.token === 'string' ? stored.token : '',
+    };
+  } catch {
+    return fallback;
+  }
+}
+
+/**
+ * The one delivery path every claimed link goes through. File-service links
+ * (OpenList /d/, gofile) answer with a download payload, so they load in a
+ * detached iframe — the reader's page never navigates and no popup is
+ * involved. Pan links are pages a person reads, so they alone open a tab.
+ */
+function deliverFile(url: string, external: boolean): void {
+  if (external) {
+    window.open(url, '_blank', 'noopener,noreferrer');
+    return;
+  }
+  const frame = document.createElement('iframe');
+  frame.style.display = 'none';
+  frame.src = url;
+  frame.addEventListener('load', () => {
+    // Keep the frame alive through long transfers; a removed frame aborts
+    // the download it is carrying.
+    window.setTimeout(() => frame.remove(), 120_000);
+  });
+  document.body.appendChild(frame);
+}
+
+/**
+ * Hand one link to the visitor's own aria2 RPC. The browser calls localhost
+ * directly, so the client must accept cross-origin posts
+ * (`aria2c --rpc-allow-origin-all`) — a requirement the legacy panel shared.
+ */
+async function aria2Add(config: Aria2Config, url: string, filename: string): Promise<boolean> {
+  const params: unknown[] = [];
+  if (config.token !== '') params.push(`token:${config.token}`);
+  params.push([url]);
+  params.push({ out: filename });
+  try {
+    const response = await fetch(config.rpcUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        method: 'aria2.addUri',
+        id: `aiya-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        params,
+      }),
+    });
+    if (!response.ok) return false;
+    const payload = (await response.json().catch(() => null)) as { error?: unknown } | null;
+    return payload !== null && payload.error === undefined;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * File download panel: one block per data group, each with its own caption and
+ * rate. Rows are names and metadata only — the link is not in the list at all,
+ * so every row leads through the claim call, which prices it, charges the
+ * ledger and answers the link (and the drive's extraction code beside it).
+ *
+ * The table (type icons, size / modified columns, sorting, multi-select) and
+ * the aria2 push are front-end comfort on top of that one call: a push claims
+ * the row first, which is why a priced list costs its rate per pushed file,
+ * and the batch button states that total before anything is sent.
+ */
+export function DownloadPanel({
+  lists,
+  postId,
+  loggedIn,
   locale,
 }: {
-  attachments: { name: string; size: number; url: string | null }[];
+  lists: FileList[];
+  postId: number;
+  loggedIn: boolean;
   locale: Locale;
 }) {
   const copy = t(locale).resources;
-  if (attachments.length === 0) {
-    return (
-      <p className="rounded-lg border border-dashed border-border bg-surface px-6 py-6 text-center text-sm text-body-muted">
-        {copy.attachmentsEmpty}
-      </p>
-    );
-  }
-  const sizeText = (bytes: number): string => {
-    if (bytes >= 1073741824) return `${(bytes / 1073741824).toFixed(1)} GB`;
-    if (bytes >= 1048576) return `${(bytes / 1048576).toFixed(1)} MB`;
-    if (bytes >= 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-    return `${bytes} B`;
+  const [claims, setClaims] = useState<Record<string, { url: string; code: string | null }>>({});
+  const [failures, setFailures] = useState<Record<string, ClaimFailure>>({});
+  const [pending, setPending] = useState<string>('');
+  const [sort, setSort] = useState<{ key: SortKey; dir: 'asc' | 'desc' } | null>(null);
+  const [selected, setSelected] = useState<Record<string, true>>({});
+  const [aria2, setAria2State] = useState<Aria2Config>(readAria2Config);
+
+  // The push switch is a site-wide preference: every write goes through the
+  // storage + a sync event, so every mounted panel on the site flips with it
+  // instead of each instance keeping its own toggle.
+  const setAria2 = useCallback((updater: (prev: Aria2Config) => Aria2Config) => {
+    setAria2State((prev) => {
+      const next = updater(prev);
+      try {
+        window.localStorage.setItem(ARIA2_CONFIG_KEY, JSON.stringify(next));
+      } catch {
+        /* storage full or blocked — the push still works for this visit */
+      }
+      window.dispatchEvent(new CustomEvent<Aria2Config>(ARIA2_SYNC_EVENT, { detail: next }));
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    const sync = (event: Event): void => {
+      const config = (event as CustomEvent<Aria2Config>).detail;
+      if (config && typeof config === 'object') setAria2State(config);
+    };
+    window.addEventListener(ARIA2_SYNC_EVENT, sync);
+    return () => window.removeEventListener(ARIA2_SYNC_EVENT, sync);
+  }, []);
+
+  /**
+   * Resolve one row to its link, caching it per row: repeat clicks (and the
+   * push beside them) reuse the answer instead of paying the ledger again.
+   */
+  const claim = useCallback(
+    async (listId: string, ref: string): Promise<string | null> => {
+      const key = `${listId}:${ref}`;
+      const cached = claims[key];
+      if (cached !== undefined) return cached.url;
+      try {
+        const response = await fetch(`/api/content/${postId}/downloads`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ listId, ref }),
+        });
+        const payload = (await response.json().catch(() => null)) as {
+          ok?: boolean;
+          url?: string;
+          code?: string | null;
+        } | null;
+        if (!response.ok || !payload?.ok || !payload.url) {
+          setFailures((prev) => ({ ...prev, [key]: claimFailure(response.status, payload) }));
+          return null;
+        }
+        setFailures((prev) => {
+          const next = { ...prev };
+          delete next[key];
+          return next;
+        });
+        setClaims((prev) => ({ ...prev, [key]: { url: payload.url as string, code: payload.code ?? null } }));
+        return payload.url;
+      } catch {
+        setFailures((prev) => ({ ...prev, [key]: 'failed' }));
+        return null;
+      }
+    },
+    [claims, postId],
+  );
+
+  const download = async (list: FileList, ref: string): Promise<void> => {
+    const key = `${list.id}:${ref}`;
+    setPending(key);
+    try {
+      const url = await claim(list.id, ref);
+      if (url === null) return;
+      // Pan links are pages (the drive's own UI), so they alone navigate;
+      // everything else downloads through a detached iframe.
+      deliverFile(url, list.adapter === 'platform');
+    } finally {
+      setPending('');
+    }
   };
-  return (
-    <ul className="flex flex-col divide-y divide-border rounded-lg border border-border bg-surface">
-      {attachments.map((file) => (
-        <li key={file.name} className="flex items-center gap-3 px-4 py-3 text-sm">
-          <DownloadIcon className="size-3.5 flex-none text-body-muted" aria-hidden="true" />
-          <span className="min-w-0 flex-1 truncate text-foreground">{file.name}</span>
-          <span className="flex-none text-xs text-body-muted">{sizeText(file.size)}</span>
-          {file.url ? (
-            <a
-              href={file.url}
-              className="flex-none rounded bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
-              download
+
+  const pushRow = async (listId: string, ref: string, name: string): Promise<void> => {
+    const key = `${listId}:${ref}`;
+    setPending(key);
+    try {
+      const url = await claim(listId, ref);
+      if (url === null) {
+        toast.error(copy.pushUnavailable);
+        return;
+      }
+      if (await aria2Add(aria2, url, name)) toast.success(copy.pushDone(1));
+      else toast.error(copy.pushFailed(1));
+    } finally {
+      setPending('');
+    }
+  };
+
+  const pushSelected = async (list: FileList): Promise<void> => {
+    const rows = list.items.filter((file) => file.kind === 'file' && selected[`${list.id}:${file.ref}`] === true);
+    if (rows.length === 0) return;
+    setPending(`batch:${list.id}`);
+    let sent = 0;
+    let failed = 0;
+    // One row at a time: every claim is a priced call and the route is rate
+    // limited, so a burst would only turn into 429s.
+    for (const file of rows) {
+      const url = await claim(list.id, file.ref);
+      if (url === null || !(await aria2Add(aria2, url, file.name))) failed += 1;
+      else sent += 1;
+    }
+    setPending('');
+    setSelected((prev) => {
+      const next = { ...prev };
+      for (const file of rows) delete next[`${list.id}:${file.ref}`];
+      return next;
+    });
+    if (sent > 0) toast.success(copy.pushDone(sent));
+    if (failed > 0) toast.error(copy.pushFailed(failed));
+  };
+
+  const toggleSort = (key: SortKey): void =>
+    setSort((prev) => (prev?.key === key ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' }));
+
+  const toggleSelected = (key: string): void =>
+    setSelected((prev) => {
+      const next = { ...prev };
+      if (next[key] === true) delete next[key];
+      else next[key] = true;
+      return next;
+    });
+
+  const toggleAll = (list: FileList, files: FileEntry[]): void =>
+    setSelected((prev) => {
+      const next = { ...prev };
+      const every = files.every((file) => next[`${list.id}:${file.ref}`] === true);
+      for (const file of files) {
+        const key = `${list.id}:${file.ref}`;
+        if (every) delete next[key];
+        else next[key] = true;
+      }
+      return next;
+    });
+
+  const sortHead = (key: SortKey, label: string) => (
+    <button
+      type="button"
+      onClick={() => toggleSort(key)}
+      className="flex items-center gap-1 whitespace-nowrap hover:text-foreground"
+    >
+      {label}
+      {sort?.key === key ? (
+        sort.dir === 'asc' ? (
+          <ArrowUpIcon className="size-3" aria-hidden="true" />
+        ) : (
+          <ArrowDownIcon className="size-3" aria-hidden="true" />
+        )
+      ) : (
+        <ArrowUpDownIcon className="size-3 opacity-50" aria-hidden="true" />
+      )}
+    </button>
+  );
+
+  const hasRows = lists.some((list) => list.items.length > 0);
+
+  /** The push settings bubble: trigger reads "推送到下载器", the switch
+   * lives inside. Rendered only on file-service groups — pan groups always
+   * navigate and never push. */
+  const aria2Settings = (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className={`flex items-center gap-1.5 whitespace-nowrap rounded-md border px-2.5 py-1.5 text-xs transition-colors ${
+            aria2.enabled
+              ? 'border-primary/60 bg-primary/5 text-foreground'
+              : 'border-border text-body-muted hover:text-foreground'
+          }`}
+        >
+          <SettingsIcon className="size-3.5" aria-hidden="true" />
+          {copy.pushToClient}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-72">
+        <div className="flex flex-col gap-3">
+          <p className="text-xs leading-relaxed text-body-muted">{copy.configureClientHint}</p>
+          <label className="flex items-center justify-between gap-2">
+            <span className="text-sm text-foreground">{copy.pushToClient}</span>
+            <Switch
+              checked={aria2.enabled}
+              onCheckedChange={(checked) => setAria2((prev) => ({ ...prev, enabled: checked === true }))}
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs text-body-muted">{copy.preset}</span>
+            <select
+              value={ARIA2_PRESETS.find((preset) => preset.url === aria2.rpcUrl)?.url ?? ''}
+              onChange={(event) => {
+                const preset = ARIA2_PRESETS.find((candidate) => candidate.url === event.target.value);
+                if (preset) setAria2((prev) => ({ ...prev, rpcUrl: preset.url }));
+              }}
+              className="h-8 rounded-md border border-border bg-surface px-2 text-sm text-foreground"
             >
-              {copy.download}
-            </a>
-          ) : (
-            <span className="flex-none text-xs text-body-muted">{copy.loginToDownload}</span>
-          )}
-        </li>
-      ))}
-    </ul>
+              <option value="">{copy.presetPlaceholder}</option>
+              {ARIA2_PRESETS.map((preset) => (
+                <option key={preset.name} value={preset.url}>
+                  {preset.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs text-body-muted">{copy.rpcUrl}</span>
+            <Input
+              value={aria2.rpcUrl}
+              onChange={(event) => setAria2((prev) => ({ ...prev, rpcUrl: event.target.value }))}
+              className="h-8"
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs text-body-muted">{copy.secret}</span>
+            <Input
+              type="password"
+              value={aria2.token}
+              onChange={(event) => setAria2((prev) => ({ ...prev, token: event.target.value }))}
+              className="h-8"
+            />
+          </label>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+
+  return (
+    <div className="flex flex-col gap-5">
+      {!hasRows && (
+        <p className="rounded-lg border border-dashed border-border bg-surface px-6 py-6 text-center text-sm text-body-muted">
+          {copy.downloadsEmpty}
+        </p>
+      )}
+      {lists.map((list) => {
+        const items = sortEntries(list.items, sort);
+        const files = list.items.filter((file) => file.kind === 'file');
+        const chosen = files.filter((file) => selected[`${list.id}:${file.ref}`] === true);
+        const allChosen = files.length > 0 && chosen.length === files.length;
+        // Pan groups (share links) only ever navigate: no push button, no
+        // batch push, no push settings — the sub-component tree is skipped
+        // for them entirely.
+        const pushable = list.adapter !== 'platform';
+        const pushOn = pushable && aria2.enabled;
+        return (
+          <section key={list.id} className="flex flex-col gap-2">
+            {/* One line: the group's own caption left, the push settings and
+                the batch push right. This line IS the heading — the panel
+                carries no title of its own. */}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h5 className="text-base font-semibold text-foreground">
+                {list.title !== '' ? list.title : copy.downloads}
+              </h5>
+              <div className="flex items-center gap-3">
+                {pushable && chosen.length > 0 && (
+                  <button
+                    type="button"
+                    disabled={pending === `batch:${list.id}`}
+                    onClick={() => void pushSelected(list)}
+                    className="flex items-center gap-1.5 rounded bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-60"
+                  >
+                    {pending === `batch:${list.id}` ? (
+                      <LoaderCircleIcon className="size-3.5 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <SendIcon className="size-3.5" aria-hidden="true" />
+                    )}
+                    {chosen.length * list.price > 0
+                      ? copy.pushSelectedWithCredits(chosen.length * list.price)
+                      : copy.pushSelected}
+                  </button>
+                )}
+                {loggedIn && pushable && files.length > 0 && aria2Settings}
+              </div>
+            </div>
+            <div className="overflow-x-auto rounded-lg border border-border bg-surface">
+              <table className="w-full min-w-[34rem] border-collapse text-sm">
+                <thead>
+                  <tr className="border-b border-border text-left text-xs text-body-muted">
+                    <th className="w-10 px-3 py-2">
+                      {loggedIn && files.length > 0 && (
+                        <input
+                          type="checkbox"
+                          checked={allChosen}
+                          onChange={() => toggleAll(list, files)}
+                          aria-label={copy.selectAll}
+                        />
+                      )}
+                    </th>
+                    <th className="px-3 py-2">{sortHead('name', copy.thName)}</th>
+                    <th className="w-24 px-3 py-2 text-right">{sortHead('size', copy.thSize)}</th>
+                    <th className="w-20 whitespace-nowrap px-3 py-2 text-right">{copy.thCredits}</th>
+                    <th className="w-28 px-3 py-2">{sortHead('modified', copy.thModified)}</th>
+                    <th className="w-56 px-3 py-2">{copy.thActions}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {items.map((file) => {
+                    const key = `${list.id}:${file.ref}`;
+                    const Icon = FILE_ICONS[file.type] ?? FileIcon;
+                    const size = file.kind === 'dir' ? null : fileSizeText(file.size);
+                    const claimed = claims[key];
+                    const failure = failures[key];
+                    return (
+                      <tr key={key}>
+                        <td className="px-3 py-2.5 align-middle">
+                          {loggedIn && file.kind === 'file' && (
+                            <input
+                              type="checkbox"
+                              checked={selected[key] === true}
+                              onChange={() => toggleSelected(key)}
+                              aria-label={file.name}
+                            />
+                          )}
+                        </td>
+                        <td className="px-3 py-2.5 align-middle">
+                          <span className="flex min-w-0 items-center gap-2">
+                            <Icon className="size-4 flex-none text-body-muted" aria-hidden="true" />
+                            <span className="truncate text-foreground">{file.name}</span>
+                          </span>
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-2.5 text-right align-middle text-xs text-body-muted">
+                          {size !== null ? size : '—'}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-2.5 text-right align-middle text-xs text-body-muted">
+                          {list.price > 0 ? list.price : '—'}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-2.5 align-middle text-xs text-body-muted">
+                          {file.modified !== null ? displayDate(file.modified, locale) : '—'}
+                        </td>
+                        <td className="px-3 py-2.5 align-middle">
+                          {file.kind === 'dir' ? (
+                            <span className="text-xs text-body-muted">—</span>
+                          ) : !loggedIn ? (
+                            <span className="text-xs text-body-muted">{copy.loginToDownload}</span>
+                          ) : (
+                            <span className="flex flex-col items-start gap-1">
+                              <span className="flex items-center gap-2 whitespace-nowrap">
+                                {claimed !== undefined && claimed.code !== null && (
+                                  <span className="rounded bg-muted px-2 py-1 font-mono text-[11px] text-body-muted">
+                                    {copy.extractionCode} {claimed.code}
+                                  </span>
+                                )}
+                                {/* One button, two modes on file-service
+                                    groups: the site-wide push switch turns
+                                    download into push. Pan groups always
+                                    navigate; their price lives in its column. */}
+                                <button
+                                  type="button"
+                                  disabled={pending === key}
+                                  title={pushOn ? copy.pushToClient : undefined}
+                                  onClick={() =>
+                                    void (pushOn
+                                      ? pushRow(list.id, file.ref, file.name)
+                                      : download(list, file.ref))
+                                  }
+                                  className="flex items-center gap-1.5 whitespace-nowrap rounded bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-60"
+                                >
+                                  {pending === key ? (
+                                    <LoaderCircleIcon className="size-3.5 animate-spin" aria-hidden="true" />
+                                  ) : pushOn ? (
+                                    <SendIcon className="size-3.5" aria-hidden="true" />
+                                  ) : (
+                                    <DownloadIcon className="size-3.5" aria-hidden="true" />
+                                  )}
+                                  {pushOn ? copy.push : copy.download}
+                                </button>
+                              </span>
+                              {failure !== undefined && (
+                                <span className={`text-xs ${failure === 'login' ? 'text-body-muted' : 'text-destructive'}`}>
+                                  {failure === 'login'
+                                    ? copy.loginToDownload
+                                    : failure === 'limited'
+                                      ? t(locale).errors.aiya_rate_limited
+                                      : failure === 'credits'
+                                        ? copy.creditsShort
+                                        : copy.downloadFailed}
+                                </span>
+                              )}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * Heading plus panel, shared by the three detail shells. A null list means the
+ * read failed (or the post is gated) and the section stays away entirely.
+ */
+/**
+ * The download block as an in-card module: it rides inside the article
+ * card, under the body, and carries no section heading of its own — each
+ * data group's own caption (with the aria2 controls beside it) is the
+ * heading. A null list means the read failed (or the post is gated) and
+ * the block stays away entirely.
+ */
+export function DownloadSection({
+  lists,
+  postId,
+  loggedIn,
+  locale,
+}: {
+  lists: FileList[] | null;
+  postId: number;
+  loggedIn: boolean;
+  locale: Locale;
+}) {
+  if (lists === null || lists.length === 0) return null;
+  return (
+    <div className="mt-8 border-t border-dashed border-border pt-6">
+      <DownloadPanel lists={lists} postId={postId} loggedIn={loggedIn} locale={locale} />
+    </div>
   );
 }
 

@@ -6,7 +6,9 @@ import { Button } from '@/components/ui/button';
 import { AuthDialog } from './user-center/AuthDialog';
 import { NotificationPopover } from './user-center/NotificationPopover';
 import { UserMenu } from './user-center/UserMenu';
+import { WalletBubble } from './user-center/WalletBubble';
 import type { AuthMode, UserCenterCopy, UserCenterUser } from './user-center/types';
+import type { Locale } from '@/lib/i18n/locale';
 
 export interface UserCenterProps {
   /** Signed-in visitor or null (server-resolved session). */
@@ -15,20 +17,29 @@ export interface UserCenterProps {
   registrationOpen: boolean;
   /** BCP 47 tag for notification date formatting. */
   localeTag: string;
+  /** Locale the wallet bubble renders its copy with. */
+  locale: Locale;
   copy: UserCenterCopy;
 }
 
 /**
  * Aggregated user-center island: logged-out = login/register entries plus
- * the auth dialogs; logged-in = notification bubble + user menu bubble.
- * All of the interaction lives in React — the Astro shell renders this one
- * island (per shell) and keeps its own vanilla surface UI-only.
+ * the auth dialogs; logged-in = wallet bubble + notification bubble + user
+ * menu bubble. All of the interaction lives in React — the Astro shell
+ * renders this one island (per shell) and keeps its own vanilla surface
+ * UI-only.
  *
  * Cross-island bridge: any island can dispatch the window event
  * `aiya:open-auth` to pop the login dialog (e.g. a guest hitting a
  * login-only action on a comment composer or follow button).
  */
-export default function UserCenter({ user, registrationOpen, localeTag, copy }: UserCenterProps) {
+export default function UserCenter({
+  user,
+  registrationOpen,
+  localeTag,
+  locale,
+  copy,
+}: UserCenterProps) {
   const [dialogMode, setDialogMode] = useState<AuthMode | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -49,6 +60,7 @@ export default function UserCenter({ user, registrationOpen, localeTag, copy }: 
   if (user) {
     return (
       <div className="flex items-center gap-1.5">
+        <WalletBubble locale={locale} />
         <NotificationPopover copy={copy} localeTag={localeTag} />
         <UserMenu user={user} copy={copy} />
       </div>

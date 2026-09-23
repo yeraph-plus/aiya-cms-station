@@ -2,16 +2,17 @@ import {
   ActionRow,
   ArticleBody,
   SimpleHeader,
-  AttachmentPanel,
+  DownloadSection,
   AuthorCard,
   CommentsBlock,
   RelatedList,
-  SidebarHeading,
   useViewPing,
 } from '@/components/islands/detail/parts';
+import PostDiscussions from '@/components/islands/detail/PostDiscussions';
 import { Card, CardContent } from '@/components/ui/card';
 import type { CommentsWindow, DetailShellProps } from '@/components/islands/detail/PostDetail';
-import type { AttachmentItem, PostSummary } from '@/lib/core/contracts';
+import type { FileList, PostSummary } from '@/lib/core/contracts';
+import type { FeedThread } from '@/lib/community';
 import { t, type Locale } from '@/lib/i18n';
 
 const TAG_VOCAB_LABELS = (locale: Locale): Record<string, string> => {
@@ -26,16 +27,20 @@ const TAG_VOCAB_LABELS = (locale: Locale): Record<string, string> => {
 };
 
 /**
- * Resource detail shell: two columns like posts, but the sidebar carries
- * the attachment panel (OpenList) instead of prev/next, and the rating
- * row replaces like (the counter matrix scopes like to post/page).
+ * Resource detail shell: two columns like posts, with the download module
+ * in the article column under the body (it outgrew the 280px sidebar) and
+ * the rating row replacing like (the counter matrix scopes like to
+ * post/page). The sidebar keeps author + related.
  */
 export default function ResourceDetail({
   post,
   comments,
   commentsPagination,
   related,
-  attachments,
+  downloads,
+  threads,
+  threadsTotal,
+  boards,
   settings,
   loggedIn,
   authorBio,
@@ -44,7 +49,11 @@ export default function ResourceDetail({
   window,
 }: DetailShellProps & {
   related: PostSummary[];
-  attachments: AttachmentItem[] | null;
+  downloads: FileList[] | null;
+  /** Community threads bound to this resource (the sidebar feedback part). */
+  threads: FeedThread[];
+  threadsTotal: number;
+  boards: { slug: string; name: string }[];
   window: CommentsWindow;
 }) {
   useViewPing(post.id);
@@ -62,6 +71,11 @@ export default function ResourceDetail({
           />
           <CardContent className="px-6 py-6">
             <ArticleBody post={post} locale={locale} />
+            {/* The download module lives inside the article card, under the
+                body — no section heading of its own, each group's caption is
+                the heading. Failed groups never reach the public payload, so
+                an empty lists array means nothing to show. */}
+            <DownloadSection lists={downloads} postId={post.id} loggedIn={loggedIn} locale={locale} />
           </CardContent>
         </Card>
         <CommentsBlock
@@ -76,13 +90,20 @@ export default function ResourceDetail({
       </div>
       <aside className="mt-10 flex flex-col gap-5 lg:mt-0">
         <AuthorCard post={post} bio={authorBio} isSelf={isSelf} locale={locale} />
-        {attachments !== null && (
-          <section>
-            <SidebarHeading>{copy.resources.attachments}</SidebarHeading>
-            <AttachmentPanel attachments={attachments} locale={locale} />
-          </section>
-        )}
-        <RelatedList related={related} locale={locale} />
+        <RelatedList
+          related={related}
+          locale={locale}
+          heading={copy.resources.related}
+          emptyText={copy.resources.relatedEmpty}
+        />
+        <PostDiscussions
+          postId={post.id}
+          initialThreads={threads}
+          initialTotal={threadsTotal}
+          boards={boards}
+          canPost={loggedIn}
+          locale={locale}
+        />
       </aside>
     </article>
   );

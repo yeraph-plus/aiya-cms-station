@@ -5,6 +5,9 @@
  * CommunityFeed island, later pages render SSR cards with crawlable
  * pagination links (the island only exists on page 1). Pure renderer:
  * loadCommunityBoard() runs in PAGE frontmatter for the status assignments.
+ * The body lives in one centered 896px container — narrower than the shell's
+ * 1510px main column on purpose (rail 112px + gap 24px + feed 760px), so the
+ * feed reads as a column instead of hugging the left edge.
  */
 import AppShell from '@/components/layout/AppShell.astro';
 import Icon from '@/components/layout/Icon.astro';
@@ -60,9 +63,10 @@ const boardBadgeClass = (active: boolean) =>
 >
   <h1 class="sr-only">{title}</h1>
   {
-    page.ok &&
-      (pageNumber === 1 ? (
-        <div class="mx-auto flex w-full max-w-[760px] flex-col gap-5 sm:flex-row sm:gap-6">
+    page.ok && (
+      <div class="mx-auto w-full max-w-[896px]">
+        {pageNumber === 1 ? (
+          <div class="flex w-full flex-col gap-5 sm:flex-row sm:gap-6">
           <aside class="shrink-0 sm:w-28" aria-label={copy.community.boardFilter}>
             <nav
               class:list={[
@@ -98,52 +102,54 @@ const boardBadgeClass = (active: boolean) =>
             </nav>
           </aside>
 
-          <div class="min-w-0 flex-1">
-            <CommunityFeed
-              client:load
-              initialThreads={page.value.list.map(cloakDiscussion)}
-              initialPagination={page.value.pagination}
-              boards={page.value.boards}
-              initialBoard={currentBoard}
-              canPost={canPost}
-              user={
-                page.user
-                  ? {
-                      name: page.user.nickname,
-                      avatarUrl: page.user.avatar
-                        ? rewriteMediaUrl(page.user.avatar.url)
-                        : null,
-                    }
-                  : null
-              }
-              locale={page.locale}
+            <div class="w-full min-w-0 max-w-[760px]">
+              <CommunityFeed
+                client:load
+                initialThreads={page.value.list.map(cloakDiscussion)}
+                initialPagination={page.value.pagination}
+                boards={page.value.boards}
+                initialBoard={currentBoard}
+                canPost={canPost}
+                user={
+                  page.user
+                    ? {
+                        name: page.user.nickname,
+                        avatarUrl: page.user.avatar
+                          ? rewriteMediaUrl(page.user.avatar.url)
+                          : null,
+                      }
+                    : null
+                }
+                locale={page.locale}
+              />
+            </div>
+          </div>
+        ) : showList ? (
+          <>
+            <div class="flex w-full max-w-[760px] flex-col gap-3">
+              {page.value.list.map((discussion) => (
+                <DiscussionCard discussion={discussion} locale={page.locale} />
+              ))}
+            </div>
+            <Pagination
+              pagination={page.value.pagination}
+              href={listHref}
+              previousLabel={copy.common.previousPage}
+              nextLabel={copy.common.nextPage}
+              ariaLabel={copy.common.pagination}
             />
-          </div>
-        </div>
-      ) : showList ? (
-        <>
-          <div class="mx-auto flex w-full max-w-[760px] flex-col gap-3">
-            {page.value.list.map((discussion) => (
-              <DiscussionCard discussion={discussion} locale={page.locale} />
-            ))}
-          </div>
-          <Pagination
-            pagination={page.value.pagination}
-            href={listHref}
-            previousLabel={copy.common.previousPage}
-            nextLabel={copy.common.nextPage}
-            ariaLabel={copy.common.pagination}
+          </>
+        ) : (
+          <PageState
+            image={page.site.defaults.emptyImage}
+            error
+            title={copy.state.notFoundTitle}
+            message={copy.state.notFoundMessage}
+            retry={base}
+            retryLabel={copy.common.retry}
           />
-        </>
-      ) : (
-        <PageState
-          image={page.site.defaults.emptyImage}
-          error
-          title={copy.state.notFoundTitle}
-          message={copy.state.notFoundMessage}
-          retry={base}
-          retryLabel={copy.common.retry}
-        />
-      ))
+        )}
+      </div>
+    )
   }
 </AppShell>

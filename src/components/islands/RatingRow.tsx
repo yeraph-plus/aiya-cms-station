@@ -81,7 +81,10 @@ export default function RatingRow({
   };
 
   return (
-    <div className="flex items-center gap-2 rounded-md border border-input bg-white px-2 shadow-xs">
+    // Outer geometry mirrors the outline/sm Button (h-8, rounded-md, border,
+    // shadow) so the row reads as sibling pills; theme tokens keep dark mode
+    // on the same surface family as the favorite button.
+    <div className="flex h-8 items-center gap-1.5 rounded-md border border-border bg-surface px-2 shadow-xs transition-colors dark:border-input dark:bg-input/30">
       <div
         role="slider"
         aria-label={labels.rating}
@@ -102,10 +105,10 @@ export default function RatingRow({
               aria-label={`${value}`}
               onMouseEnter={() => setHover(value)}
               onClick={() => void rate(value)}
-              className="p-0.5 transition-transform first:pl-0 hover:scale-110 disabled:cursor-default disabled:hover:scale-100"
+              className="p-0.5 transition-transform first:pl-0 last:pr-0 hover:scale-110 disabled:cursor-default disabled:hover:scale-100"
             >
               <StarIcon
-                className={`size-5 ${filled ? 'text-yellow-400' : 'text-body-muted/40'}`}
+                className={`size-[18px] ${filled ? 'text-yellow-400 dark:text-yellow-500' : 'text-body-muted/40'}`}
                 fill={filled ? 'currentColor' : 'none'}
                 aria-hidden="true"
               />

@@ -73,12 +73,13 @@ export const AI_CRAWLERS = [
 ];
 
 /** robots.txt body: indexable = blacklist approach (everything allowed,
-    /api/ JSON and query-string URLs denied) plus one explicit allow group
-    per AI crawler and the sitemap pointer; an unreachable backend fails
-    closed and disallows all (no sitemap is advertised for a dead site). */
+    /api/ JSON, /search/ result pages and query-string URLs denied) plus one
+    explicit allow group per AI crawler and the sitemap pointer; an
+    unreachable backend fails closed and disallows all (no sitemap is
+    advertised for a dead site). */
 export function robotsTxt(indexable: boolean, sitemapUrl?: string): string {
   if (!indexable) return 'User-agent: *\nDisallow: /\n';
-  const group = ['Allow: /', 'Disallow: /api/', 'Disallow: /*?*'];
+  const group = ['Allow: /', 'Disallow: /api/', 'Disallow: /search/', 'Disallow: /*?*'];
   const lines = ['User-agent: *', ...group];
   for (const bot of AI_CRAWLERS) {
     lines.push('', `User-agent: ${bot}`, ...group);

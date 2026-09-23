@@ -15,11 +15,15 @@ export const POST: APIRoute = async (Astro) => {
   const body = await Astro.request.json().catch(() => null);
   if (body === null || typeof body !== 'object') return jsonResponse({ ok: false }, 400);
   try {
-    const payload = body as { tierKey?: unknown; channel?: unknown; cycles?: unknown };
+    const payload = body as { tierKey?: unknown; channel?: unknown; returnUrl?: unknown };
     const result = await authClient(token, ip).createOrder({
       tierKey: String(payload.tierKey ?? ''),
       channel: payload.channel as 'alipay' | 'wxpay' | 'usdt',
-      cycles: Number(payload.cycles ?? 1),
+      // The front end owns the landing address; absent stays absent (the
+      // buyer then remains on the gateway page).
+      ...(typeof payload.returnUrl === 'string' && payload.returnUrl !== ''
+        ? { returnUrl: payload.returnUrl }
+        : {}),
     });
     return jsonResponse({ ok: true, order: result.data });
   } catch (error) {

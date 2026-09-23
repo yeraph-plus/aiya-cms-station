@@ -18,38 +18,6 @@
                 "nullable": false
             }
         ],
-        "Attachment": [
-            {
-                "name": "name",
-                "type": "string",
-                "nullable": false
-            },
-            {
-                "name": "size",
-                "type": "int",
-                "nullable": false
-            },
-            {
-                "name": "type",
-                "type": "string",
-                "nullable": false
-            },
-            {
-                "name": "modified",
-                "type": "string",
-                "nullable": true
-            },
-            {
-                "name": "url",
-                "type": "string",
-                "nullable": true
-            },
-            {
-                "name": "ready",
-                "type": "bool",
-                "nullable": false
-            }
-        ],
         "AuthSession": [
             {
                 "name": "token",
@@ -133,23 +101,6 @@
                 "name": "url",
                 "type": "string",
                 "nullable": true
-            }
-        ],
-        "CarouselSlide": [
-            {
-                "name": "title",
-                "type": "string",
-                "nullable": false
-            },
-            {
-                "name": "url",
-                "type": "string",
-                "nullable": false
-            },
-            {
-                "name": "image",
-                "type": "Image",
-                "nullable": false
             }
         ],
         "CheckinPolicy": [
@@ -316,11 +267,6 @@
                 "nullable": false
             },
             {
-                "name": "postRef",
-                "type": "PostRef",
-                "nullable": true
-            },
-            {
                 "name": "replies",
                 "type": "int",
                 "nullable": false
@@ -425,11 +371,6 @@
                 "nullable": false
             },
             {
-                "name": "postRef",
-                "type": "PostRef",
-                "nullable": true
-            },
-            {
                 "name": "replies",
                 "type": "array",
                 "nullable": false
@@ -509,6 +450,124 @@
             {
                 "name": "canDelete",
                 "type": "bool",
+                "nullable": false
+            }
+        ],
+        "FileDownload": [
+            {
+                "name": "url",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "code",
+                "type": "string",
+                "nullable": true
+            },
+            {
+                "name": "price",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "balance",
+                "type": "int",
+                "nullable": true
+            }
+        ],
+        "FileEntry": [
+            {
+                "name": "ref",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "name",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "kind",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "size",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "type",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "modified",
+                "type": "string",
+                "nullable": true
+            }
+        ],
+        "FileList": [
+            {
+                "name": "id",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "adapter",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "title",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "price",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "items",
+                "type": "array",
+                "nullable": false
+            }
+        ],
+        "HomeSection": [
+            {
+                "name": "id",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "title",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "type",
+                "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "categories",
+                "type": "array",
+                "nullable": false
+            },
+            {
+                "name": "count",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "icon",
+                "type": "string",
+                "nullable": true
+            },
+            {
+                "name": "moreUrl",
+                "type": "string",
                 "nullable": false
             }
         ],
@@ -909,28 +968,6 @@
                 "nullable": true
             }
         ],
-        "PostRef": [
-            {
-                "name": "id",
-                "type": "int",
-                "nullable": false
-            },
-            {
-                "name": "type",
-                "type": "string",
-                "nullable": false
-            },
-            {
-                "name": "title",
-                "type": "string",
-                "nullable": false
-            },
-            {
-                "name": "url",
-                "type": "string",
-                "nullable": false
-            }
-        ],
         "PostSummary": [
             {
                 "name": "id",
@@ -1202,7 +1239,7 @@
                 "nullable": false
             },
             {
-                "name": "carousel",
+                "name": "sections",
                 "type": "array",
                 "nullable": false
             }
@@ -1426,6 +1463,16 @@
                 "name": "enabled",
                 "type": "bool",
                 "nullable": false
+            },
+            {
+                "name": "cycles",
+                "type": "int",
+                "nullable": false
+            },
+            {
+                "name": "description",
+                "type": "string",
+                "nullable": false
             }
         ],
         "TiersPayload": [
@@ -1528,6 +1575,11 @@
             {
                 "name": "role",
                 "type": "string",
+                "nullable": false
+            },
+            {
+                "name": "banned",
+                "type": "bool",
                 "nullable": false
             },
             {

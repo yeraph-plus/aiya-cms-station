@@ -1,5 +1,6 @@
 import {
   BookmarkIcon,
+  CoinsIcon,
   LogOutIcon,
   SettingsIcon,
   UserRoundCheckIcon,
@@ -75,6 +76,12 @@ export function UserMenu({ user, copy }: { user: UserCenterUser; copy: UserCente
           <a href="/profile/me/?tab=favorites">
             <BookmarkIcon aria-hidden="true" />
             {copy.favorites}
+          </a>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <a href="/profile/me/?tab=wallet">
+            <CoinsIcon aria-hidden="true" />
+            {copy.wallet}
           </a>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>

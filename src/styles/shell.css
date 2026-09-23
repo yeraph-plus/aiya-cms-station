@@ -167,6 +167,61 @@ img.aiya-smilie {
   vertical-align: text-bottom;
 }
 
+/* Related-post card: rendered by the backend `post_id` part and embedded in
+   post bodies, thread bodies and replies alike (one rule set, the smilie
+   precedent). Content HTML never carries classes, so the card's own data
+   attributes are the only hooks; `data-badges` (member/login/password) is
+   deliberately left unstyled — the front end can decorate it later. */
+[data-post-card] {
+  display: flex;
+  gap: 0.75rem;
+  align-items: stretch;
+  margin: 1rem 0;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--secondary);
+}
+
+[data-post-card] a {
+  text-decoration: none;
+}
+
+[data-post-card] > a {
+  display: block;
+  flex: 0 0 auto;
+  width: 7rem;
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+[data-post-card] img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 4rem;
+  object-fit: cover;
+}
+
+[data-post-card-body] {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+[data-post-card-part='category'],
+[data-post-card-part='metrics'] {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+[data-post-card-part='title'] {
+  font-weight: 600;
+  color: var(--foreground);
+}
+
 /* Spoiler mark: black-on-black until hovered/focused. The tiptap editor,
    the rendered thread bodies and the comment bodies share this rule pair;
    the token pair is mode-independent so the canonical reveal look survives

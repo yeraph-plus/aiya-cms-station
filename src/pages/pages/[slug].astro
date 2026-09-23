@@ -19,9 +19,10 @@ const page = await loadPage(async (client, site) => {
   const hidden = detail.data.locked || detail.data.gated;
   const perPage = site.comments.commentsPerPage;
   const order = site.comments.defaultCommentsPage === 'newest' ? ('desc' as const) : ('asc' as const);
-  const comments = hidden
-    ? null
-    : await client.comments(detail.data.id, { page: 1, perPage, order });
+  const [comments, downloads] = await Promise.all([
+    hidden ? Promise.resolve(null) : client.comments(detail.data.id, { page: 1, perPage, order }),
+    client.downloads(detail.data.id).catch(() => null),
+  ]);
   const authorProfile = detail.data.author.slug
     ? await client.profile(detail.data.author.slug).catch(() => null)
     : null;
@@ -31,6 +32,7 @@ const page = await loadPage(async (client, site) => {
     post: cloakPostDetail(detail.data),
     comments: comments?.data ?? [],
     commentsPagination: comments?.meta.pagination ?? null,
+    downloads: downloads?.data.lists ?? null,
     authorBio: authorProfile?.data.bio ?? '',
     authorId: detail.data.author.id,
     window: { order, perPage },
@@ -78,6 +80,7 @@ const noindex = !page.ok || Boolean(post?.seo.noindex);
         post={post}
         comments={page.value.comments}
         commentsPagination={page.value.commentsPagination ?? { page: 1, totalPages: 0, hasNext: false }}
+        downloads={page.value.downloads}
         settings={page.site.comments}
         loggedIn={Boolean(page.user)}
         authorBio={page.value.authorBio}

@@ -9,7 +9,7 @@ import { z } from 'zod';
  *
  * Reshaped 2026-09 against backend 0.28.0: Topic domain removed (topics are a
  * category-aggregation template, not an API resource), Discussion rebuilt in
- * its thread form (type/status workflow, postRef, server-derived can* flags,
+ * its thread form (type/status workflow, server-derived can* flags,
  * no community likes), resource attachments switched to the gate-matrix shape,
  * `tweet`/`issue` type values dropped (dead domains).
  */
@@ -41,6 +41,16 @@ export const httpUrlSchema = z.url({ protocol: /^https?$/ }).refine((value) => {
     return false;
   }
 }, 'URLs must not contain credentials');
+
+/**
+ * A click target authored in the WordPress admin: either a bare front-end
+ * path or an absolute external URL. Mirrors the backend's own rule
+ * (`ContentBlocks::normalizeUrl()`, `PrimaryMenu::normalizeUrl()`), which
+ * collapses anything pointing at this site to a path and passes the rest
+ * through untouched — so a site-relative `/promo/` is expected output, not
+ * a malformed payload. Narrowing this to absolute-only gates the whole site.
+ */
+export const linkTargetSchema = z.union([sitePathSchema, httpUrlSchema]);
 
 /** ISO 8601 with a timezone offset, as every backend date field is emitted. */
 export const isoSchema = z.iso.datetime({ offset: true });
@@ -131,7 +141,8 @@ export const postSummarySchema = z.object({
   /** Vocabularies whose front-end routes exist; `page` joined with the
       /pages/{slug}/ route (shared projection with posts). */
   type: z.enum(['post', 'resource', 'page']),
-  title: z.string().min(1),
+  /** WP allows publishing an untitled item; the snapshot's plain string is the contract. */
+  title: z.string(),
   excerpt: z.string(),
   publishedAt: isoSchema,
   updatedAt: isoSchema,
@@ -185,10 +196,11 @@ export const siteDefaultsSchema = z.object({
   /** Google Analytics measurement id; the front end renders the snippet. */
   gaId: z.string(),
 });
-/** One compliance link row from the footer repeater. */
+/** One compliance link row from the footer repeater. The URL is authored in
+    the admin, so it is a path or an external URL like every other link row. */
 export const beianLinkSchema = z.object({
   label: z.string(),
-  url: httpUrlSchema,
+  url: linkTargetSchema,
   icon: z.enum(['shield', 'police', 'custom']),
   iconUrl: z.string(),
 });
@@ -231,7 +243,7 @@ export const smiliesPackSchema = z.object({
 export const menuItemSchema: z.ZodType<MenuItem> = z.object({
   id,
   label: z.string().min(1),
-  url: z.union([sitePathSchema, httpUrlSchema]),
+  url: linkTargetSchema,
   target: z.enum(['self', 'blank']),
   /** Optional Lucide icon name from the primary-menu repeater. */
   icon: z.string().nullable(),
@@ -249,23 +261,35 @@ export interface MenuItem {
 /** One advertisement slot (page-top / page-bottom lists): click target,
     link text (also the banner alt) and the banner artwork. */
 export const adSlotSchema = z.object({
-  url: httpUrlSchema,
+  url: linkTargetSchema,
   label: z.string(),
   image: imageSchema,
 });
-/** One carousel slide of the front-end banner slot. */
-export const carouselSlideSchema = z.object({
-  title: z.string(),
-  url: httpUrlSchema,
-  image: imageSchema,
+export type AdSlot = z.infer<typeof adSlotSchema>;
+/** One homepage section template (Blocks settings repeater): a heading
+    row (Lucide icon + title, "more" link at the right) over a list of
+    `count` posts the front end fetches itself. `categories` are slugs —
+    empty means every category of the type; `moreUrl` is an explicit
+    override, empty derives the type's archive path. */
+export const homeSectionSchema = z.object({
+  id: count,
+  title: z.string().min(1),
+  type: z.enum(['post', 'resource']),
+  categories: z.array(z.string()),
+  count: z.number().int().min(1).max(20),
+  icon: z.string().nullable(),
+  /** Empty means "derive the type's archive path" — not a link target. */
+  moreUrl: z.union([linkTargetSchema, z.literal('')]),
 });
-/** The shell's dynamic blocks: navigation menus + ad slots + carousel. */
+export type HomeSection = z.infer<typeof homeSectionSchema>;
+/** The shell's dynamic blocks: navigation menus + ad slots + the home
+    section templates. */
 export const siteBlocksSchema = z.object({
   primary: z.array(menuItemSchema),
   secondary: z.array(menuItemSchema),
   adsTop: z.array(adSlotSchema),
   adsBottom: z.array(adSlotSchema),
-  carousel: z.array(carouselSlideSchema),
+  sections: z.array(homeSectionSchema),
 });
 
 export const siteSchema = z.object({
@@ -311,13 +335,6 @@ export const discussionBoardSchema = z.object({
   threads: count,
 });
 
-export const postRefSchema = z.object({
-  id,
-  type: z.enum(['post', 'resource']),
-  title: z.string(),
-  url: sitePathSchema,
-});
-
 /** Thread-embedded images: URLs mirror whatever the composer stored
     (/media/ proxy paths included) and dimensions may be absent (0). */
 export const discussionImageSchema = imageSchema.extend({
@@ -333,7 +350,6 @@ export const discussionSchema = z.object({
   board: discussionBoardSchema.nullable(),
   status: discussionStatusSchema,
   author: authorSchema,
-  postRef: postRefSchema.nullable(),
   /** Flat reply count maintained by the backend; the only interaction metric. */
   replies: count,
   /** #tags extracted from the thread content. */
@@ -370,21 +386,52 @@ export const discussionDetailSchema = discussionSchema.extend({
 });
 
 // ---------------------------------------------------------------------------
-// Resource attachments (Domain/ExternalFiles, 0.27.0 gate matrix)
+// File downloads (Domain/FileServe, 2026-09-21)
 // ---------------------------------------------------------------------------
 
-export const attachmentItemSchema = z.object({
+export const fileEntrySchema = z.object({
+  /** Opaque reference to one row; a claim quotes it back. */
+  ref: z.string().min(1),
   name: z.string().min(1),
+  /** file | dir — a folder carries no link at all. */
+  kind: z.enum(['file', 'dir']),
   size: count,
+  /** Icon category (pdf, archive, folder, …) decided by the backend. */
   type: z.string(),
-  /** Upstream datetime string, format owned by OpenList; display-only. */
-  modified: z.string().nullable(),
-  /** null = the viewer may not download this file. */
-  url: httpUrlSchema.nullable(),
-  ready: z.boolean(),
+  /** ISO 8601 in site time; null when the source reports no stamp. */
+  modified: isoSchema.nullable(),
 });
-export const resourceAttachmentsSchema = z.object({
-  items: z.array(attachmentItemSchema),
+
+export const fileListSchema = z.object({
+  /** The group's short id, which a claim names along with the row ref. */
+  id: z.string().min(1),
+  /** Which adapter produced this list (platform, openlist_list, …). */
+  adapter: z.string().min(1),
+  /** Caption above the list; `''` falls back to a generic label. */
+  title: z.string(),
+  /** Credits charged per file of this list; 0 = free. */
+  price: count,
+  items: z.array(fileEntrySchema),
+});
+
+export const downloadsSchema = z.object({
+  /** One entry per data group, in the order the post configures them. */
+  lists: z.array(fileListSchema),
+});
+
+export const downloadRequestSchema = z.object({
+  listId: z.string().min(1),
+  ref: z.string().min(1),
+});
+
+export const fileDownloadSchema = z.object({
+  url: httpUrlSchema,
+  /** The drive's own extraction code, handed over beside the link. */
+  code: z.string().nullable(),
+  /** What this delivery was charged. */
+  price: count,
+  /** The balance the charge left behind; null when nothing was charged. */
+  balance: count.nullable(),
 });
 
 // ---------------------------------------------------------------------------
@@ -393,10 +440,20 @@ export const resourceAttachmentsSchema = z.object({
 
 export const notificationSchema = z.object({
   id,
-  type: z.literal('announcement'),
+  /** One of the action-system kinds (announcement, post_commented, …);
+      titles carry the copy, so the front end never branches on it. */
+  type: z.string(),
   title: z.string(),
   body: z.string(),
   createdAt: isoOrEmptySchema,
+});
+/**
+ * This route answers `{items, meta}` at the top level — no `data` wrapper —
+ * with the standard pagination block inside meta (NotificationController).
+ */
+export const notificationsResponseSchema = z.object({
+  items: z.array(notificationSchema),
+  meta: envelopeMetaSchema.extend({ pagination: paginationSchema }),
 });
 
 // ---------------------------------------------------------------------------
@@ -469,6 +526,8 @@ export const userSchema = z.object({
   locale: z.string(),
   registeredAt: isoOrEmptySchema,
   role: z.enum(['administrator', 'author', 'sponsor', 'subscriber']),
+  /** Account-level disable switch; rides beside the role, never replaces a level. */
+  banned: z.boolean(),
   avatar: avatarImageSchema,
   /** Owner-facing profile counters (posts / favorited / followers). */
   stats: profileStatsSchema.nullable(),
@@ -514,6 +573,10 @@ export const tierSchema = z.object({
   creditsPerCycle: count,
   /** False = not purchasable; the front end drops it from buy lists. */
   enabled: z.boolean(),
+  /** Fixed cycle count of one purchase; there is no front-end picker. */
+  cycles: z.number().int().min(1),
+  /** Plan-card blurb the membership settings page configures. */
+  description: z.string(),
 });
 export const membershipEntitlementSchema = z.object({
   tierKey: z.string(),
@@ -630,11 +693,13 @@ export const searchResultSchema = z.object({
   resources: searchGroupSchema,
 });
 export const searchGroupedResponseSchema = itemEnvelope(searchResultSchema);
+/** Public content types `/search` can be scoped to. */
+export const searchTypeSchema = z.enum(['post', 'page', 'resource']);
 /** With `type` present the endpoint answers the standard list shape —
     reuse postsResponseSchema for that mode's parsing. */
 export const searchQuerySchema = z.object({
   q: z.string().min(1).max(100),
-  type: z.enum(['post', 'page', 'resource']).optional(),
+  type: searchTypeSchema.optional(),
   page: z.number().int().min(1).default(1),
   perPage: z.number().int().min(1).max(50).default(10),
 });
@@ -650,10 +715,8 @@ export const discussionRepliesResponseSchema = listEnvelope(discussionReplySchem
 export const discussionReplyResponseSchema = itemEnvelope(discussionReplySchema);
 export const discussionBoardsResponseSchema = itemEnvelope(z.array(discussionBoardSchema));
 export const deletedResponseSchema = itemEnvelope(z.object({ deleted: z.literal(true) }));
-export const resourceAttachmentsResponseSchema = itemEnvelope(resourceAttachmentsSchema);
-export const notificationsResponseSchema = itemEnvelope(
-  z.object({ items: z.array(notificationSchema) }),
-);
+export const downloadsResponseSchema = itemEnvelope(downloadsSchema);
+export const fileDownloadResponseSchema = itemEnvelope(fileDownloadSchema);
 export const commentsResponseSchema = listEnvelope(commentSchema);
 export const commentCreatedResponseSchema = itemEnvelope(commentCreatedSchema);
 export const meResponseSchema = itemEnvelope(userSchema);
@@ -839,7 +902,10 @@ export const redeemSchema = z.object({
 export const orderCreateSchema = z.object({
   tierKey: z.string().min(1).max(32),
   channel: z.enum(['alipay', 'wxpay', 'usdt']),
-  cycles: z.number().int().min(1).max(60).default(1),
+  /** Where the payer's browser lands after paying; the front end derives it
+      from its own origin (the page that initiated the checkout). The cycle
+      count is the tier's own configuration, not a buyer choice. */
+  returnUrl: httpUrlSchema.optional(),
 });
 export const favoriteCreateSchema = z.object({ postId: id });
 
@@ -857,15 +923,18 @@ export type SiteComments = z.infer<typeof siteCommentsSchema>;
 export type Menu = z.infer<typeof menuSchema>;
 export type PostSummary = z.infer<typeof postSummarySchema>;
 export type PostDetail = z.infer<typeof postDetailSchema>;
-export type PostRef = z.infer<typeof postRefSchema>;
+export type SearchType = z.infer<typeof searchTypeSchema>;
+export type SearchResult = z.infer<typeof searchResultSchema>;
+export type SearchGroup = z.infer<typeof searchGroupSchema>;
 export type Breadcrumb = z.infer<typeof breadcrumbSchema>;
 export type DiscussionBoard = z.infer<typeof discussionBoardSchema>;
 export type DiscussionStatus = z.infer<typeof discussionStatusSchema>;
 export type Discussion = z.infer<typeof discussionSchema>;
 export type DiscussionReply = z.infer<typeof discussionReplySchema>;
 export type DiscussionDetail = z.infer<typeof discussionDetailSchema>;
-export type AttachmentItem = z.infer<typeof attachmentItemSchema>;
-export type ResourceAttachments = z.infer<typeof resourceAttachmentsSchema>;
+export type FileEntry = z.infer<typeof fileEntrySchema>;
+export type FileList = z.infer<typeof fileListSchema>;
+export type FileDownload = z.infer<typeof fileDownloadSchema>;
 export type Notification = z.infer<typeof notificationSchema>;
 export type Comment = z.infer<typeof commentSchema>;
 export type AvatarImage = z.infer<typeof avatarImageSchema>;
@@ -873,6 +942,7 @@ export type User = z.infer<typeof userSchema>;
 export type AuthSession = z.infer<typeof authSessionSchema>;
 export type Profile = z.infer<typeof profileSchema>;
 export type Tier = z.infer<typeof tierSchema>;
+export type TiersPayload = z.infer<typeof tiersPayloadSchema>;
 export type MembershipEntitlement = z.infer<typeof membershipEntitlementSchema>;
 export type MembershipState = z.infer<typeof membershipStateSchema>;
 export type PostsQuery = z.infer<typeof postsQuerySchema>;

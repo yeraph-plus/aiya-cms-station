@@ -4,6 +4,7 @@ import AppShell from '@/components/layout/AppShell.astro';
 import PageState from '@/components/layout/PageState.astro';
 import PostLoop from '@/components/islands/feed/PostLoop';
 import { cloakPostSummaryMedia } from '@/lib/media';
+import { iconInner } from '@/lib/icons';
 import { AiyaApiError } from '@/lib/core/errors';
 import { t } from '@/lib/i18n';
 import { loadPage } from '@/lib/page.server';
@@ -62,6 +63,8 @@ const showList = page.ok && !overRange;
               pagePattern: `/profile/${slug}/page/{page}/`,
               carry: ['sort'],
             }}
+            heading={copy.profile.articlesTitle}
+            headingIcon={iconInner('newspaper')}
             emptyText={copy.profile.articlesEmpty}
             errorText={copy.state.backendMessage}
             locale={page.locale}

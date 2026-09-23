@@ -1,0 +1,8 @@
+---
+/**
+ * /search/ carries no keyword: there is nothing to look up, so the bare
+ * route sends the visitor home. The keyword itself always rides the path
+ * (/search/{key}/) — that is what makes a result set a shareable address.
+ */
+return Astro.redirect('/');
+---

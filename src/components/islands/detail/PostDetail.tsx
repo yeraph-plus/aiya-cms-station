@@ -4,13 +4,16 @@ import {
   ArticleHeader,
   AuthorCard,
   CommentsBlock,
+  DownloadSection,
   PrevNextNav,
   RelatedList,
   useViewPing,
 } from '@/components/islands/detail/parts';
+import PostDiscussions from '@/components/islands/detail/PostDiscussions';
 import { Card, CardContent } from '@/components/ui/card';
-import type { Comment, PostDetail, PostSummary, SiteComments } from '@/lib/core/contracts';
-import type { Locale } from '@/lib/i18n';
+import type { Comment, FileList, PostDetail, PostSummary, SiteComments } from '@/lib/core/contracts';
+import type { FeedThread } from '@/lib/community';
+import { t, type Locale } from '@/lib/i18n';
 
 export interface CommentsWindow {
   order: 'asc' | 'desc';
@@ -42,14 +45,27 @@ export default function PostDetail({
   comments,
   commentsPagination,
   related,
+  downloads,
+  threads,
+  threadsTotal,
+  boards,
   settings,
   loggedIn,
   authorBio,
   isSelf,
   locale,
   window,
-}: DetailShellProps & { related: PostSummary[]; window: CommentsWindow }) {
+}: DetailShellProps & {
+  related: PostSummary[];
+  downloads: FileList[] | null;
+  /** Community threads bound to this post (the sidebar feedback part). */
+  threads: FeedThread[];
+  threadsTotal: number;
+  boards: { slug: string; name: string }[];
+  window: CommentsWindow;
+}) {
   useViewPing(post.id);
+  const copy = t(locale);
   return (
     <article className="lg:grid lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start lg:gap-8">
       <div className="min-w-0">
@@ -62,6 +78,7 @@ export default function PostDetail({
           />
           <CardContent className="px-6 py-6">
             <ArticleBody post={post} locale={locale} />
+            <DownloadSection lists={downloads} postId={post.id} loggedIn={loggedIn} locale={locale} />
           </CardContent>
         </Card>
         <PrevNextNav post={post} locale={locale} />
@@ -78,6 +95,14 @@ export default function PostDetail({
       <aside className="mt-10 flex flex-col gap-5 lg:mt-0">
         <AuthorCard post={post} bio={authorBio} isSelf={isSelf} locale={locale} />
         <RelatedList related={related} locale={locale} />
+        <PostDiscussions
+          postId={post.id}
+          initialThreads={threads}
+          initialTotal={threadsTotal}
+          boards={boards}
+          canPost={loggedIn}
+          locale={locale}
+        />
       </aside>
     </article>
   );

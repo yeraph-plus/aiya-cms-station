@@ -9,11 +9,13 @@
 > 已在 §1 / §6 / §8 逐条标注。凡带「实测」字样的数字均为当前代码库的真实统计，
 > 复核命令见 §8。
 
-## 1. 现状诊断（2026-09-18 复核，91 → 实测 157 个源文件）
+## 1. 现状诊断（2026-09-19 复核，91 → 157 → 实测 166 个源文件）
 
-**规模实测**：`src/` 下 157 个文件 = 48 `.astro` + 44 `.tsx` + 60 `.ts` + 3 `.json`
-+ 2 `.css`；其中 `src/components/ui/` 是 18 个 shadcn 原件（vendored），
-**手写层 = 74 个 astro/tsx**。初版「91 个源文件」只数了 astro+tsx。
+**规模实测**：`src/` 下 166 个文件 = 50 `.astro` + 45 `.tsx` + 69 `.ts` + 2 `.css`；
+其中 `src/components/ui/` 是 18 个 shadcn 原件（vendored），**手写层 = 77 个
+astro/tsx**。初版「91 个源文件」只数了 astro+tsx。
+（2026-09-18 复核为 157 = 48+44+60+3+2 / 手写层 74；本日增量来自 `/menus` 折入
+`/site` 与 `/search` 契约镜像两批。）
 
 问题定性：壳层（Astro）与元件层（shadcn 岛）并存两套设计语言，且缺少
 统一的规范层。四条根因：
@@ -28,29 +30,34 @@
    与站点 `--radius: 6px` 紧凑 hairline 风冲突。调用处被迫反向覆盖：
    `CategoryCards.tsx:101` `gap-0 rounded-md py-0`、`CommunityFeed.tsx:725` `gap-0 py-0`。
    **病根在原件默认值，不在调用处。**
-3. **细节无纪律**（实测，非 ui/ 手写层）：
-   - `gap-*` 共 12 档：`gap-2`×37 / `gap-3`×27 / `gap-1.5`×26 / `gap-1`×20 /
-     `gap-4`×17 / `gap-0`×10 / `gap-2.5`×7 / `gap-5`×6 / `gap-6`×5 / `gap-8`×3 /
-     `gap-0.5`×2 / `gap-3.5`×1；轴变体 `gap-y-1`×6、`gap-x-2`×4、`gap-x-3`×4 等 6 种。
-     （含 ui/ 时 `gap-2` 达 55。初版记的 62/58/32 与实测不符。）
-   - 圆角 7 种（全仓含 ui/）：`md`×41 / `full`×37 / `lg`×34 / 裸 `rounded`×11 /
-     `sm`×5 / `xl`×3 / `none`×3 + 离刻度值 `[5px]`×2（`DesktopSidebar.astro:31,33`）。
-     `--radius` 6px 的刻度是 4/6/8px，**`xl` 的 12px 与 `[5px]` 都在刻度外**。
-   - 阴影：**手写层几乎没有 elevation** —— 非 ui/ 仅 3 处
-     （`shadow-md`×2：`ProfileCard.astro:61`、`AppShell.astro:185`；`shadow-none`×1：
-     `RichEditor.tsx:283`），其余 14 处全在 ui/。（初版「混用 ×13」实为 ui/ 内计数。）
-   - 硬编码 hex：**18 处** = `500.astro`×10 + `shell.css`×8。`500.astro` 是刻意
-     独立的离线兜底页（其文件头注释明示 dependency-free，不引 `tokens.css`），
-     `shell.css` 8 处已于本批次晋升令牌（见 §6#5）。
-   - `max-w`：非 ui/ 18 处，其中任意值 **10 处 / 7 个不同值**
-     （`1510px`、`760px`、`380px`、`24rem`、`220px`、`20rem`、`14rem`）。
+3. **细节无纪律**（2026-09-19 复核，非 ui/ 手写层；括号内为 09-18 旧值）：
+   - `gap-*` 共 12 档 / 177 处：`gap-2`×44 / `gap-1.5`×27 / `gap-3`×27 /
+     `gap-4`×22 / `gap-1`×21 / `gap-0`×10 / `gap-5`×8 / `gap-2.5`×7 /
+     `gap-6`×5 / `gap-8`×3 / `gap-0.5`×2 / `gap-3.5`×1（旧：37/27/26/20/17/10/6/7/5/3/2/1）。
+   - 圆角（非 ui/）：`full`×34 / `md`×31 / `lg`×31 / 裸 `rounded`×13 /
+     `none`×2 / **`xl`×2**。`--radius` 6px 的刻度是 4/6/8px，**`xl` 的 12px 仍在刻度外**
+     ——且 09-18 记的「`xl` 仅存于 ui/」已不成立：`ProfileCard.astro:49`、
+     `CommunityFeed.tsx:671` 两处逸出，P3 守卫若此刻开启即报红（见 §6#24 同批）。
+   - 阴影：非 ui/ 共 4 处（旧 3 处）——`shadow-md`×2（`ProfileCard.astro:61`、
+     `AppShell.astro:181`）、`shadow-xs`×1（`RatingRow.tsx:84`）、
+     `shadow-none`×1（`RichEditor.tsx:283`）。
+   - 硬编码 hex：**88 处** = `tokens.css`×64（令牌定义本身，合规）+
+     `gate.ts`×10 + `500.astro`×10 + `theme.ts`×3 + `page.server.ts`×1。
+     `500.astro` 与 **`gate.ts`** 均为刻意独立的零依赖兜底页（文件头注释明示不引
+     `tokens.css`），是设计决定而非疏漏；`theme.ts`/`page.server.ts` 的 4 处待查
+     （见 §6#25）。§6#5 记的「唯一例外 `500.astro`」已需补上 `gate.ts`。
+   - `max-w`：非 ui/ 任意值 **12 处 / 9 个不同值**（旧 10 处 / 7 值）：
+     `1510px`×2、`760px`×2、`380px`×2、`220px`、`20rem`、`24rem`、`14rem`、
+     `12rem`、`10rem`。
 4. **交互基建分散**：sonner 裸调 **4 岛 19 处**（`CommunityFeed`×8、`FavoriteButton`×4、
    `LikeButton`×4、`RatingRow`×3）；`animate-in/out` 各 8 处**全部在 ui/ 内**，
-   手写层只有 `animate-spin`×11。**无时长/缓动规范**——时长散见
-   `0.15s / 0.2s / 0.25s`，缓动散见 `ease / ease-in-out`。
-5. **透明遮罩三套不透明度**（本批次新发现）：Radix 系 `bg-black/50`、
-   lightbox `rgba(15 15 20, 0.85)`（`parts.tsx:408` 与 `CommunityFeed.tsx:1016`
-   **两处重复**）、已删除的原生 `dialog::backdrop` `rgb(15 15 20 / 0.45)`。
+   手写层**14 处 `animate-spin`**；`LoaderCircle` 在非 ui/ 出现 24 次（8 个文件各一
+   次 import + 16 处使用），其中 **10 处仍是内联图标、未复用 `Spinner`**（§6#11）。
+   **无时长/缓动规范**——时长散见 `0.15s / 0.2s / 0.25s`，缓动散见 `ease / ease-in-out`。
+5. **透明遮罩四套不透明度**（本批次复核补一档）：Radix 系 `bg-black/50`、
+   lightbox `rgba(15 15 20, 0.85)`（`parts.tsx:406` 与 `CommunityFeed.tsx:1016`
+   **两处重复**）、`RichEditor.tsx:329` 的 `bg-black/60` + `bg-black/80`、
+   已删除的原生 `dialog::backdrop` `rgb(15 15 20 / 0.45)`。
 
 ## 2. 设计原则
 
@@ -67,11 +74,11 @@
 
 | 阶段 | 内容 | 量级 | 状态 |
 |---|---|---|---|
-| P0 | 截图基线（全路由×明暗×双端）+ 本文档 + 路由审计 | 小 | **文档与路由审计已落（2026-09-18）**；截图基线**需先起 Docker WP**——mock 已于同批移除，免后端的路已不存在（§6#15） |
+| P0 | 截图基线（全路由×明暗×双端）+ 本文档 + 路由审计 | 小 | **文档与路由审计已落（2026-09-18）**；截图基线**2026-09-19 起已解锁**——Docker WP 在跑（`wp_app` :8000 探活 200，全 HTML 路由 200），此前卡住的「必须起后端」前提已满足。**工具链仍未建**：仓内无 playwright/puppeteer（无 devDependency、无脚本），P1–P5 的「截图 diff」验收目前无载体 |
 | P1 | 令牌合并（双词汇表钉死映射）、版式刻度、暗色逐 token 校对 | 小~中 | **部分落地**：孤儿色已晋升（§6#5）、`cn` 别名已统一（§6#3）；映射表与暗色校对待做 |
-| P2 | shadcn 原件本地化（出厂默认改站点默认）+ `.astro` 镜像元件 + 清理残留 | 中 | 未开始 |
-| P3 | 调用点收敛（分批：feed→community→user-center→detail）+ vitest 风格守卫 | 大 | 未开始 |
-| P4 | toast 门面 / ConfirmDialog 模式 / 动效词汇表 / PageState loading / 路由清理 | 中 | 未开始；#1 chips 路由**已修**（2026-09-18） |
+| P2 | shadcn 原件本地化（出厂默认改站点默认）+ `.astro` 镜像元件 + 清理残留 | 中 | 未开始。**P3/P4 的调用点项一律等它**（§2 顺序），含 §6#7–#11 |
+| P3 | 调用点收敛（分批：feed→community→user-center→detail）+ vitest 风格守卫 | 大 | 未开始；#1 chips 路由**已修**（2026-09-18）、#9/#10 命名容器待收、#11 Spinner 待收、**`rounded-xl` 守卫此刻开启会报红**（§6#24） |
+| P4 | toast 门面 / ConfirmDialog 模式 / 动效词汇表 / PageState loading / 路由清理 | 中 | 未开始；#7/#8 遮罩归一到 `--scrim` 待收 |
 | P5 | 版式节奏提升（PageHeader、Section 节奏、elevation 体系）——可选 | 中 | 未开始 |
 
 **防回潮守卫**（P3 落地，vitest 扫描）：
@@ -114,7 +121,7 @@
 | `/profile/me/` | profile/me.astro | 正规（保留字，loader 显式 404） |
 | `/profile/[slug]/` `(/page/[n]/)` | profile/[slug]/* | 正规 |
 | `/profile/[slug]/page/` | …/page/index.astro | 302 |
-| `/settings/` `/reset-password/` | settings / reset-password | 正规（账号岛） |
+| `/settings/` `/reset-password/` | settings / reset-password | 正规（账号岛）。**2026-09-19 补注**：`/settings/` 对游客有登录门，302 回 `/`（见下表末行）——`/reset-password/` 无门，游客可达 |
 | `/404` | 404.astro | 正规（走 AppShell + PageState） |
 | `/500` | 500.astro | **刻意独立**：文件头注释明示 dependency-free（无 shell、无数据、无岛），内联样式的 10 处 hex 是设计决定而非疏漏（修正初版「走 AppShell」的误述） |
 
@@ -133,8 +140,9 @@
 | `/profile/` | 302 → `/`（游客派发） | ✅ |
 | `/404/` | 404 + 404 页 | ✅ |
 | `/500/` | 500 + 离线兜底页 | ✅ |
-| `/settings/` | 302 → `/` | ⚠️ 表未记：该页对游客有登录门，非缺陷但需补注 |
-| `/posts/` `/resources/` `/pages/` `/categories/` `/community/` 及各 `page/[n]/` | 当时全部落 404 页状态 | ❌ 非路由缺陷——是 mock 无内容 fixture；mock 已于同日移除，该行改用 live 复测，见 §6#15 |
+| `/settings/` | 302 → `/` | ⚠️ 原表未记，**2026-09-19 已补注进 §5 路由表**：该页对游客有登录门，非缺陷 |
+| 后端在跑时的 live 复测（2026-09-19） | `/` `/posts/` `/resources/` `/pages/` `/categories/` `/community/` `/membership/` 全 **200**；`/settings/` `/profile/` **302**；`/robots.txt` `/sitemap.xml` **200** | ✅ 全部符合 §5 契约。**注意这是修复 §6#24 之后的结果**——同一批路由在修复前**全部 503** |
+| `/posts/` `/resources/` `/pages/` `/categories/` `/community/` 及各 `page/[n]/` | 当时全部落 404 页状态 | ❌ 非路由缺陷——是 mock 无内容 fixture；mock 已于同日移除，该行已由上一行的 live 复测取代 |
 
 结论：**§5 的路由契约本身成立**，上表末行的 404 是数据层缺口而非路由缺口。
 
@@ -164,7 +172,10 @@
 | 20 | **后端重复签到把 SQL 错误打印进响应体**（aiya-core，未修） | ✅ **已修（2026-09-19，后端会话）**。`LedgerService::grant()` 的 INSERT 以 `wpdb::suppress_errors(true)` 包裹（用后即还原）：重复键是这里的**预期信号**，`last_error` 在 `query()` 内赋值、不受抑制影响，409 判定逻辑不变；被抑制的只是 `print_error` 的调试输出，真实 DB 故障仍走 `aiya_db_error` 不被吞。实测：连发两次 checkin → 200、**409 `aiya_credit_checkin_done`**，响应体无任何 SQL 痕迹（修前是 HTML+JSON、状态 200）。前端按「409 是唯一裁决」的既有改法无需再动，二次点击自动落「今天已经签到过了」文案 |
 | 21 | **签到设置完全不生效：`aiya_core_opt()` 页 slug 传错**（后端，未修） | ✅ **已修（2026-09-19，后端会话，与本条诊断一致）**。`CreditSettings::read()` 三处页 slug `'sponsorship'` → `'membership'`（option 名 `aiya_core_sponsorship` 是刻意与 slug 不同，`aiya_core_opt()` 按 **slug** 查，传 option 后缀即读空）。实测：option 写 `checkin_credits=9` → `CreditSettings::read()` 返 9（修前恒落默认 true/5/30）。附带结论同本条：`aiya_core_credit` 残留行不是缺口。**教训**：早前「注册键与读取键一致」的核对只对了字段 id、漏了页 slug 这一层——两处键完全同形，反而掩盖了 slug 错配 |
 | 23 | **岛 props 传函数导致整页空白**（本站自查出的真 bug，已修） | ✅ **已修（2026-09-18）**。站长报「这个页面里什么都没有」。根因：`/membership/` 把含 **9 个函数值**（`tierPrice`/`tierCycle`/`tierCredits`/`cycleDays`/`queueCycles`/`checkinGranted`/`redeemGranted`/`ledgerRemaining`/`ledgerExpires`）的 `copy` 对象当 island prop 传入。**Astro 的 island props 走 JSON 序列化，函数静默丢失**——SSR 期 props 是进程内真对象、函数可用（故服务端 HTML 完全正常），**水合后这些键变 `undefined`，React 一调用即抛错、整棵树卸载 → 空白页**。修法：改为仓内既有做法（PostLoop / ResetPasswordPanel），**岛自己 `import { t } from '@/lib/i18n'` 并按 locale 取字典**，`copy` prop 与手写 `MembershipCopy` 接口一并删除（类型改取 `ReturnType<typeof t>['membership']`，顺带消除接口与字典的漂移面）。实测浏览器：4 个岛 `hydrated: true`，游客视图与会员 6 区块齐全，签到后余额 0→5 且**账本行即时出现**（新增 `refreshLedger()`——签到响应是无 id 的 `CreditGrant`，本地无法忠实造行，故重取首页而非伪造）。<br>**教训（已写入 §7）**：我此前全部验证都只看 curl 拿到的 SSR HTML，而该 bug 在 SSR 下完全不可见——**island 相关改动必须在真实浏览器里验证水合后状态**。同类静态守卫（「岛 props 里不准出现 `=>`」）实测不可行：`categories.map((term) => …)` 这类在 SSR 期就求值成普通数组的合法写法会被误报 |
-| 22 | **`/site` 未透出签到设置**（真实字段缺口，未补） | ✅ **后端已闭合（2026-09-19，形状与原提案不同）**。未走 `/site`：游客视图本就没有签到卡，公开载荷无需携带；改为 `GET /sponsorship/membership` 的 `MembershipState` **加法追加 `checkin: {enabled, credits, validityDays}`**（新 `CheckinPolicy` DTO，值即 `CreditSettings::read()` 三键）。契约快照重生成 + 前端 `checkinPolicySchema`/manifest 已同步，v1 基线未动；运行时实测会员响应带全三值。剩余动作归前端批：面板用 `membership.checkin` 显示「每天可领 N 积分」与禁用态（此前按钮恒可点、403 事后知） |
+| 22 | **`/site` 未透出签到设置**（真实字段缺口，未补） | ✅ **后端已闭合（2026-09-19，形状与原提案不同）**。未走 `/site`：游客视图本就没有签到卡，公开载荷无需携带；改为 `GET /sponsorship/membership` 的 `MembershipState` **加法追加 `checkin: {enabled, credits, validityDays}`**（新 `CheckinPolicy` DTO，值即 `CreditSettings::read()` 三键）。契约快照重生成 + 前端 `checkinPolicySchema`/manifest 已同步，v1 基线未动；运行时实测会员响应带全三值。**前端剩余动作亦已闭合（2026-09-19）**：`MembershipPanel` 此前不读 `checkin`（`checkin.enabled` 零引用）——描述行恒为泛文案、按钮恒可点、开关关掉也只能事后吃 403。现改为**描述行由策略渲染**（`checkinPolicy(credits, days)` →「每天可领 5 积分，有效期 30 天。」；`enabled:false` 时整行换 `checkinClosed` →「签到暂未开放。」）**+ 按钮 `disabled={checkinBusy \|\| !membership.checkin.enabled}`**；字典四语言同步（删 `checkinDesc`，增 `checkinPolicy(credits, days)` 函数键与 `checkinClosed`）。浏览器实测两端：开关开 → 文案带 5/30、按钮可点、点击得「签到成功，获得 5 积分。」、余额 0→5；开关关 → 「签到暂未开放。」且 `isEnabled() === false`。测试数据已还原（选项、专用测试用户及其账本行） |
+| 24 | **一个相对路径 URL 让整站进 503：`/site` 手工填写的链接字段被 schema 收窄** | ✅ **已修并实测（2026-09-19）**。启动 dev 时全部 HTML 路由 **503**，日志是 `[gate] backend unreachable` ——**指向了错误的方向**（后端 200，`/site` 也 200）。真因：`siteSchema.blocks.adsTop[0].url = "/promo/"` 过不了 `adSlotSchema.url: httpUrlSchema`（要求绝对 http/https），契约错误被熔断器按「后端不可达」处理（`reachability.ts:27` 明确把 contract drift 归为 outage），于是**一个相对路径的广告链接把整站挡在门禁页后面**。<br>**定性**：错在前端 schema，不在数据。后端 `AdSlot`/`CarouselSlide` 的 docblock 都明写「a front-end path or external URL」，`ContentBlocks::normalizeUrl()` 的职责正是**把指向本站的 URL 收敛成裸路径**（`/promo/` 是它的正常产出）；`menuItemSchema.url` 早就用了 `z.union([sitePathSchema, httpUrlSchema])`，而 `/menus` 折入 `/site` 那批只把 primary/secondary 接对了，**ads/carousel 沿用了旧的绝对 URL 约束**。<br>**修法**：新增具名 `linkTargetSchema = z.union([sitePathSchema, httpUrlSchema])`，`menuItemSchema` / `adSlotSchema` / `carouselSlideSchema` / `beianLinkSchema` 四处**统一共用**。<br>**同批揪出第二处同类（尚未发作）**：`beianLinkSchema.url` 也是 `httpUrlSchema`——备案链接是后台自由填写字段（`FrontendModule` 的 `beian_links` repeater，`ValueNormalizer::url()` 用 `esc_url_raw()` 清洗），而 WP 的 `esc_url()` 对 `/` 开头的值**原样放行**（`formatting.php`：`if ( '/' === $url[0] ) { $good_protocol_url = $url; }`），所以 `/about/` 能进库、能被 `SitePresenter` 原样吐出。**实测复现**：写入 `{"url":"/about/"}` → `/site` 校验 FAIL（`footer.links.0.url \| Invalid URL`）→ 修后 OK，页脚真实渲染 `/url: /about/`。测试数据已还原（`beian_links` 回 `[]`）。<br>**回归守卫**：`tests/contracts.test.ts` 新增 3 例（`authored link targets accept both shapes`）——三种形状各取一例接受相对路径、仍接受外链、仍拒 `//evil.example/x` / `/a/../../b` / `/a%2fb` / `https://u:p@…`。vitest 219 全绿 |
+| 25 | **`allow_path` 只是后台输入框开关，存储层从不强制**（同批查清，决定前端容忍策略） | **结论已定，不再单独立项**。后端 url 字段有个 `allow_path` 标志，但全仓只有一处消费方——`Admin/FieldRenderer.php:146`，作用是**把 HTML 输入从 `type="url"` 换成 `type="text"`**（因为浏览器原生 `type="url"` 校验会拒掉 `/posts/` 这类站内路径）。菜单/广告/轮播显式开了它，备案链接没开。而存储侧 `ValueNormalizer::url()` 对两者一视同仁，都只过 `esc_url_raw()`。**所以「后台手填 URL」的完整集合就是 §6#24 那四处，前端一律按「路径 ∪ 绝对」容忍**；`userSchema.url`（用户资料网址）本就是 `z.string()`、`beianLinkSchema.iconUrl` 同理，本就安全。其余 `httpUrlSchema` 都是后端/网关/上游生成（`imageSchema`、附件、上传结果、`submitUrl`、爱发电深链），不受此影响 |
+| 26 | **两处仍需后端归一化的 `/site` 字段**（低概率触发，未改前端契约） | **上报后端会话，前端不动**。① `siteSchema.name: z.string().min(1)` 读的是 `get_bloginfo('name')` → `get_option('blogname')`，`sanitize_option` 对它只做 `esc_html()`、**无非空强制**，且核心「设置→常规」表单是 `novalidate` 且该 input 无 `required` —— 站长留空站点标题即可让 `name: ''` 触发同一类整站 503（空标题的合理降级是顶栏品牌留白，不是门禁）。建议后端给 `SitePresenter::present()` 兜一个非空回退。② `defaultCommentsPage` / `commentOrder` 直读 `get_option('default_comments_page'/'comment_order')`，而这两键在 `sanitize_option()` 里**没有任何 case**、后端 `commentsSettings()` 也未白名单——核心设置页只有 newest/oldest 与 asc/desc，越界值需非核心写入。建议照 `colorMode()` 的既有手法加 `in_array` 白名单。<br>**为什么不改前端**：这两个值是前端要 switch 的语义枚举，放宽成 `z.string()` 只会把非法值漏进逻辑层；正确的边界是写入侧归一化。**且它们与 §6#24 不同——不是后台正常操作能产生的形状**，故不按同一优先级处理 |
 
 ## 7. 环境注记
 
@@ -178,8 +189,18 @@
   必须一起修的真实缺陷。生产环境仍以真实环境变量为准。
 - **运行依赖**：Node ≥22.12（实测 v24.20.0 / npm 11.19.0）；
   `npm run verify` = `astro check` + `vitest run` + `astro build`。
-- **基线实测（2026-09-18）**：`astro check` 0 errors；vitest 9 文件 / **174 tests 全绿**
-  （167 − 3 mock + 10 gate）；`astro build` 成功（仅有既存的 chunk >500 kB 提示，与本次改动无关）。
+- **基线实测（2026-09-19）**：10 个改动文件之外无其他差异；`astro check` **0 errors /
+  0 warnings / 9 hints**；vitest **11 文件 / 219 tests 全绿**（09-18 为 9 文件 / 174）；
+  `astro build` 成功（仅有既存的 chunk >500 kB 提示，与本次改动无关）。
+- **`/site` 的整份 schema 校验是全站单点故障（2026-09-19 教训，代价是一次全站 503）**：
+  门禁的探针就是外壳所需的 `site` 调用，而 `reachability.ts` 把 **contract drift 与
+  网络故障一并判为 unreachable**（该文件注释是刻意写的，不是疏漏）——于是
+  **`siteSchema` 里任何一个过严字段 = 整站停机**，且报错文案是
+  `[gate] backend unreachable`，**把排查方向指向后端**（本次后端 200、`/site` 也 200，
+  真因是一个相对路径的广告 URL，见 §6#24）。规矩：**动 `siteSchema` 的字段时，
+  先问「后端会不会合法地吐出别的形状」**；凡是**后台手填**的值（路径/链接/颜色/枚举），
+  一律按后端实际能产出的形状放开，不要按「理想输入」收紧。判据是后端那侧的三个真相源：
+  DTO docblock、`normalizeUrl()` 一类归一化函数、`ValueNormalizer` 的清洗手法。
 - **门禁实测（2026-09-18，用临时桩后端跑通全周期，桩已删除）**：后端缺失 →
   全部 HTML 路由 **503** + `cache-control: private, no-store` + `retry-after: 30` +
   `x-robots-tag: noindex`；后端上线 → **1s 内自动放行**（无需重启）；后端被杀 →
@@ -218,6 +239,7 @@
 | 日期 | 变更 |
 |---|---|
 | 2026-09-17 | 初版：全量扫描 + 四根因 + P0–P5 路线图 + 路由审计 |
+| 2026-09-19（二） | **全站 503 真因查明并修复 + §6#22 前端收口（前端会话）**：① **§6#24 新增并修复**——启动 dev 时全部 HTML 路由 503、日志指认「backend unreachable」而实为 `/site` 契约校验失败；根因是 `/menus` 折入 `/site` 那批把 `adsTop`/`carousel` 的 url 留在绝对 URL 约束上，而后端对「后台手填链接」的契约本就是**路径 ∪ 外链**（`normalizeUrl()` 会把站内链接收敛成 `/promo/`）。新增具名 `linkTargetSchema` 四处共用，同批修掉**尚未发作的同类** `beianLinkSchema.url`（实测复现 → 修 → 页脚真实渲染 `/about/`）；`tests/contracts.test.ts` 加 3 例守卫，vitest 219 全绿。② **§6#25 查清** `allow_path` 仅是输入框 `type` 开关、存储层从不强制，据此定下「后台手填 URL 一律容忍」的完整集合与判据。③ **§6#26 上报**两处待后端归一化的字段（空站点标题、未白名单的评论选项），并说明为何不在前端放宽语义枚举。④ **§6#22 前端剩余动作闭合**——会员面板此前零引用 `membership.checkin`，现由策略渲染「每天可领 N 积分，有效期 D 天」并在 `enabled:false` 时禁用按钮、换「签到暂未开放。」；四语言字典同步（删 `checkinDesc`、增 `checkinPolicy`/`checkinClosed`）。浏览器实测双路径：开关开→点击得「签到成功，获得 5 积分。」余额 0→5；开关关→按钮 `isEnabled()===false`；4 岛 `hydrated: true`。测试数据全部还原（选项、测试用户及其账本行）。⑤ **§1 计数按当日复核重写**（166 文件 / 手写层 77），并更正两处已不成立的旧结论：`rounded-xl` 已逸出 ui/（2 处，P3 守卫此刻开启会报红）、hex「唯一例外 `500.astro`」需补 `gate.ts`。⑥ **§3 P0 状态更新**：Docker WP 在跑、截图基线已解锁，但**工具链仍未建**；P3/P4 的调用点项按 §2 顺序标注为「等 P2」。⑦ **§7 新增 `/site` schema = 全站单点故障**的教训与判据 |
 | 2026-09-18 | 复核修订并落地 P1 部分：① §1 全部计数按实测重写（源文件 91→157、gap/圆角/阴影/hex/max-w 逐项更正）；② §6#4 判为**误判并推翻**（`--muted` 是 surface 非文字色）；③ §6#2/#3/#5/#12/#13 修复落地；④ §5 修正 `/500` 描述并补 HTTP 级实测验证表；⑤ §7 旧「同步缺口」判为不成立并消解；⑥ 新增 §6#7–#11 五项新发现；⑦ **新增 §6#14：mock 只覆壳层，P0 截图基线实为受阻**，并据此修正 §7 的 mock 表述 |
 | 2026-09-19 | **后端闭合日（后端会话）**：① §6#17 数据修复——「关于本站」菜单行改指 `/pages/sample-page/`，presenter 核实无 ID 形生成；② §6#20 修复——`LedgerService::grant()` INSERT 以 `suppress_errors` 包裹，重复签到回归干净的 409（实测响应体无 SQL 痕迹）；③ §6#21 修复——`CreditSettings::read()` 三处页 slug `'sponsorship'`→`'membership'`，实测 option 写 9 读回 9；④ §6#22 后端闭合——改走 `MembershipState.checkin`（`CheckinPolicy` DTO，快照 + 前端 zod 同步，v1 未动），非原提案的 `/site` 形状；⑤ §6#16 措辞更新——`posts_per_page=-1`（显示全部）由「钳到 1」修正为映射 API 上限 100。另：HEAD 层 `wp_render_img_auto_sizes_contain_css` 空操作裁剪已在后端修正为 6.9+ 双段式两行摘除（壳页 `<style id="wp-img-auto-sizes-contain-inline-css">` 泄漏归零，详见 aiya-core `HeadlessModule::stripFrontendHead()`） |
 | 2026-09-18（七） | **前端去门禁判断 + 后端设置错配查明**（站长定性）：① 删掉签到「今日已签」的前端预判（`hasCheckedInToday`/`dateInTimezone` 及其 5 例单测）——前端不为接口做门禁判断，409 是唯一裁决；§6#20 改记为「补丁落后端 DTO 层」。② §6#21 重写：`aiya_core_credit` **不是缺口**（残留行、无代码读取），真 bug 是 `CreditSettings::read()` 用 `aiya_core_opt('sponsorship', …)` 传了**不存在的页 slug**（真实 slug 是 `membership`，option 才是 `aiya_core_sponsorship`），三处读取全部落空 → 签到设置永不生效。已实证（写 9 读回 FALLBACK，按 `membership` 读回 9），修法为一字之差，按划定留后端会话 |
@@ -230,10 +252,14 @@
 **复核命令**（复现 §1 的计数）：
 
 ```bash
-find src -type f | wc -l                        # 157
-find src -type f | sed 's/.*\.//' | sort | uniq -c | sort -rn
+find src -type f | wc -l                        # 166
+find src -type f | sed 's/.*\.//' | sort | uniq -c | sort -rn   # 69 ts / 50 astro / 45 tsx / 2 css
+find src -path '*/components/ui/*' -type f | wc -l              # 18（vendored shadcn）
 grep -rn "gap-[0-9.]*" src --include=*.astro --include=*.tsx | grep -v "components/ui" \
-  | grep -o "gap-[0-9.]*" | sort | uniq -c | sort -rn          # gap 分布
-grep -rn "#[0-9a-fA-F]\{3,8\}" src --include=*.astro --include=*.tsx   # 仅 500.astro 命中
+  | grep -o "gap-[0-9.]*" | sort | uniq -c | sort -rn           # gap 分布（177 处 / 12 档）
+grep -rn "#[0-9a-fA-F]\{3,8\}" src --include=*.astro --include=*.tsx   # tokens.css / gate.ts / 500.astro / theme.ts / page.server.ts
 npm run verify                                   # astro check + vitest + build
 ```
+
+> **本机 `grep` 是 ugrep，字面量模式会假 0（§7 工具坑）**——上面第 1、2、4 行这类
+> **计数**命令建议改用 `python` 复算；带字符类（`[0-9.]`）的模式实测正常。

@@ -20,17 +20,22 @@ if (!readSessionToken(Astro.cookies)) {
 }
 
 const page = await loadPage(async (client) => {
-  const [me, favorites, following, followers] = await Promise.all([
+  const [me, favorites, following, followers, membership, entries] = await Promise.all([
     client.me(),
     client.myFavorites({ page: 1, perPage: 10 }),
     client.following({ page: 1, perPage: 12 }),
     client.followers({ page: 1, perPage: 12 }),
+    client.myMembership(),
+    client.creditsEntries({ page: 1, perPage: 10 }),
   ]);
   return {
     user: me.data,
     favorites: favorites.data,
     following: following.data,
     followers: followers.data,
+    membership: membership.data,
+    entries: entries.data,
+    hasMore: entries.meta.pagination.hasNext,
   };
 }, Astro.cookies);
 if (!page.ok) Astro.response.status = page.error.status;
@@ -85,9 +90,11 @@ const initialTab =
     ? 'following'
     : Astro.url.searchParams.get('tab') === 'followers'
       ? 'followers'
-      : Astro.url.searchParams.get('tab') === 'settings'
-        ? 'settings'
-        : 'favorites';
+      : Astro.url.searchParams.get('tab') === 'wallet' && page.ok
+        ? 'wallet'
+        : Astro.url.searchParams.get('tab') === 'settings'
+          ? 'settings'
+          : 'favorites';
 ---
 
 <AppShell
@@ -130,8 +137,7 @@ const initialTab =
           favorites={hubFavorites}
           following={hubFollowing}
           followers={hubFollowers}
-          settings={{
-            user: {
+          settings={{            user: {
               nickname: page.value.user.nickname,
               email: page.value.user.email,
               url: page.value.user.url,
@@ -153,7 +159,19 @@ const initialTab =
           tabFavorites={copy.profile.tabFavorites}
           tabFollowing={copy.profile.tabFollowing}
           tabFollowers={copy.profile.tabFollowers}
+          tabWallet={copy.profile.tabWallet}
           tabSettings={copy.profile.tabSettings}
+          wallet={
+            page.ok
+              ? {
+                  locale: page.locale,
+                  timezone: page.site.timezone,
+                  membership: page.value.membership,
+                  entries: page.value.entries,
+                  hasMore: page.value.hasMore,
+                }
+              : null
+          }
           emptyText={copy.profile.favoritesEmpty}
           followersEmpty={copy.profile.followersEmpty}
           initialTab={initialTab}

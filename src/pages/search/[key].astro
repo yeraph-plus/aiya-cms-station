@@ -1,0 +1,72 @@
+---
+/**
+ * Search results — /search/{key}/ lists the whole site from one keyword.
+ * The loop's scope (all / articles / pages / resources) rides the `type`
+ * query param; absent means "every public type", which the feed endpoint
+ * answers as one interleaved page per type (see lib/search).
+ *
+ * Search pages are never indexed: they are thin, keyword-built duplicates
+ * of content that already has its own address. robots.txt also blacklists
+ * the subtree.
+ */
+import AppShell from '@/components/layout/AppShell.astro';
+import PageState from '@/components/layout/PageState.astro';
+import SearchResults from '@/components/content/SearchResults.astro';
+import { t } from '@/lib/i18n';
+import { loadPage } from '@/lib/page.server';
+import { setCrumbs } from '@/lib/breadcrumbs';
+import {
+  isSearchScope,
+  loadSearchPage,
+  normalizeKeyword,
+  searchPath,
+  type SearchScope,
+} from '@/lib/search';
+
+const key = normalizeKeyword(Astro.params.key ?? '');
+// No usable keyword: the same shape as bare /search/ — go home.
+if (key === '') return Astro.redirect('/');
+
+const scopeParam = Astro.url.searchParams.get('type') ?? '';
+const scope: SearchScope = isSearchScope(scopeParam) ? scopeParam : 'all';
+
+const page = await loadPage(
+  async (client) => loadSearchPage(client, { key, scope, page: 1 }),
+  Astro.cookies,
+);
+if (!page.ok) Astro.response.status = page.error.status;
+const copy = t(page.locale);
+if (page.ok) setCrumbs(Astro.locals, page.locale, [{ label: copy.search.title(key) }]);
+---
+
+<AppShell
+  page={page}
+  title={copy.search.title(key)}
+  description={copy.search.title(key)}
+  canonicalPath={searchPath(key)}
+  noindex
+>
+  <h1 class="sr-only">{copy.search.title(key)}</h1>
+  {
+    page.ok ? (
+      <SearchResults
+        key={key}
+        scope={scope}
+        page={1}
+        items={page.value.items}
+        pagination={page.value.pagination}
+        locale={page.locale}
+        errorText={copy.state.backendMessage}
+      />
+    ) : (
+      <PageState
+        image={page.site.defaults.emptyImage}
+        error
+        title={page.error.title}
+        message={page.error.message}
+        retry="/"
+        retryLabel={copy.common.backHome}
+      />
+    )
+  }
+</AppShell>

@@ -2,42 +2,91 @@
 /**
  * Page list (/pages/): page-type entries share the post projection, so the
  * PostLoop island serves this route exactly like /posts/ (sort select in
- * the toolbar, auto-load appends the next page).
+ * the toolbar, auto-load appends the next page). Pages carry one category
+ * vocabulary (page_category) — the chips mirror the /posts/ toolbar minus
+ * the tag panel, which no page vocabulary maps to.
  */
 import AppShell from '@/components/layout/AppShell.astro';
 import PostLoop from '@/components/islands/feed/PostLoop';
 import { cloakPostSummaryMedia } from '@/lib/media';
+import { iconInner } from '@/lib/icons';
 import { t } from '@/lib/i18n';
 import { loadPage } from '@/lib/page.server';
 import { setCrumbs } from '@/lib/breadcrumbs';
 
+const q = (Astro.url.searchParams.get('q') ?? '').slice(0, 100);
+const category = (Astro.url.searchParams.get('category') ?? '').slice(0, 200);
+const sort = Astro.url.searchParams.get('sort') === 'oldest' ? 'oldest' : 'newest';
 const page = await loadPage(async (client) => {
-  const list = await client.pages();
-  return { pages: list.data.map(cloakPostSummaryMedia), pagination: list.meta.pagination };
+  const [pages, terms] = await Promise.all([
+    client.pages({ q, category, sort }),
+    client.terms('category', 'page'),
+  ]);
+  return {
+    pages: pages.data.map(cloakPostSummaryMedia),
+    pagination: pages.meta.pagination,
+    categories: terms.data.filter((term) => term.taxonomy === 'category'),
+  };
 }, Astro.cookies);
 if (!page.ok) Astro.response.status = page.error.status;
 const copy = t(page.locale);
 if (page.ok) setCrumbs(Astro.locals, page.locale, [{ label: copy.pages.title }]);
+const filtered = q !== '' || category !== '';
+const listTitle = q !== '' ? copy.posts.searchTitle(q) : copy.pages.title;
+// Same chip contract as /posts/: the query state the island itself produces
+// (the crawlable page-category archive is /categories/{slug}/).
+const chips = [
+  {
+    slug: '',
+    name: copy.pages.all,
+    href: '/pages/',
+    route: {
+      index: '/pages/',
+      pagePattern: '/pages/page/{page}/',
+      carry: ['q', 'category', 'sort'],
+    },
+  },
+  ...(page.ok
+    ? page.value.categories.map((term) => ({
+        slug: term.slug,
+        name: term.name,
+        icon: term.icon ? iconInner(term.icon) : null,
+        href: `/pages/?category=${encodeURIComponent(term.slug)}`,
+      }))
+    : []),
+];
+// Filters (not the sort preference) make the canonical.
+const canonicalParams = new URLSearchParams();
+if (q !== '') canonicalParams.set('q', q);
+if (category !== '') canonicalParams.set('category', category);
+const canonicalQuery = canonicalParams.toString();
 ---
 
 <AppShell
   page={page}
-  title={copy.pages.title}
+  title={listTitle}
   description={copy.pages.description}
-  canonicalPath="/pages/"
+  canonicalPath={filtered ? `/pages/?${canonicalQuery}` : '/pages/'}
+  noindex={filtered}
 >
-  <h1 class="sr-only">{copy.pages.title}</h1>
+  <h1 class="sr-only">{listTitle}</h1>
   {
     page.ok && (
       <PostLoop
+        autoLoad
         client:load
+        chips={chips}
+        filterAriaLabel={copy.pages.category}
         endpoint="/api/feed/pages/"
         items={page.value.pages}
         pagination={page.value.pagination}
         page={1}
-        query={{}}
-        route={{ index: '/pages/', pagePattern: '/pages/page/{page}/' }}
-        autoLoad
+        query={{ q, category, sort }}
+        route={{
+          index: '/pages/',
+          pagePattern: '/pages/page/{page}/',
+          carry: ['q', 'category', 'sort'],
+        }}
         emptyText={copy.pages.listEmpty}
         errorText={copy.state.backendMessage}
         locale={page.locale}

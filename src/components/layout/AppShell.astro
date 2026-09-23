@@ -9,6 +9,7 @@ import TabBar from '@/components/layout/mobile/TabBar.astro';
 import Icon from '@/components/layout/Icon.astro';
 import PageState from '@/components/layout/PageState.astro';
 import Breadcrumb from '@/components/layout/Breadcrumb.astro';
+import AdSpace from '@/components/islands/AdSpace';
 import { siteOrigin } from '@/lib/core/server';
 import { t, toBcp47 } from '@/lib/i18n';
 import { rewriteMediaUrl } from '@/lib/media';
@@ -65,6 +66,7 @@ const authCopy = {
   profile: copy.shell.profile,
   favorites: copy.shell.favorites,
   followingTitle: copy.profile.followingTitle,
+  wallet: copy.membership.walletLedgerLink,
   accountSettings: copy.profile.accountSettings,
   emailLabel: copy.shell.emailLabel,
   passwordLabel: copy.shell.passwordLabel,
@@ -130,14 +132,13 @@ const showBanner = bannerUrl !== null && isHome;
             )
           }
           <DesktopHeader
-            searchPlaceholder={copy.shell.searchPlaceholder}
             menuToggleLabel={copy.shell.menuToggle}
             colorModeLabel={copy.shell.colorMode}
-            membershipLabel={copy.membership.title}
             registrationOpen={page.site.registrationOpen}
             user={sessionUser}
             authCopy={authCopy}
             localeTag={toBcp47(page.locale)}
+            locale={page.locale}
           />
         </div>
         <MobilePendingBanner text={copy.shell.mobilePending} />
@@ -147,11 +148,17 @@ const showBanner = bannerUrl !== null && isHome;
           authCopy={authCopy}
           registrationOpen={page.site.registrationOpen}
           localeTag={toBcp47(page.locale)}
+          locale={page.locale}
         />
         <main
           id="main-content"
           class="mx-auto w-full max-w-[1510px] flex-1 px-4 pb-10 pt-4 min-[992px]:px-[clamp(1.5rem,4vw,4.5rem)] min-[992px]:pb-12"
         >
+          {
+            page.site.blocks.adsTop.length > 0 && (
+              <AdSpace client:load slots={page.site.blocks.adsTop} />
+            )
+          }
           <Breadcrumb />
           {
             page.ok ? (
@@ -165,6 +172,13 @@ const showBanner = bannerUrl !== null && isHome;
                 retry={canonicalPath ?? '/'}
                 retryLabel={copy.common.retry}
               />
+            )
+          }
+          {
+            page.site.blocks.adsBottom.length > 0 && (
+              <div class="mt-6">
+                <AdSpace client:visible slots={page.site.blocks.adsBottom} />
+              </div>
             )
           }
         </main>

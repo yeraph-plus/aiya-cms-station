@@ -2,7 +2,9 @@ import { useState } from 'react';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import SettingsPanel from './SettingsPanel';
+import WalletPanel from './WalletPanel';
 import type { Locale } from '@/lib/i18n/locale';
+import type { MembershipState, CreditEntry } from '@/lib/core/contracts';
 import type { SettingsCopy, SettingsUser } from './SettingsPanel';
 
 export interface HubFavorite {
@@ -26,36 +28,49 @@ export interface HubSettings {
   localeOptions: Array<{ value: string; label: string }>;
 }
 
+export interface HubWallet {
+  locale: Locale;
+  timezone: string;
+  membership: MembershipState;
+  entries: CreditEntry[];
+  hasMore: boolean;
+}
+
 interface Props {
   favorites: HubFavorite[];
   following: HubFollowing[];
   followers: HubFollowing[];
   settings: HubSettings;
+  /** Null for a stale session (the membership read failed) — tab stays out. */
+  wallet: HubWallet | null;
   /** Shown when a tab section has no content. */
   emptyText: string;
   followersEmpty: string;
   tabFavorites: string;
   tabFollowing: string;
   tabFollowers: string;
+  tabWallet: string;
   tabSettings: string;
-  initialTab?: 'favorites' | 'following' | 'followers' | 'settings';
+  initialTab?: 'favorites' | 'following' | 'followers' | 'wallet' | 'settings';
 }
 
 /**
- * Own-profile second level: tabs over 收藏 / 关注 / 设置. Rendered only for
- * the signed-in owner on /profile/ (guests are redirected); public profile
- * pages stay plain SSR lists.
+ * Own-profile second level: tabs over 收藏 / 关注 / 钱包 / 设置. Rendered only
+ * for the signed-in owner on /profile/ (guests are redirected); public
+ * profile pages stay plain SSR lists.
  */
 export default function UserHub({
   favorites,
   following,
   followers,
   settings,
+  wallet,
   emptyText,
   followersEmpty,
   tabFavorites,
   tabFollowing,
   tabFollowers,
+  tabWallet,
   tabSettings,
   initialTab = 'favorites',
 }: Props) {
@@ -68,6 +83,7 @@ export default function UserHub({
         <TabsTrigger value="favorites">{tabFavorites}</TabsTrigger>
         <TabsTrigger value="following">{tabFollowing}</TabsTrigger>
         <TabsTrigger value="followers">{tabFollowers}</TabsTrigger>
+        {wallet && <TabsTrigger value="wallet">{tabWallet}</TabsTrigger>}
         <TabsTrigger value="settings">{tabSettings}</TabsTrigger>
       </TabsList>
 
@@ -185,6 +201,18 @@ export default function UserHub({
           </p>
         )}
       </TabsContent>
+
+      {wallet && (
+        <TabsContent value="wallet">
+          <WalletPanel
+            locale={wallet.locale}
+            timezone={wallet.timezone}
+            membership={wallet.membership}
+            entries={wallet.entries}
+            hasMore={wallet.hasMore}
+          />
+        </TabsContent>
+      )}
 
       <TabsContent value="settings">
         <SettingsPanel

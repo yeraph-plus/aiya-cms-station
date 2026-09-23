@@ -22,7 +22,7 @@ export interface FavoriteButtonProps {
 }
 
 /**
- * Favorite toggle for post/page details: a white button with the orange
+ * Favorite toggle for post/page details: an outline button with the orange
  * bookmark — filled plus the "已收藏" label once marked (the detail DTO
  * carries no per-viewer flag, so the toggle starts unmarked and converges
  * on the server answer; the /profile/ favorites tab is the source of
@@ -72,14 +72,13 @@ export default function FavoriteButton({
   };
 
   return (
-    <Button
-      variant="outline"
-      size="sm"
-      onClick={() => void toggle()}
-      aria-pressed={favorited}
-      disabled={busy}
-      className="bg-white text-foreground hover:bg-white/90"
-    >
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => void toggle()}
+        aria-pressed={favorited}
+        disabled={busy}
+      >
       {busy ? (
         <LoaderCircleIcon className="size-4 animate-spin" aria-hidden="true" />
       ) : (

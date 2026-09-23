@@ -1,18 +1,59 @@
 ---
 /**
- * Home portal. The former latest-posts/resources/discussions sections were
- * removed on 2026-09-19 (owner decision): the section layout will be
- * re-planned from scratch, so the page is the bare shell — banner (a
- * homepage-only AppShell decoration), WebSite JSON-LD and nothing else.
- * The settings banner is handled by AppShell.
+ * Home portal. The Blocks settings page's `home_sections` repeater feeds
+ * the page: each section is a query template (content type + category
+ * multi-select + count) that the page front matter resolves against the
+ * public list reads, then renders through the shared PostLoop island —
+ * its summary-feed mode (heading + icon + "more" link, no view toggle,
+ * no pager) IS the section chrome. Sections whose query fails or answers
+ * nothing are skipped; an empty configuration keeps the bare shell (the
+ * banner is a homepage-only AppShell decoration).
  */
 import AppShell from '@/components/layout/AppShell.astro';
+import PostLoop from '@/components/islands/feed/PostLoop';
 import { websiteJsonLd } from '@/lib/seo';
 import { siteOrigin } from '@/lib/core/server';
 import { loadPage } from '@/lib/page.server';
+import { iconInner } from '@/lib/icons';
+import { cloakPostSummaryMedia } from '@/lib/media';
+import { t } from '@/lib/i18n';
+import type { HomeSection, PostSummary } from '@/lib/core/contracts';
 
-const page = await loadPage(async () => undefined, Astro.cookies);
+interface ResolvedSection {
+  section: HomeSection;
+  posts: PostSummary[];
+}
+
+const page = await loadPage(async (client, site) => {
+  const resolved = await Promise.all(
+    site.blocks.sections.map(async (section): Promise<ResolvedSection | null> => {
+      const category = section.categories.join(',');
+      try {
+        const result =
+          section.type === 'resource'
+            ? await client.resources({ category, perPage: section.count })
+            : await client.posts({ category, perPage: section.count });
+        return result.data.length > 0 ? { section, posts: result.data } : null;
+      } catch {
+        // One broken query skips its section, never the whole homepage.
+        return null;
+      }
+    }),
+  );
+  return resolved.filter((entry): entry is ResolvedSection => entry !== null);
+}, Astro.cookies);
 if (!page.ok) Astro.response.status = page.error.status;
+const copy = t(page.locale);
+// The explicit override wins; otherwise the type's own archive path with
+// the chosen categories rides as the standard list filter.
+const archiveHref = (section: HomeSection): string => {
+  if (section.moreUrl !== '') return section.moreUrl;
+  const query =
+    section.categories.length > 0
+      ? `?category=${encodeURIComponent(section.categories.join(','))}`
+      : '';
+  return section.type === 'resource' ? `/resources/${query}` : `/posts/${query}`;
+};
 let origin = 'http://localhost:4321';
 try {
   origin = siteOrigin();
@@ -24,4 +65,30 @@ const jsonLd = page.ok ? [websiteJsonLd(page.site, origin)] : [];
 
 <AppShell page={page} title="" description={page.site.description} canonicalPath="/" jsonLd={jsonLd}>
   <h1 class="sr-only">{page.site.name}</h1>
+  {
+    page.ok && page.value.length > 0 && (
+      <div class="flex w-full flex-col gap-10">
+        {page.value.map(({ section, posts }) => (
+          <PostLoop
+            client:load
+            endpoint={section.type === 'resource' ? '/api/feed/resources/' : '/api/feed/posts/'}
+            items={posts.map(cloakPostSummaryMedia)}
+            pagination={{ page: 1, totalPages: 1, hasNext: false, hasPrevious: false }}
+            page={1}
+            query={section.categories.length > 0 ? { category: section.categories.join(',') } : {}}
+            route={{ index: archiveHref(section) }}
+            heading={section.title}
+            headingIcon={section.icon ? iconInner(section.icon) : null}
+            showViewToggle={false}
+            more={{ href: archiveHref(section), label: copy.home.viewAll }}
+            defaultView="grid"
+            stickyView={false}
+            emptyText={copy.posts.listEmpty}
+            errorText={copy.state.backendMessage}
+            locale={page.locale}
+          />
+        ))}
+      </div>
+    )
+  }
 </AppShell>

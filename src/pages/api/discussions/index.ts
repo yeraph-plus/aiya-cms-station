@@ -5,19 +5,22 @@ import { readSessionToken } from '@/lib/core/session';
 import { cloakDiscussion } from '@/lib/community';
 import { discussionsQuerySchema } from '@/lib/core/contracts';
 
-/** GET /api/discussions/: public paged feed (board/status-sort filters ride
-    as query params); items carry text-safe HTML and cloaked media URLs so
-    the community island can render client-fetched pages without touching
+/** GET /api/discussions/: public paged feed (board/status-sort/post filters
+    ride as query params); items carry text-safe HTML and cloaked media URLs
+    so the community island can render client-fetched pages without touching
     the WP host. A caller `perPage` rides through when present — absent
     params stay absent so the backend's default window decides. */
 export const GET: APIRoute = async ({ url, cookies, request, clientAddress }) => {
   const ip = visitorIp(request, clientAddress);
   const perPageRaw = url.searchParams.get('perPage');
+  const postRaw = url.searchParams.get('post');
+  const post = postRaw !== null && /^\d+$/.test(postRaw) ? Number(postRaw) : undefined;
   const parsed = discussionsQuerySchema.safeParse({
     board: url.searchParams.get('board') ?? undefined,
     sort: url.searchParams.get('sort') ?? undefined,
     q: url.searchParams.get('q') ?? undefined,
     page: url.searchParams.get('page') ? Number(url.searchParams.get('page')) : undefined,
+    ...(post !== undefined ? { post } : {}),
     ...(perPageRaw ? { perPage: Number(perPageRaw) } : {}),
   });
   if (!parsed.success) return jsonResponse({ ok: false }, 400);
