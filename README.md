@@ -11,7 +11,7 @@ AIYA CMS 的 Headless 前端（Astro 7 SSR + Tailwind v4 + zod）。只通过 `a
 npm install
 cp .env.example .env      # 指向 WP 后端（无后端时站点进 503 门禁）
 npm run dev               # 开发（需 WP 后端在线）；astro dev stop 停守护进程
-npm run verify            # astro check + vitest + build
+npm run verify            # astro check + vitest + format:check + build
 npm test                  # 单测（契约不变式 / i18n / SEO / 净化 / 门禁与熔断 / 会员）
 ```
 
@@ -74,6 +74,21 @@ services:
 - 容器以非 root 的 `node` 用户运行；HEALTHCHECK 探测本进程（后端宕机时的 503
   门禁页也算健康——它检查的是前端容器，不是 WP）。
 
+### 本机试跑（WP 尚无 https 域名时）
+
+契约要求非 https 后端必须是 loopback 主机名，容器内达不到——本机可用 nginx +
+自签证书给 WP 拟一个 https 域名，完整模拟生产拓扑（2026-09-25 实测通过）：
+
+1. 自签证书 `SAN=DNS:wp.demo`；nginx 443 → `wp_app:80`，加
+   `proxy_set_header X-Forwarded-Proto https`（让 WP 产出 https 绝对 URL）和
+   `sub_filter ':\/\/127.0.0.1:8000' ':\/\/wp.demo'`（REST JSON 的斜杠是
+   转义形态，过滤器必须匹配转义串；`sub_filter_types application/json`，
+   `Accept-Encoding` 置空）。
+2. 前端容器 `AIYA_WP_API_URL='https://wp.demo/wp-json/aiya/core/v1/'` +
+   `NODE_EXTRA_CA_CERTS=/certs/cert.pem` 信任自签证书。
+3. Windows 的 Git Bash 执行 docker/openssl 命令记得 `MSYS_NO_PATHCONV=1`，
+   否则容器侧路径会被改写成 Git 安装目录（曾把 nginx.conf 挂载变成目录）。
+
 ## 分层（依赖只能向下）
 
 ```
@@ -98,7 +113,9 @@ lib/core/         contracts.ts（zod 线上契约，后端 PHP DTO 的逐字段�
                   白名单、响应全量 safeParse、错误只透出 status+requestId+aiya_*
                   码）→ server.ts（环境变量唯一入口；island/browser 导入即构建
                   失败）→ session.ts（Bearer → HttpOnly cookie，失败降级游客）→
-                  errors.ts（错误分类，从不携带上游正文）
+                  errors.ts（错误分类，从不携带上游正文）；health.ts（进程级
+                  熔断器，503 门禁的探活核心）与 contracts.snapshot*.json
+                  （后端生成、vitest 比对的快照）同住此目录
 lib/i18n/         前端自有文案（D8）：locale 解析 user.locale → site.language →
                   zh_CN；字典属性访问（支持函数值插值），四语言结构由类型 + 测试锁齐
 lib/seo.ts        JSON-LD 纯函数（WebSite / Article / BreadcrumbList）
@@ -745,7 +762,7 @@ plans` 匿名可读），故游客看得到定价与登录提示，不做重定�
    对上线项目无价值——`lib/aiya/mock.ts`（101 行、仅 5 条路由）连同
    `dataMode()`、`AIYA_DATA_MODE`、`page.mode` 管道与四字典的 `mockBadge`
    一并删除，`serverClient()` 无条件指向 WP。请求路径改为：middleware 先经
-   `lib/aiya/health.ts` 的进程级熔断器探活（探针就是外壳要用的 `site` 调用），
+   `lib/core/health.ts` 的进程级熔断器探活（探针就是外壳要用的 `site` 调用），
    不可达即 `lib/gate.ts` 直接返回 503 门禁页（`no-store` +
    `Retry-After: 30` + `noindex`，依赖零组件、样式内联，与 `500.astro` 同
    路数），**16 个页面与任何路由文件均无需感知门禁**。熔断器双 TTL
@@ -834,8 +851,8 @@ plans` 匿名可读），故游客看得到定价与登录提示，不做重定�
      未来如需按宽转换，在代理端点挂 sharp。
    - URL 改写面：DTO `Image.url`、正文 HTML 的 img src、评论头像——消费点统一过
      `rewriteMediaUrl`（og:image 由 BaseHead 把 `/media/` 路径拼回本域绝对地址）；
-     OpenList 附件直链、爱发电/易支付跳转不属于隐藏范围（本就是第三方域）。
+     FileServe/OpenList 下载直链、爱发电/易支付跳转不属于隐藏范围（本就是第三方域）。
    - **菜单图标（0.37.0）**：Navigation 设置 primary 行新增可选 `icon`（Lucide 名），
      契约 `MenuItem.icon: string|null`（secondary 恒 null）；侧栏渲染设置值优先、
      URL 形状回退。secondary 组即页脚菜单，Footer 同时渲染 `site.footer` 备案
-     三字段与 note；PostCard 无缩略图时回退 `site.defaults.thumb`。
+     三字段与 note。
