@@ -66,11 +66,17 @@ type Sort = 'last_activity' | 'newest';
 /** Shared composer/edit upload: posts the file to the same-origin proxy and
  *  resolves the cloaked /media/ URL (null on failure). */
 async function uploadImageFile(file: File): Promise<string | null> {
-  const form = new FormData();
-  form.set('image', file);
-  const response = await fetch('/api/uploads/image/', { method: 'POST', body: form });
-  const json = (await response.json().catch(() => null)) as { ok?: boolean; url?: string } | null;
-  return json?.ok && json.url ? json.url : null;
+  try {
+    const form = new FormData();
+    form.set('image', file);
+    const response = await fetch('/api/uploads/image/', { method: 'POST', body: form });
+    const json = (await response.json().catch(() => null)) as { ok?: boolean; url?: string } | null;
+    return json?.ok && json.url ? json.url : null;
+  } catch {
+    // Network-level rejection still counts as a failed upload: the callers'
+    // busy flags reset in the .then below and must run.
+    return null;
+  }
 }
 
 interface ReplyCache {

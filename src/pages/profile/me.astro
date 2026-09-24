@@ -10,7 +10,7 @@ import ProfileCard from '@/components/content/ProfileCard.astro';
 import UserHub from '@/components/islands/user-center/UserHub';
 import { displayDate } from '@/lib/format';
 import { rewriteMediaUrl } from '@/lib/media';
-import { t } from '@/lib/i18n';
+import { LOCALE_OPTIONS, t } from '@/lib/i18n';
 import { loadPage } from '@/lib/page.server';
 import { setCrumbs } from '@/lib/breadcrumbs';
 import { currentUser, readSessionToken } from '@/lib/core/session';
@@ -159,12 +159,7 @@ const initialTab =
                 : null,
             },
             copy: settingsCopy,
-            localeOptions: [
-              { value: 'zh_CN', label: '简体中文' },
-              { value: 'zh_TW', label: '繁體中文' },
-              { value: 'zh_HK', label: '繁體中文（香港）' },
-              { value: 'en_US', label: 'English' },
-            ],
+            localeOptions: LOCALE_OPTIONS,
             locale: page.locale,
           }}
           tabFavorites={copy.profile.tabFavorites}

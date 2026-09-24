@@ -43,3 +43,16 @@ export function aiyaErrorCopy(error: unknown, locale: Locale): string {
   }
   return dict.errors.generic;
 }
+
+/**
+ * The four supported UI languages, labeled in their own language (a language
+ * switcher is the one surface that must NOT translate its labels). Single
+ * source for the settings panel and the account hub — the lists were hand-
+ * duplicated before and would drift.
+ */
+export const LOCALE_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
+  { value: 'zh_CN', label: '简体中文' },
+  { value: 'zh_TW', label: '繁體中文' },
+  { value: 'zh_HK', label: '繁體中文（香港）' },
+  { value: 'en_US', label: 'English' },
+];

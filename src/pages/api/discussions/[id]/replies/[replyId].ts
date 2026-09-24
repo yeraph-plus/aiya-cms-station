@@ -6,8 +6,10 @@ import { readSessionToken } from '@/lib/core/session';
 
 /**
  * PATCH /api/discussions/{id}/replies/{replyId}/: reply author edits the
- * body (client.updateDiscussionReply already exposes it). DELETE: reply
- * author or admin — both flags are server-derived upstream.
+ * body. DELETE: reply author or admin — both flags are server-derived
+ * upstream. The backend route exists and this proxy mirrors it, but the
+ * reply contract does not project a `canEdit` flag yet, so no island can
+ * render the affordance — pending a contract addition, not a dead face.
  */
 export const PATCH: APIRoute = async ({ cookies, params, request, clientAddress }) => {
   const ip = visitorIp(request, clientAddress);

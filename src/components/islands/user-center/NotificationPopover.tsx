@@ -39,9 +39,12 @@ const fetchFeed = async (): Promise<Feed | null> => {
 export function NotificationPopover({
   copy,
   localeTag,
+  timezone,
 }: {
   copy: UserCenterCopy;
   localeTag: string;
+  /** Site calendar timezone (from /site); dates render in it. */
+  timezone?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<FeedItem[]>([]);
@@ -143,6 +146,7 @@ export function NotificationPopover({
                           day: 'numeric',
                           hour: '2-digit',
                           minute: '2-digit',
+                          ...(timezone ? { timeZone: timezone } : {}),
                         })}
                       </time>
                     )}

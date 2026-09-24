@@ -6,7 +6,7 @@
 import AppShell from '@/components/layout/AppShell.astro';
 import SettingsPanel from '@/components/islands/user-center/SettingsPanel';
 import { rewriteMediaUrl } from '@/lib/media';
-import { t } from '@/lib/i18n';
+import { LOCALE_OPTIONS, t } from '@/lib/i18n';
 import { loadPage } from '@/lib/page.server';
 import { setCrumbs } from '@/lib/breadcrumbs';
 import { currentUser, readSessionToken } from '@/lib/core/session';
@@ -25,12 +25,7 @@ if (!page.ok) Astro.response.status = page.error.status;
 const copy = t(page.locale);
 if (page.ok) setCrumbs(Astro.locals, page.locale, [{ label: copy.settings.title }]);
 const user = page.ok ? page.value.data : null;
-const localeOptions = [
-  { value: 'zh_CN', label: '简体中文' },
-  { value: 'zh_TW', label: '繁體中文' },
-  { value: 'zh_HK', label: '繁體中文（香港）' },
-  { value: 'en_US', label: 'English' },
-];
+const localeOptions = LOCALE_OPTIONS;
 ---
 
 <AppShell

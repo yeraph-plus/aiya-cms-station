@@ -25,7 +25,7 @@ export interface HubSettings {
   user: SettingsUser;
   locale: Locale;
   copy: SettingsCopy;
-  localeOptions: Array<{ value: string; label: string }>;
+  localeOptions: ReadonlyArray<{ value: string; label: string }>;
 }
 
 export interface HubWallet {

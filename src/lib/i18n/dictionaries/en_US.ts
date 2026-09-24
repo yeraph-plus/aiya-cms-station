@@ -454,6 +454,7 @@ const en_US: Dictionary = {
     aiya_order_not_found: 'No such order was found.',
     aiya_order_not_paid: 'This order has not been paid yet.',
     aiya_order_used: 'This order has already been used.',
+    aiya_activation_busy: 'Activation is busy — try again in a moment.',
     aiya_activation_failed: 'Activation failed, please retry later.',
     aiya_source_unreachable: 'The file service is temporarily unavailable.',
     aiya_source_unauthorized: 'File service authentication failed, please contact the site owner.',

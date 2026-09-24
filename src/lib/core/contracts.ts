@@ -250,7 +250,7 @@ export const smiliesItemSchema = z.object({
   code: z.string(),
   url: httpUrlSchema,
 });
-/** One smilies pack (= one directory under WP `wp-content/smilies/`). */
+/** One smilies pack (= one directory under WP `wp-content/aiya_smilies/`). */
 export const smiliesPackSchema = z.object({
   slug: z.string(),
   items: z.array(smiliesItemSchema),

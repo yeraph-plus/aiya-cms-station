@@ -45,7 +45,9 @@ export const GET: APIRoute = async ({ params, url, request, clientAddress }) => 
       const scope: SearchScope = isSearchScope(rawScope) ? rawScope : 'all';
       if (key === '' || !Number.isInteger(page) || page < 1)
         return jsonResponse({ ok: false }, 400);
-      const result = await loadSearchPage(client, { key, scope, page });
+      const rawPerPage = Number(url.searchParams.get('perPage'));
+      const perPage = Number.isInteger(rawPerPage) && rawPerPage >= 1 ? rawPerPage : undefined;
+      const result = await loadSearchPage(client, { key, scope, page, perPage });
       return jsonResponse({
         ok: true,
         items: result.items.map(cloakPostSummaryMedia),

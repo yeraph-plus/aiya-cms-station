@@ -17,10 +17,22 @@ export function displayDate(
 ): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '';
-  return new Intl.DateTimeFormat(toBcp47(locale), {
-    timeZone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(date);
+  try {
+    return new Intl.DateTimeFormat(toBcp47(locale), {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(date);
+  } catch {
+    // The backend may answer a UTC offset ('+08:00') rather than an IANA
+    // name when WP is configured manually; engines that refuse it fall back
+    // to the site's default calendar zone — never the visitor's clock.
+    return new Intl.DateTimeFormat(toBcp47(locale), {
+      timeZone: DEFAULT_TIMEZONE,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(date);
+  }
 }

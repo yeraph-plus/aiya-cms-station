@@ -20,6 +20,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
   if (context.url.pathname.startsWith('/media/')) {
     const response = await proxyMedia(context.url.pathname, context.request);
     response.headers.set('X-Content-Type-Options', 'nosniff');
+    response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+    response.headers.set('X-Frame-Options', 'SAMEORIGIN');
     return response;
   }
 
@@ -40,7 +42,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   // Retired routes: the membership page folded into the account hub
   // (wallet bubble + membership modal on /profile/me/).
   if (safeMethod && (pathname === '/membership' || pathname === '/membership/')) {
-    return context.redirect('/profile/me/', 308);
+    return context.redirect('/profile/me/' + context.url.search, 308);
   }
   if (
     safeMethod &&
@@ -74,6 +76,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   // the route marks it and the cache window is skipped.
   const emptySitemap =
     context.url.pathname === '/sitemap.xml' && response.headers.get('X-Aiya-Sitemap-Empty') === '1';
+  response.headers.delete('X-Aiya-Sitemap-Empty');
   if (
     response.status === 200 &&
     !emptySitemap &&

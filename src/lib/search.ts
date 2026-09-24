@@ -88,22 +88,24 @@ export function interleavePages(lists: PostSummary[][]): PostSummary[] {
  */
 export async function loadSearchPage(
   client: AiyaClient,
-  query: { key: string; scope: SearchScope; page: number },
+  query: { key: string; scope: SearchScope; page: number; perPage?: number },
 ): Promise<SearchPage> {
+  // The SSR window and the island's window must agree or the pagination
+  // counters silently diverge; the caller's value wins, clamped to sane
+  // bounds, and SEARCH_PAGE_SIZE stays the default.
+  const perPage = Math.min(Math.max(query.perPage ?? SEARCH_PAGE_SIZE, 1), 50);
   if (query.scope !== 'all') {
     const result = await client.search({
       q: query.key,
       type: query.scope,
       page: query.page,
-      perPage: SEARCH_PAGE_SIZE,
+      perPage,
     });
     return { items: result.data, pagination: result.meta.pagination };
   }
 
   const groups = await Promise.all(
-    SEARCH_TYPES.map((type) =>
-      client.search({ q: query.key, type, page: query.page, perPage: SEARCH_PAGE_SIZE }),
-    ),
+    SEARCH_TYPES.map((type) => client.search({ q: query.key, type, page: query.page, perPage })),
   );
   const totalPages = groups.reduce(
     (max, group) => Math.max(max, group.meta.pagination.totalPages),

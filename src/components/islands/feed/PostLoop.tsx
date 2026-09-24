@@ -623,6 +623,7 @@ export default function PostLoop({
    * itself once hasNext turns false.
    */
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const failuresRef = useRef(0);
   const appendNext = () => {
     if (busyRef.current) return;
     const s = stateRef.current;
@@ -630,9 +631,11 @@ export default function PostLoop({
     busyRef.current = true;
     setLoading(true);
     void (async () => {
+      let ok = false;
       try {
         const json = await requestFeed(s.query, s.page + 1);
         if (json?.ok && json.items && json.pagination) {
+          ok = true;
           setState((prev) => ({
             items: [...prev.items, ...(json.items ?? [])],
             pagination: json.pagination!,
@@ -647,11 +650,15 @@ export default function PostLoop({
         busyRef.current = false;
         setLoading(false);
         // Re-arm while the sentinel is still on screen (short pages): the
-        // observer will not refire without an intersection change.
+        // observer will not refire without an intersection change. A failed
+        // fetch backs off exponentially (capped) so a dead endpoint is not
+        // hammered at poll cadence; one success resets the ladder.
+        failuresRef.current = ok ? 0 : failuresRef.current + 1;
+        const delay = ok ? 200 : Math.min(200 * 2 ** failuresRef.current, 10_000);
         setTimeout(() => {
           const el = sentinelRef.current;
           if (el && el.getBoundingClientRect().top < window.innerHeight + 600) appendNext();
-        }, 200);
+        }, delay);
       }
     })();
   };

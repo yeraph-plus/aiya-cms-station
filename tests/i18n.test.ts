@@ -93,6 +93,7 @@ describe('backend error-code coverage', () => {
   // (board_exists, tier_in_use, order_unattributed, …) are deliberately out.
   const BACKEND_VISITOR_CODES = [
     'aiya_account_disabled',
+    'aiya_activation_busy',
     'aiya_activation_failed',
     'aiya_afdian_rejected',
     'aiya_afdian_unavailable',

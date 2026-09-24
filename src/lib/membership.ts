@@ -1,4 +1,5 @@
 import type { Tier } from '@/lib/core/contracts';
+import { DEFAULT_TIMEZONE } from '@/lib/format';
 import { toBcp47, type Locale } from '@/lib/i18n/locale';
 
 /**
@@ -35,23 +36,6 @@ export function paymentMethods(channels: {
   return channels.epay ? [...channels.methods] : [];
 }
 
-/** Absolute date+time in the site's timezone (cycle starts/ends, grant expiry). */
-export function displayDateTime(value: string, locale: Locale, timeZone: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  try {
-    return new Intl.DateTimeFormat(toBcp47(locale), {
-      timeZone,
-      ...DATE_PARTS,
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    }).format(date);
-  } catch {
-    return new Intl.DateTimeFormat(toBcp47(locale), DATE_PARTS).format(date);
-  }
-}
-
 /** Bare date in the site's timezone (ledger rows read better without a clock). */
 export function displayDay(value: string, locale: Locale, timeZone: string): string {
   const date = new Date(value);
@@ -59,6 +43,11 @@ export function displayDay(value: string, locale: Locale, timeZone: string): str
   try {
     return new Intl.DateTimeFormat(toBcp47(locale), { timeZone, ...DATE_PARTS }).format(date);
   } catch {
-    return new Intl.DateTimeFormat(toBcp47(locale), DATE_PARTS).format(date);
+    // Unparseable zone (WP manual-offset configuration on a strict engine):
+    // the site's default calendar zone, never the visitor's clock.
+    return new Intl.DateTimeFormat(toBcp47(locale), {
+      timeZone: DEFAULT_TIMEZONE,
+      ...DATE_PARTS,
+    }).format(date);
   }
 }

@@ -447,6 +447,7 @@ const zh_TW: Dictionary = {
     aiya_order_not_found: '沒有找到該訂單。',
     aiya_order_not_paid: '該訂單尚未付款。',
     aiya_order_used: '該訂單已被使用。',
+    aiya_activation_busy: '啟用處理中，請稍後重試。',
     aiya_activation_failed: '啟用失敗，請稍後重試。',
     aiya_source_unreachable: '檔案服務暫時不可用。',
     aiya_source_unauthorized: '檔案服務認證失敗，請聯絡站長。',

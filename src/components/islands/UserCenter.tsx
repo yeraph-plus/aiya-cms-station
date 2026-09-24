@@ -64,7 +64,7 @@ export default function UserCenter({
     return (
       <div className="flex items-center gap-1.5">
         <WalletBubble locale={locale} timezone={timezone} />
-        <NotificationPopover copy={copy} localeTag={localeTag} />
+        <NotificationPopover copy={copy} localeTag={localeTag} timezone={timezone} />
         <UserMenu user={user} copy={copy} />
       </div>
     );

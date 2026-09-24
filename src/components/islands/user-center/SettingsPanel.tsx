@@ -40,7 +40,7 @@ export interface SettingsCopy {
 interface Props {
   user: SettingsUser;
   locale: Locale;
-  localeOptions: Array<{ value: string; label: string }>;
+  localeOptions: ReadonlyArray<{ value: string; label: string }>;
   copy: SettingsCopy;
 }
 

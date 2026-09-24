@@ -3,6 +3,7 @@
  * @pending 992px 以下移动端壳——待就绪：当前只迭代桌面布局，移动端仅保证可用性并显示提示条。
  */
 import type { Menu } from '@/lib/core/contracts';
+import { safeHref } from '@/lib/media';
 interface Props {
   menu: Menu;
   pathname: string;
@@ -20,7 +21,7 @@ const isActive = (url: string) => (url === '/' ? pathname === '/' : pathname.sta
   {
     items.map((item) => (
       <a
-        href={item.url}
+        href={safeHref(item.url) ?? undefined}
         aria-current={isActive(item.url) ? 'page' : undefined}
         class:list={[
           'flex items-center justify-center py-3 text-xs',

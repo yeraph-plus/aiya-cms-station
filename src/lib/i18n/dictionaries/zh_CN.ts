@@ -457,6 +457,7 @@ const zh_CN = {
     aiya_order_not_found: '没有找到该订单。',
     aiya_order_not_paid: '该订单尚未支付。',
     aiya_order_used: '该订单已被使用。',
+    aiya_activation_busy: '激活处理中，请稍后重试。',
     aiya_activation_failed: '激活失败，请稍后重试。',
     // file sources
     aiya_source_unreachable: '文件服务暂时不可用。',

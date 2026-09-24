@@ -23,7 +23,12 @@ export const POST: APIRoute = async (Astro) => {
     let returnUrl = `${siteOrigin()}/profile/me/`;
     if (typeof payload.returnUrl === 'string' && payload.returnUrl !== '') {
       try {
-        if (new URL(payload.returnUrl).origin === siteOrigin()) returnUrl = payload.returnUrl;
+        const parsed = new URL(payload.returnUrl);
+        // Credentials in the URL would pass the origin check yet fail the
+        // backend's httpUrlSchema (a 400 instead of a graceful fallback).
+        if (parsed.origin === siteOrigin() && !parsed.username && !parsed.password) {
+          returnUrl = payload.returnUrl;
+        }
       } catch {
         /* non-URL input keeps the default */
       }

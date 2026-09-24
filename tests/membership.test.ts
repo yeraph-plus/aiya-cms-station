@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Tier } from '@/lib/core/contracts';
-import { displayDateTime, displayDay, paymentMethods, purchasableTiers } from '@/lib/membership';
+import { displayDay, paymentMethods, purchasableTiers } from '@/lib/membership';
 
 describe('tier selection', () => {
   const tier = (key: string, enabled: boolean): Tier => ({
@@ -28,15 +28,16 @@ describe('tier selection', () => {
   });
 });
 
-describe('displayDateTime / displayDay', () => {
+describe('displayDay', () => {
   it('renders in the requested timezone', () => {
-    // Same instant, two zones: 16:30 UTC is already the next day in Shanghai.
-    expect(displayDateTime('2026-01-01T16:30:00Z', 'en_US', 'UTC')).toContain('16:30');
-    expect(displayDateTime('2026-01-01T16:30:00Z', 'en_US', 'Asia/Shanghai')).toContain('00:30');
+    // Same instant, two zones: 16:30 UTC on Jan 1 is already Jan 2 in Shanghai.
+    expect(displayDay('2026-01-01T16:30:00Z', 'en_US', 'UTC')).not.toBe(
+      displayDay('2026-01-01T16:30:00Z', 'en_US', 'Asia/Shanghai'),
+    );
   });
 
   it('returns an empty string for unusable input', () => {
-    expect(displayDateTime('', 'zh_CN', 'Asia/Shanghai')).toBe('');
+    expect(displayDay('', 'zh_CN', 'Asia/Shanghai')).toBe('');
     expect(displayDay('not-a-date', 'zh_CN', 'Asia/Shanghai')).toBe('');
   });
 

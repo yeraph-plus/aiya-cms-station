@@ -34,12 +34,18 @@ const {
   ogType = 'website',
   jsonLd = [],
 } = Astro.props;
-const canonical = canonicalPath !== undefined ? new URL(canonicalPath, origin).href : null;
+// Degraded shells resolve origin to '' (AIYA_SITE_URL failed validation):
+// they are noindex anyway, so canonical/og:url are dropped instead of
+// throwing `new URL(path, '')` at render time.
+const hasOrigin = origin !== '';
+const canonical =
+  canonicalPath !== undefined && hasOrigin ? new URL(canonicalPath, origin).href : null;
 const robots = noindex ? 'noindex, nofollow' : 'index, follow';
 // Home passes an empty title: the document is just the site name.
 const fullTitle = title === '' ? site.name : `${title} · ${site.name}`;
 // og/twitter images may be local proxy paths; scrapers need them absolute.
-const imageUrl = image !== null && image.startsWith('/') ? new URL(image, origin).href : image;
+const imageUrl =
+  image !== null && image.startsWith('/') && hasOrigin ? new URL(image, origin).href : image;
 // The WP site icon wins; the bundled favicon is the fallback.
 const faviconHref = site.favicon ? rewriteMediaUrl(site.favicon.url) : '/favicon.svg';
 ---

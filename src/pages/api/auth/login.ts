@@ -18,13 +18,9 @@ export const POST: APIRoute = async (Astro) => {
   const locale = await requesterLocale();
   const copy = t(locale);
 
-  let body: unknown;
-  try {
-    body = await readJsonBody(Astro.request);
-  } catch {
-    return jsonResponse({ ok: false, message: copy.errors.aiya_invalid_param }, 400);
-  }
-  const parsed = loginRequestSchema.safeParse(body);
+  // readJsonBody never throws: malformed/oversized bodies arrive as null and
+  // fail the schema below.
+  const parsed = loginRequestSchema.safeParse(await readJsonBody(Astro.request));
   if (!parsed.success) {
     return jsonResponse({ ok: false, message: copy.errors.aiya_invalid_param }, 400);
   }
