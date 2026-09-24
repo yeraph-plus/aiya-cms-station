@@ -19,7 +19,7 @@ import type {
   SiteComments,
 } from '@/lib/core/contracts';
 import type { FeedThread } from '@/lib/community';
-import { t, type Locale } from '@/lib/i18n';
+import type { Locale } from '@/lib/i18n';
 
 export interface CommentsWindow {
   order: 'asc' | 'desc';
@@ -74,7 +74,6 @@ export default function PostDetail({
   window: CommentsWindow;
 }) {
   useViewPing(post.id);
-  const copy = t(locale);
   return (
     <article className="lg:grid lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start lg:gap-8">
       <div className="min-w-0">

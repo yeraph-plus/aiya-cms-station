@@ -9,7 +9,6 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import type { CommentsWindow, DetailShellProps } from '@/components/islands/detail/PostDetail';
 import type { FileList } from '@/lib/core/contracts';
-import { t, type Locale } from '@/lib/i18n';
 
 /**
  * Independent-page detail shell: the only full-width layout — no sidebar,
@@ -28,7 +27,6 @@ export default function PageDetail({
   window,
 }: DetailShellProps & { downloads: FileList[] | null; window: CommentsWindow }) {
   useViewPing(post.id);
-  const copy = t(locale);
   return (
     <article>
       <Card className="gap-0 overflow-hidden py-0">

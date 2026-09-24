@@ -1,5 +1,5 @@
 import type { Breadcrumb, PostDetail, Site } from '@/lib/core/contracts';
-import { resolveLocale, toBcp47, type Locale } from '@/lib/i18n/locale';
+import { resolveLocale, toBcp47 } from '@/lib/i18n/locale';
 import { rewriteMediaUrl } from '@/lib/media';
 
 /** Pure JSON-LD builders; BaseHead serializes whatever these return. */
@@ -32,7 +32,6 @@ export function articleJsonLd(
   post: PostDetail,
   site: Site,
   origin: string,
-  locale: Locale,
 ): Record<string, unknown> {
   return {
     '@context': 'https://schema.org',

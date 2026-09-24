@@ -111,3 +111,16 @@ describe('cloakDiscussion / cloakReply', () => {
     expect(String(out.contentSafe)).toContain('aiya-smilie');
   });
 });
+
+describe('cssUrl', () => {
+  it('escapes quote and backslash bytes out of the CSS string token', async () => {
+    const { cssUrl } = await import('@/lib/media');
+    // The backslash rides a code point so the expectations cannot lose one
+    // more layer of literal escapes.
+    const BS = String.fromCharCode(92);
+    expect(cssUrl("https://x/a'b.jpg")).toBe(`https://x/a${BS}'b.jpg`);
+    expect(cssUrl('https://x/a"b.jpg')).toBe(`https://x/a${BS}"b.jpg`);
+    expect(cssUrl(`https://x/a${BS}b.jpg`)).toBe(`https://x/a${BS}${BS}b.jpg`);
+    expect(cssUrl('https://x/plain.jpg')).toBe('https://x/plain.jpg');
+  });
+});

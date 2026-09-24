@@ -84,7 +84,8 @@ interface PostSummaryMedia {
  * style attribute stays a single background-image declaration.
  */
 export function cssUrl(value: string): string {
-  return value.replace(/[\'"]/g, (ch) => `\${ch}`);
+  // `$&` is the match itself: backslash before every backslash or quote.
+  return value.replace(/[\\'"]/g, '\\$&');
 }
 
 /**
