@@ -44,22 +44,19 @@ ENV ASTRO_TELEMETRY_DISABLED=1
 COPY . .
 RUN npm run build
 
-# --- runtime stage: production deps + built server, unprivileged ------------
+# --- runtime stage: self-contained server, unprivileged ---------------------
 FROM ${NODE_IMAGE}
-ARG NPM_REGISTRY
 WORKDIR /app
 ENV NODE_ENV=production \
     HOST=0.0.0.0 \
     PORT=4321 \
     ASTRO_TELEMETRY_DISABLED=1
 
-# Production-only dependency tree (externalized packages resolve from here;
-# bundled ones simply ignore it).
-COPY package.json package-lock.json ./
-RUN npm config set registry "$NPM_REGISTRY" \
-    && npm ci --omit=dev \
-    && npm cache clean --force \
-    && chown -R node:node /app
+# The build bundles every SSR dependency (astro.config vite.ssr.noExternal),
+# so the runtime ships base image + dist only — no npm layer. If a future
+# dependency gets externalized again, the container dies at boot with
+# ERR_MODULE_NOT_FOUND (visible immediately; the healthcheck fails): scan
+# dist/server for bare imports before touching this stage.
 COPY --from=build --chown=node:node /app/dist ./dist
 
 USER node

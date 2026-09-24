@@ -15,5 +15,9 @@ export default defineConfig({
   integrations: [react()],
   vite: {
     plugins: [tailwindcss()],
+    // Bundle every SSR dependency into dist/server (react included, which
+    // Astro would otherwise externalize): the standalone build then needs no
+    // node_modules at runtime and the production image shrinks to base+dist.
+    ssr: { noExternal: true },
   },
 });
