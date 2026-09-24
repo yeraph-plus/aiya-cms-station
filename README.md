@@ -61,6 +61,56 @@ services:
       # AIYA_CLIENT_IP_HEADER: X-Real-IP   # 仅当最前置一层代理且已保证剥离客户端同名头
 ```
 
+### 反代由你自己的 nginx 托管（容器只出明文 HTTP）
+
+镜像不持有证书、不做 TLS——容器进程就是一个普通 node 服务，监听
+`0.0.0.0:4321`。线上拓扑：**你的 nginx 终结 HTTPS → `proxy_pass` 到容器**。
+建议发布端口时只绑 loopback，容器不直接对公网：
+
+```bash
+docker run -d --name aiya-front --restart unless-stopped   -p 127.0.0.1:4321:4321   -e AIYA_SITE_URL='https://前端域名/'   -e AIYA_WP_API_URL='https://WP域名/wp-json/aiya/core/v1/'   -e AIYA_PROXY_SECRET='与 wp-config 的 AIYA_PROXY_SECRET 常量同值'   -e AIYA_CLIENT_IP_HEADER='X-Real-IP'   aiya-front
+```
+
+对应的 nginx server 块（可直接改域名粘贴）：
+
+```nginx
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name 前端域名;
+
+    ssl_certificate     /etc/nginx/certs/前端域名.pem;
+    ssl_certificate_key /etc/nginx/certs/前端域名.key;
+
+    # 上传走 /api/uploads/image（镜像内限 5MB+开销），默认 1m 必炸
+    client_max_body_size 10m;
+
+    location / {
+        proxy_pass http://127.0.0.1:4321;
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        # 访客 IP 链：容器凭 AIYA_CLIENT_IP_HEADER 采信 X-Real-IP。
+        # proxy_set_header 是「设置」语义，客户端伪造的同名头在此被覆盖——
+        # 反代桥的「边缘先剥离同名头」前提由此满足。
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_read_timeout 30s;
+    }
+
+    # 静态媒体命中率高，可在此加 nginx 层缓存（前端已给 /media/ 发
+    # Cache-Control: public, max-age=604800，nginx 原样透传即可，勿叠加）
+}
+```
+
+检查单要点的对应关系：
+
+- `AIYA_SITE_URL` 填你的 https 域名（canonical / sitemap / cookie Secure 全靠它）；
+- `AIYA_CLIENT_IP_HEADER='X-Real-IP'` 必配——否则容器看到的 socket 地址恒为
+  nginx（127.0.0.1 或 docker 网关），全站访客共享同一个限流桶；
+- 后端一跳：`AIYA_WP_API_URL` 用 WP 的真实 https 域名，公网证书无需任何额外
+  信任配置（本机试跑的自签垫片仅限开发机）。
+
 部署检查单：
 
 - WP 侧 `wp-config` 定义 `AIYA_PROXY_SECRET` 常量且与容器注入值一致——反代桥
