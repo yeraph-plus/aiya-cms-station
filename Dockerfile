@@ -2,15 +2,15 @@
 # front-station production image: Astro 7 SSR (node adapter, standalone).
 #
 # Build (from the front-station directory):
-#   docker build -t aiya-front .
+#   docker build -t aiya-cms-build .
 #
 # Run:
-#   docker run -d --name aiya-front \
+#   docker run -d --name aiya-cms-build \
 #     -p 4321:4321 \
 #     -e AIYA_SITE_URL='https://your-front-domain/' \
 #     -e AIYA_WP_API_URL='https://your-wp-domain/wp-json/aiya/core/v1/' \
 #     -e AIYA_PROXY_SECRET='<same value as wp-config AIYA_PROXY_SECRET>' \
-#     aiya-front
+#     aiya-cms-build
 #
 # Every configuration value is runtime env (astro:env reads process.env) —
 # the image is built once and configured per environment. Nothing secret is
@@ -22,9 +22,9 @@
 # FROM. Override them only on constrained networks (the dev workstation pulls
 # through a mirror; a normal server needs none of this):
 #   docker build \
-#     --build-arg NODE_IMAGE=docker.1ms.run/library/node:22-alpine \
+#     --build-arg NODE_IMAGE=docker.1ms.run/library/node:24-alpine \
 #     --build-arg NPM_REGISTRY=https://registry.npmmirror.com .
-ARG NODE_IMAGE=node:22-alpine
+ARG NODE_IMAGE=node:24-alpine
 ARG NPM_REGISTRY=https://registry.npmjs.org
 
 # --- build stage: full toolchain, produces dist/ -----------------------------

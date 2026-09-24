@@ -37,12 +37,12 @@ cookie）。后端计划整体禁用 WP 原生端点，与本架构完全兼容�
 烘焙进构建产物，`.env` 永不进镜像（`.dockerignore`）。升级 = 重新 build 换容器。
 
 ```bash
-docker build -t aiya-front .
+docker build -t aiya-cms-build .
 # 受限网络经转存源构建（正常服务器不需要）：
-#   --build-arg NODE_IMAGE=docker.1ms.run/library/node:22-alpine
+#   --build-arg NODE_IMAGE=docker.1ms.run/library/node:24-alpine
 #   --build-arg NPM_REGISTRY=https://registry.npmmirror.com
 
-docker run -d --name aiya-front --restart unless-stopped   -p 4321:4321   -e AIYA_SITE_URL='https://前端域名/'   -e AIYA_WP_API_URL='https://WP域名/wp-json/aiya/core/v1/'   -e AIYA_PROXY_SECRET='与 wp-config 的 AIYA_PROXY_SECRET 常量同值'   aiya-front
+docker run -d --name aiya-cms-build --restart unless-stopped   -p 4321:4321   -e AIYA_SITE_URL='https://前端域名/'   -e AIYA_WP_API_URL='https://WP域名/wp-json/aiya/core/v1/'   -e AIYA_PROXY_SECRET='与 wp-config 的 AIYA_PROXY_SECRET 常量同值'   aiya-cms-build
 ```
 
 编排示例（贴进服务器现有 compose 即可，healthcheck 已内置在镜像里）：
@@ -50,7 +50,7 @@ docker run -d --name aiya-front --restart unless-stopped   -p 4321:4321   -e AIY
 ```yaml
 services:
   front:
-    image: aiya-front:latest
+    image: aiya-cms-build:latest
     restart: unless-stopped
     ports:
       - '4321:4321'
@@ -61,6 +61,22 @@ services:
       # AIYA_CLIENT_IP_HEADER: X-Real-IP   # 仅当最前置一层代理且已保证剥离客户端同名头
 ```
 
+### 自动发布（GitHub Actions）
+
+`.github/workflows/release.yml`：push 到 `main` 或打 `v*` 标签时自动跑
+`npm run verify`（类型 + 单测 + 格式 + 构建），全绿后 buildx 构建镜像并推送
+GHCR——`ghcr.io/<仓库属主>/aiya-cms-build`，`latest` 跟随 main、`v*` 标签出
+语义化版本 tag、每次构建另带 `sha-<短哈希>` 供回滚钉版；层缓存走 GHA。
+服务器侧只需：
+
+```bash
+docker pull ghcr.io/<仓库属主>/aiya-cms-build:latest
+```
+
+首次发布后包默认 private，按需在 GitHub 包设置页改 public（或保留 private
+并在服务器 `docker login ghcr.io`）。本机构建时按受限网络照旧传两个
+`--build-arg`（CI 上直连 docker.io 无需）。
+
 ### 反代由你自己的 nginx 托管（容器只出明文 HTTP）
 
 镜像不持有证书、不做 TLS——容器进程就是一个普通 node 服务，监听
@@ -68,7 +84,7 @@ services:
 建议发布端口时只绑 loopback，容器不直接对公网：
 
 ```bash
-docker run -d --name aiya-front --restart unless-stopped   -p 127.0.0.1:4321:4321   -e AIYA_SITE_URL='https://前端域名/'   -e AIYA_WP_API_URL='https://WP域名/wp-json/aiya/core/v1/'   -e AIYA_PROXY_SECRET='与 wp-config 的 AIYA_PROXY_SECRET 常量同值'   -e AIYA_CLIENT_IP_HEADER='X-Real-IP'   aiya-front
+docker run -d --name aiya-cms-build --restart unless-stopped   -p 127.0.0.1:4321:4321   -e AIYA_SITE_URL='https://前端域名/'   -e AIYA_WP_API_URL='https://WP域名/wp-json/aiya/core/v1/'   -e AIYA_PROXY_SECRET='与 wp-config 的 AIYA_PROXY_SECRET 常量同值'   -e AIYA_CLIENT_IP_HEADER='X-Real-IP'   aiya-cms-build
 ```
 
 对应的 nginx server 块（可直接改域名粘贴）：
