@@ -31,6 +31,49 @@ npm test                  # 单测（契约不变式 / i18n / SEO / 净化 / 门
 cookie）。后端计划整体禁用 WP 原生端点，与本架构完全兼容；未来若需要预览/
 管理能力，再引入服务账号。
 
+## 生产部署（Docker）
+
+镜像一次构建、运行时注入配置——`astro:env` 读的是进程环境，没有任何配置值
+烘焙进构建产物，`.env` 永不进镜像（`.dockerignore`）。升级 = 重新 build 换容器。
+
+```bash
+docker build -t aiya-front .
+# 受限网络经转存源构建（正常服务器不需要）：
+#   --build-arg NODE_IMAGE=docker.1ms.run/library/node:22-alpine
+#   --build-arg NPM_REGISTRY=https://registry.npmmirror.com
+
+docker run -d --name aiya-front --restart unless-stopped   -p 4321:4321   -e AIYA_SITE_URL='https://前端域名/'   -e AIYA_WP_API_URL='https://WP域名/wp-json/aiya/core/v1/'   -e AIYA_PROXY_SECRET='与 wp-config 的 AIYA_PROXY_SECRET 常量同值'   aiya-front
+```
+
+编排示例（贴进服务器现有 compose 即可，healthcheck 已内置在镜像里）：
+
+```yaml
+services:
+  front:
+    image: aiya-front:latest
+    restart: unless-stopped
+    ports:
+      - '4321:4321'
+    environment:
+      AIYA_SITE_URL: https://前端域名/
+      AIYA_WP_API_URL: https://WP域名/wp-json/aiya/core/v1/
+      AIYA_PROXY_SECRET: change-me
+      # AIYA_CLIENT_IP_HEADER: X-Real-IP   # 仅当最前置一层代理且已保证剥离客户端同名头
+```
+
+部署检查单：
+
+- WP 侧 `wp-config` 定义 `AIYA_PROXY_SECRET` 常量且与容器注入值一致——反代桥
+  生效的前提，否则限流/访客去重退化为本机共享桶（0.82.0 拍板）。
+- `AIYA_SITE_URL` 必须是最终对外 origin（生产为 https）：cookie `Secure` 判定、
+  canonical、sitemap、JSON-LD 全靠它；解析失败时站点 fail-closed 进 503 门禁
+  并在容器日志 `console.error` 报死。
+- 反代（nginx/CDN）→ 容器：透传 `Host` 与 `X-Forwarded-Proto`；容器只暴露在
+  内网或反代之后，不必直接对公网。
+- `AIYA_ALLOW_LOCAL_HTTP` 不进生产（仅 loopback HTTP 的开发开关）。
+- 容器以非 root 的 `node` 用户运行；HEALTHCHECK 探测本进程（后端宕机时的 503
+  门禁页也算健康——它检查的是前端容器，不是 WP）。
+
 ## 分层（依赖只能向下）
 
 ```

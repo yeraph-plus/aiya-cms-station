@@ -1,0 +1,19 @@
+# Build context hygiene: nothing local-env, VCS, dependency or artifact
+# shaped belongs in the image. The build only needs package manifests, src,
+# public/ and config.
+.env
+.env.*
+!.env.example
+.git
+.gitignore
+.gitattributes
+node_modules
+dist
+.astro
+tests
+docs
+README.md
+backend-snap.json
+Dockerfile
+.dockerignore
+*.log

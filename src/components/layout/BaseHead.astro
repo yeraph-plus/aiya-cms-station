@@ -63,8 +63,9 @@ const faviconHref = site.favicon ? rewriteMediaUrl(site.favicon.url) : '/favicon
 }
 <meta name="robots" content={robots} />
 {canonical && <link rel="canonical" href={canonical} />}
-<!-- no type attribute: the WP icon may be png/jpg; a wrong type hint
-     makes some browsers skip the candidate -->
+{/* No type attribute on the icon: the WP site icon may be png/jpg, and a
+    wrong type hint makes some browsers skip the candidate. HTML comments
+    here would ship in the page payload; this form does not. */}
 <link rel="icon" href={faviconHref} />
 <ClientRouter />
 {
