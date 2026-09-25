@@ -16,7 +16,9 @@ import {
   XIcon,
 } from 'lucide-react';
 
+import Avatar from '@/components/islands/Avatar';
 import { Card } from '@/components/ui/card';
+import EmptyNote from '@/components/islands/EmptyNote';
 import { Button } from '@/components/ui/button';
 import {
   Pagination as PaginationRoot,
@@ -352,24 +354,11 @@ function CardInfo({
       >
         {!vertical && item.author.name !== '' && (
           <span className="inline-flex shrink-0 items-center gap-1.5">
-            {item.author.avatar ? (
-              <img
-                src={item.author.avatar.url}
-                alt=""
-                width={16}
-                height={16}
-                className="size-4 rounded-full object-cover"
-                loading="lazy"
-                decoding="async"
-              />
-            ) : (
-              <span
-                aria-hidden="true"
-                className="flex size-4 items-center justify-center rounded-full bg-secondary text-[9px] font-medium"
-              >
-                {item.author.name.slice(0, 1)}
-              </span>
-            )}
+            <Avatar
+              name={item.author.name}
+              url={item.author.avatar?.url ?? null}
+              className="size-4 text-[9px]"
+            />
             {item.author.name}
           </span>
         )}
@@ -435,7 +424,7 @@ function FeedCard({
   const thumbUrl = item.thumbnail?.url ?? null;
   return (
     <Card
-      className={`group gap-0 overflow-hidden rounded-md py-0 transition-colors hover:border-body-muted ${
+      className={`group overflow-hidden rounded-md transition-colors hover:border-body-muted ${
         vertical ? '' : 'sm:h-[132px]'
       }`}
     >
@@ -1008,9 +997,7 @@ export default function PostLoop({
           ))}
         </div>
       ) : autoLoad ? null : (
-        <p className="rounded-lg border border-dashed border-border bg-surface px-6 py-8 text-center text-sm text-body-muted">
-          {emptyText}
-        </p>
+        <EmptyNote className="px-6 py-8">{emptyText}</EmptyNote>
       )}
       {autoLoad && (
         <div

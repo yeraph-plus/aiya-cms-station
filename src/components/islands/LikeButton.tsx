@@ -4,6 +4,8 @@ import { HeartIcon, LoaderCircleIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
+import { toastApiError } from '@/lib/feedback';
+import type { Locale } from '@/lib/i18n';
 
 export interface LikeButtonProps {
   postId: number;
@@ -12,12 +14,13 @@ export interface LikeButtonProps {
     /** Visible-name base for screen readers ("点赞"). */
     sr: string;
     success: string;
-    failed: string;
   };
   /** Guests cannot write interactions — clicks are intercepted with a toast. */
   loggedIn?: boolean;
   /** Toast copy for the guest intercept. */
   hint?: string;
+  /** Resolves the failure toast copy through the shared errors dictionary. */
+  locale: Locale;
 }
 
 /**
@@ -35,6 +38,7 @@ export default function LikeButton({
   labels,
   loggedIn = true,
   hint,
+  locale,
 }: LikeButtonProps) {
   const [likes, setLikes] = useState(initialLikes);
   const [liked, setLiked] = useState(false);
@@ -53,16 +57,17 @@ export default function LikeButton({
         ok?: boolean;
         likes?: number;
         already?: boolean;
+        code?: string;
       } | null;
       if (json?.ok && typeof json.likes === 'number') {
         setLikes(json.likes);
         setLiked(true);
         toast.success(labels.success);
       } else {
-        toast.error(labels.failed);
+        toastApiError(json?.code ?? null, locale);
       }
     } catch {
-      toast.error(labels.failed);
+      toastApiError(null, locale);
     } finally {
       setBusy(false);
     }

@@ -15,6 +15,7 @@ import {
 import { Input } from '@/components/ui/input';
 import RichEditor, { AttachmentStrip } from '@/components/islands/user-center/RichEditor';
 import { sanitizeCommentHtml } from '@/lib/content';
+import Avatar from '@/components/islands/Avatar';
 import type { Comment, SiteComments } from '@/lib/core/contracts';
 import { displayDate } from '@/lib/format';
 import { rewriteMediaUrl } from '@/lib/media';
@@ -278,7 +279,7 @@ export default function CommentSection({
           <p className="text-center text-sm text-body-muted">{copy.closed}</p>
         </div>
       ) : canComment ? (
-        <Card className="gap-0 p-4">
+        <Card className="p-4">
           <form onSubmit={(event) => void submit(event)} className="flex flex-col gap-3">
             {!loggedIn && (
               <div className="grid gap-3 sm:grid-cols-2">
@@ -286,6 +287,7 @@ export default function CommentSection({
                   value={guestName}
                   onChange={(event) => setGuestName(event.target.value)}
                   placeholder={copy.guestName}
+                  aria-label={copy.guestName}
                   maxLength={245}
                   required={settings.requireNameEmail}
                 />
@@ -294,6 +296,7 @@ export default function CommentSection({
                   value={guestEmail}
                   onChange={(event) => setGuestEmail(event.target.value)}
                   placeholder={copy.guestEmail}
+                  aria-label={copy.guestEmail}
                   maxLength={254}
                   required={settings.requireNameEmail}
                 />
@@ -414,22 +417,11 @@ function CommentCard({
   return (
     <div className="rounded-lg border border-border bg-surface p-4">
       <div className="flex items-center gap-2 text-sm">
-        {comment.author.avatar ? (
-          <img
-            src={rewriteMediaUrl(comment.author.avatar)}
-            alt=""
-            width={22}
-            height={22}
-            className="rounded-full"
-          />
-        ) : (
-          <span
-            aria-hidden="true"
-            className="flex size-[22px] items-center justify-center rounded-full bg-secondary text-[10px] font-medium"
-          >
-            {comment.author.name.slice(0, 1)}
-          </span>
-        )}
+        <Avatar
+          url={comment.author.avatar ? rewriteMediaUrl(comment.author.avatar) : null}
+          name={comment.author.name}
+          className="size-[22px] text-[10px]"
+        />
         <span className="font-medium text-foreground">{comment.author.name}</span>
         {comment.publishedAt && (
           <span className="text-xs text-body-muted">

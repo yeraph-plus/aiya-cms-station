@@ -15,6 +15,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import Avatar from '@/components/islands/Avatar';
+import { flashToast } from '@/lib/feedback';
 import type { UserCenterCopy, UserCenterUser } from './types';
 
 /**
@@ -22,12 +24,14 @@ import type { UserCenterCopy, UserCenterUser } from './types';
  * email below) and the hub entries — every hub link lands on /profile/me/
  * with a tab param (the hub island reads ?tab=); the public archive stays
  * reachable from the hub itself, not from this menu. Logout is the
- * destructive item and revokes the session before reloading.
+ * destructive item and revokes the session before reloading; the outcome
+ * toast rides the flash handoff so it survives the reload.
  */
 export function UserMenu({ user, copy }: { user: UserCenterUser; copy: UserCenterCopy }) {
   const logout = async () => {
     try {
-      await fetch('/api/auth/logout/', { method: 'POST' });
+      const response = await fetch('/api/auth/logout/', { method: 'POST' });
+      if (response.ok) flashToast({ kind: 'success', message: copy.logoutSuccess });
     } catch {
       /* clearing the cookie is what actually matters */
     } finally {
@@ -43,16 +47,7 @@ export function UserMenu({ user, copy }: { user: UserCenterUser; copy: UserCente
           aria-label={user.nickname}
           className="flex size-8 cursor-pointer items-center justify-center rounded-full outline-none hover:bg-secondary focus-visible:outline-2 focus-visible:outline-focus-blue"
         >
-          {user.avatarUrl ? (
-            <img src={user.avatarUrl} alt="" width={26} height={26} className="rounded-full" />
-          ) : (
-            <span
-              aria-hidden="true"
-              className="flex size-[26px] items-center justify-center rounded-full bg-secondary text-xs font-medium"
-            >
-              {user.nickname.slice(0, 1)}
-            </span>
-          )}
+          <Avatar url={user.avatarUrl} name={user.nickname} className="size-[26px] text-xs" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" sideOffset={8} className="w-64">

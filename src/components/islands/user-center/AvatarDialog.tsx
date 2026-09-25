@@ -10,12 +10,17 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { t, type Locale } from '@/lib/i18n';
+import Avatar from '@/components/islands/Avatar';
+import ConfirmPopover from '@/components/islands/ConfirmPopover';
+import { apiErrorCopy } from '@/lib/feedback';
+import type { Locale } from '@/lib/i18n';
 
 export interface AvatarDialogCopy {
   avatarTitle: string;
   changeAvatar: string;
   removeAvatar: string;
+  avatarRemoveConfirm: string;
+  cancel: string;
   save: string;
   authFailed: string;
 }
@@ -114,7 +119,7 @@ export default function AvatarDialog({
     }
   };
 
-  const remove = async () => {
+  const remove = async (): Promise<boolean> => {
     setBusy(true);
     setError(null);
     try {
@@ -123,22 +128,23 @@ export default function AvatarDialog({
       if (json?.ok) {
         onChanged(null);
         onOpenChange(false);
-      } else {
-        setError('generic');
+        return true;
       }
+      setError('generic');
+      return false;
     } catch {
       setError('generic');
+      return false;
     } finally {
       setBusy(false);
     }
   };
 
-  const errors = t(locale).errors as Record<string, string | undefined>;
-  const errorText = error ? (errors[error] ?? copy.authFailed) : null;
+  const errorText = error ? apiErrorCopy(error, locale) : null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[min(92vw,380px)] gap-5 sm:max-w-[380px]">
+      <DialogContent className="w-[min(92vw,var(--container-dialog-sm))] gap-5 sm:max-w-dialog-sm">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <KeyRoundIcon className="size-4 text-primary" />
@@ -148,22 +154,7 @@ export default function AvatarDialog({
         </DialogHeader>
 
         <div className="flex flex-col items-center gap-4">
-          {display ? (
-            <img
-              src={display}
-              alt={nickname}
-              width={112}
-              height={112}
-              className="size-28 rounded-full object-cover"
-            />
-          ) : (
-            <span
-              aria-hidden="true"
-              className="flex size-28 items-center justify-center rounded-full bg-secondary text-3xl font-semibold"
-            >
-              {nickname.slice(0, 1)}
-            </span>
-          )}
+          <Avatar url={display} name={nickname} className="size-28 text-3xl font-semibold" />
           {preview && <p className="text-xs text-body-muted">{copy.changeAvatar}</p>}
           <input
             ref={fileInput}
@@ -178,10 +169,17 @@ export default function AvatarDialog({
               {copy.changeAvatar}
             </Button>
             {avatarUrl && (
-              <Button variant="ghost" size="sm" disabled={busy} onClick={() => void remove()}>
-                <Trash2Icon className="size-4" />
-                {copy.removeAvatar}
-              </Button>
+              <ConfirmPopover
+                text={copy.avatarRemoveConfirm}
+                cancelLabel={copy.cancel}
+                confirmLabel={copy.removeAvatar}
+                onConfirm={remove}
+              >
+                <Button variant="ghost" size="sm" disabled={busy}>
+                  <Trash2Icon className="size-4" />
+                  {copy.removeAvatar}
+                </Button>
+              </ConfirmPopover>
             )}
           </div>
           {errorText && (

@@ -3,16 +3,21 @@ import { useState } from 'react';
 import { LoaderCircleIcon, StarIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { toastApiError } from '@/lib/feedback';
+import type { Locale } from '@/lib/i18n';
+
 export interface RatingRowProps {
   postId: number;
   initialScore: number | null;
   initialCount: number | null;
   /** Localized labels: sr-only verb, the "n raters" formatter, thanks copy. */
-  labels: { rating: string; countText: (n: number) => string; thanks: string; failed: string };
+  labels: { rating: string; countText: (n: number) => string; thanks: string };
   /** Guests cannot write interactions — clicks are intercepted with a toast. */
   loggedIn?: boolean;
   /** Toast copy for the guest intercept. */
   hint?: string;
+  /** Resolves the failure toast copy through the shared errors dictionary. */
+  locale: Locale;
 }
 
 const STARS = [1, 2, 3, 4, 5];
@@ -37,6 +42,7 @@ export default function RatingRow({
   labels,
   loggedIn = true,
   hint,
+  locale,
 }: RatingRowProps) {
   const [score, setScore] = useState(initialScore);
   const [count, setCount] = useState(initialCount ?? 0);
@@ -63,6 +69,7 @@ export default function RatingRow({
         ok?: boolean;
         score?: number;
         count?: number;
+        code?: string;
       } | null;
       if (json?.ok && typeof json.score === 'number') {
         setScore(json.score);
@@ -71,10 +78,10 @@ export default function RatingRow({
         setHover(null);
         toast.success(labels.thanks);
       } else {
-        toast.error(labels.failed);
+        toastApiError(json?.code ?? null, locale);
       }
     } catch {
-      toast.error(labels.failed);
+      toastApiError(null, locale);
     } finally {
       setBusy(false);
     }

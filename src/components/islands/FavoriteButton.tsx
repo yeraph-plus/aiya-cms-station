@@ -4,21 +4,23 @@ import { BookmarkIcon, LoaderCircleIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
+import { toastApiError } from '@/lib/feedback';
+import type { Locale } from '@/lib/i18n';
 
 export interface FavoriteButtonProps {
   postId: number;
-  /** Localized action labels (common.favorite / favorited / failed family). */
+  /** Localized action labels (common.favorite / favorited family). */
   labels: {
     favorite: string;
     favorited: string;
-    failed: string;
     removed: string;
-    removeFailed: string;
   };
   /** Guests cannot write interactions — clicks are intercepted with a toast. */
   loggedIn?: boolean;
   /** Toast copy for the guest intercept. */
   hint?: string;
+  /** Resolves the failure toast copy through the shared errors dictionary. */
+  locale: Locale;
 }
 
 /**
@@ -35,6 +37,7 @@ export default function FavoriteButton({
   labels,
   loggedIn = true,
   hint,
+  locale,
 }: FavoriteButtonProps) {
   const [favorited, setFavorited] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -57,15 +60,16 @@ export default function FavoriteButton({
       const json = (await response.json().catch(() => null)) as {
         ok?: boolean;
         favorited?: boolean;
+        code?: string;
       } | null;
       if (json?.ok && typeof json.favorited === 'boolean') {
         setFavorited(json.favorited);
         toast.success(json.favorited ? labels.favorited : labels.removed);
       } else {
-        toast.error(favorited ? labels.removeFailed : labels.failed);
+        toastApiError(json?.code ?? null, locale);
       }
     } catch {
-      toast.error(favorited ? labels.removeFailed : labels.failed);
+      toastApiError(null, locale);
     } finally {
       setBusy(false);
     }

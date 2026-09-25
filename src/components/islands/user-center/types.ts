@@ -26,6 +26,10 @@ export interface UserCenterCopy {
   passwordConfirmLabel: string;
   nicknameLabel: string;
   authFailed: string;
+  /** Reload-borne outcome toasts (flashToast): login / register / logout. */
+  loginSuccess: string;
+  registerSuccess: string;
+  logoutSuccess: string;
   forgotPassword: string;
   /** Prebuilt greeting with the site name. */
   welcome: string;

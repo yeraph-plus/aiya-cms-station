@@ -24,6 +24,8 @@ import {
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import type { Tier } from '@/lib/core/contracts';
+import { apiErrorCopy } from '@/lib/feedback';
+import EmptyNote from '@/components/islands/EmptyNote';
 import { t, type Locale } from '@/lib/i18n';
 import { paymentMethods, purchasableTiers } from '@/lib/membership';
 
@@ -100,7 +102,7 @@ function PlanCard({
   };
 
   return (
-    <Card className="gap-0 py-0">
+    <Card>
       <CardHeader className="pt-6 pb-5">
         {/* The pricing facts, four rows: name / total price + reset cadence /
             per-cycle small print / the configured blurb — no rule between
@@ -189,9 +191,7 @@ export function MembershipPlans({
 }) {
   const dict = t(locale);
   const copy = dict.membership;
-  const errorCopy = dict.errors as Record<string, string | undefined>;
-  const message = (code?: string | null) =>
-    (code ? errorCopy[code] : undefined) ?? dict.errors.generic;
+  const message = (code?: string | null) => apiErrorCopy(code, locale);
 
   const [redeemChannel, setRedeemChannel] = useState<'redeem' | 'afdian'>('redeem');
   const [redeemBusy, setRedeemBusy] = useState(false);
@@ -263,9 +263,7 @@ export function MembershipPlans({
   return (
     <div className="flex flex-col gap-5">
       {tiers.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-border px-6 py-8 text-center text-sm text-body-muted">
-          {copy.tiersEmpty}
-        </p>
+        <EmptyNote className="px-6 py-8">{copy.tiersEmpty}</EmptyNote>
       ) : (
         // Three columns always visible; further cards (or a viewport too
         // narrow for three) overflow into a horizontal scroll, never a

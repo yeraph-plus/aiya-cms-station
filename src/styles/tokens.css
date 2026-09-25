@@ -53,6 +53,8 @@
   --color-status-danger: var(--status-danger);
   --color-spoiler-bg: var(--spoiler-bg);
   --color-spoiler-fg: var(--spoiler-fg);
+  --color-scrim-modal: var(--scrim-modal);
+  --color-scrim-immersive: var(--scrim-immersive);
 }
 :root {
   --background: #f6f6f8;
@@ -97,6 +99,25 @@
   --status-danger: #dc2626;
   --spoiler-bg: #18181b;
   --spoiler-fg: #fafafa;
+  /* Scrim two-step (UX.md §4): modal overlays vs immersive surfaces
+     (lightbox / fullscreen editor). Mode-agnostic — fixed to :root like the
+     status accents. */
+  --scrim-modal: rgb(0 0 0 / 0.5);
+  --scrim-immersive: rgb(15 15 20 / 0.85);
+}
+
+/* Named scales (DESIGN.md §3 守卫 + §4 词汇表): non-inline @theme so the
+   variables also land on :root — `min(92vw, var(--container-dialog-sm))`
+   reads them outside utilities. The shell width retires the duplicated
+   max-w-[1510px] literals (DESIGN.md §6#9), the dialog width #10. */
+@theme {
+  --container-shell: 1510px;
+  --container-dialog-sm: 380px;
+  /* Motion vocabulary (§4): micro-interaction / popover / page-level. */
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 300ms;
+  --ease-standard: ease;
 }
 /* Dark palette: provisional neutral sheet on the prototype's ink hue;
    refinement follows the (future) dark-mode design spec. The brand
@@ -145,5 +166,20 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+  }
+}
+
+/* Reduced motion (LAYOUT.md accessibility contract, UX.md §4): when the
+   visitor asks for calm, every animation and transition collapses to
+   instant — tw-animate-css popovers, drawer transitions, spinner spins —
+   and smooth scrolling falls back to auto. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

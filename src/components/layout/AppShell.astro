@@ -4,7 +4,7 @@ import DesktopSidebar from '@/components/layout/desktop/DesktopSidebar.astro';
 import DesktopHeader from '@/components/layout/desktop/DesktopHeader.astro';
 import Footer from '@/components/layout/Footer.astro';
 import MobileTopBar from '@/components/layout/mobile/MobileTopBar.astro';
-import MobilePendingBanner from '@/components/layout/mobile/PendingBanner.astro';
+import MobileMenuDrawer from '@/components/layout/mobile/MobileMenuDrawer.astro';
 import TabBar from '@/components/layout/mobile/TabBar.astro';
 import Icon from '@/components/layout/Icon.astro';
 import PageState from '@/components/layout/PageState.astro';
@@ -69,6 +69,9 @@ const authCopy = {
   passwordConfirmLabel: copy.shell.passwordConfirmLabel,
   nicknameLabel: copy.shell.nicknameLabel,
   authFailed: copy.shell.authFailed,
+  loginSuccess: copy.shell.loginSuccess,
+  registerSuccess: copy.shell.registerSuccess,
+  logoutSuccess: copy.shell.logoutSuccess,
   forgotPassword: copy.shell.forgotPassword,
   welcome: copy.shell.welcome(page.site.name),
   remember: copy.shell.remember,
@@ -147,7 +150,6 @@ const showBanner = bannerUrl !== null && isHome;
             timezone={page.site.timezone}
           />
         </div>
-        <MobilePendingBanner text={copy.shell.mobilePending} />
         <MobileTopBar
           siteName={page.site.name}
           user={sessionUser}
@@ -159,7 +161,7 @@ const showBanner = bannerUrl !== null && isHome;
         />
         <main
           id="main-content"
-          class="mx-auto w-full max-w-[1510px] flex-1 px-4 pb-10 pt-4 min-[992px]:px-[clamp(1.5rem,4vw,4.5rem)] min-[992px]:pb-12"
+          class="mx-auto w-full max-w-shell flex-1 px-4 pb-10 pt-4 min-[992px]:px-[clamp(1.5rem,4vw,4.5rem)] min-[992px]:pb-12"
         >
           {page.site.blocks.adsTop.length > 0 && <AdSpace client:load slots={adsTop} />}
           <Breadcrumb />
@@ -188,8 +190,13 @@ const showBanner = bannerUrl !== null && isHome;
         <Footer site={page.site} footerMenu={page.footerMenu.items} />
       </div>
     </div>
-    <TabBar menu={page.menu} pathname={Astro.url.pathname} />
-    <Toaster client:only="react" position="top-center" />
+    <TabBar menu={page.menu} pathname={Astro.url.pathname} locale={page.locale} />
+    <MobileMenuDrawer
+      siteName={page.site.name}
+      menu={page.menu.items}
+      pathname={Astro.url.pathname}
+    />
+    <Toaster client:only="react" />
     <button
       type="button"
       data-back-to-top
@@ -242,6 +249,17 @@ const showBanner = bannerUrl !== null && isHome;
   document.addEventListener('click', (event) => {
     if (!(event.target instanceof Element)) return;
     if (!event.target.closest('[data-back-to-top]')) return;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({ top: 0, behavior: calm ? 'auto' : 'smooth' });
+  });
+
+  // Color mode toggle: both shells carry a [data-color-toggle] button
+  // (desktop header + mobile top bar), so the listener lives here — exactly
+  // one per page, delegated, surviving ClientRouter swaps.
+  document.addEventListener('click', (event) => {
+    if (!(event.target instanceof Element)) return;
+    if (!event.target.closest('[data-color-toggle]')) return;
+    const dark = document.documentElement.classList.toggle('dark');
+    localStorage.setItem('aiya-color-mode', dark ? 'dark' : 'light');
   });
 </script>

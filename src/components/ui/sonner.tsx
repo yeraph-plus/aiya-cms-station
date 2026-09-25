@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+
 import {
   CircleCheckIcon,
   InfoIcon,
@@ -5,7 +7,9 @@ import {
   OctagonXIcon,
   TriangleAlertIcon,
 } from 'lucide-react';
-import { Toaster as Sonner, type ToasterProps } from 'sonner';
+import { Toaster as Sonner, toast, type ToasterProps } from 'sonner';
+
+import { consumeFlashToast } from '@/lib/feedback';
 
 // Theme comes from the shell's class-based color mode (html.dark, managed by
 // BaseHead's pre-paint script + the header toggle) — not next-themes. Mount
@@ -16,10 +20,22 @@ const colorMode = (): ToasterProps['theme'] => {
 };
 
 const Toaster = ({ ...props }: ToasterProps) => {
+  // Deliver reload-borne session feedback (login/logout queue it via
+  // flashToast before reloading): this island is the one flash consumer.
+  useEffect(() => {
+    const flash = consumeFlashToast();
+    if (flash) toast[flash.kind](flash.message);
+  }, []);
+
   return (
     <Sonner
       theme={colorMode()}
       className="toaster group"
+      // Placement is site policy, owned here so every mount point lands the
+      // same: bottom-right on ≥600px; below that sonner centers horizontally,
+      // and the bottom offset clears the TabBar (56px row + safe-area inset).
+      position="bottom-right"
+      mobileOffset={{ bottom: 'calc(72px + env(safe-area-inset-bottom))' }}
       icons={{
         success: <CircleCheckIcon className="size-4" />,
         info: <InfoIcon className="size-4" />,

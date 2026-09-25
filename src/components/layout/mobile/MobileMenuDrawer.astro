@@ -1,0 +1,162 @@
+---
+import Icon from '@/components/layout/Icon.astro';
+import type { MenuItem } from '@/lib/core/contracts';
+import { menuIconName } from '@/lib/icons';
+import { safeHref } from '@/lib/media';
+
+interface Props {
+  siteName: string;
+  menu: MenuItem[];
+  pathname: string;
+}
+const { siteName, menu, pathname } = Astro.props;
+
+const isActive = (url: string) => (url === '/' ? pathname === '/' : pathname.startsWith(url));
+const isExternal = (url: string) => /^https?:\/\//i.test(url);
+
+// Row proportions mirror the desktop sidebar (44px rows, 14px text) so the
+// full menu tree reads the same in both shells.
+const linkClass =
+  'my-0.5 flex min-h-[44px] items-center gap-3.5 rounded-md px-3.5 py-3 text-sm transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-focus-blue';
+const subLinkClass =
+  'flex min-h-[44px] items-center rounded-md px-3 py-2 text-sm transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-focus-blue';
+---
+
+<!-- Mobile menu drawer (UX.md §6): the TabBar "more" button opens the full
+    primary tree here. Non-modal — the overlay click, Escape and route
+    changes all close it. Closed state is inert so nothing inside can be
+    tabbed into; the root's data-open drives both panels through the group
+    variant. Desktop shells never render it visible. -->
+<div id="mobile-menu-drawer-root" class="group min-[992px]:hidden">
+  <div
+    id="mobile-menu-drawer-overlay"
+    data-drawer-overlay
+    inert
+    aria-hidden="true"
+    class="pointer-events-none fixed inset-0 z-40 bg-foreground/50 opacity-0 transition-opacity duration-200 group-data-[open]:pointer-events-auto group-data-[open]:opacity-100"
+  >
+  </div>
+  <aside
+    id="mobile-menu-drawer"
+    inert
+    tabindex="-1"
+    class="fixed inset-y-0 left-0 z-50 flex w-[280px] max-w-[85vw] -translate-x-full flex-col border-r border-border bg-surface transition-transform duration-200 group-data-[open]:translate-x-0"
+  >
+    <div class="flex h-14 shrink-0 items-center justify-between border-b border-border px-4">
+      <span class="font-display text-lg font-semibold tracking-tight">{siteName}</span>
+      <button
+        type="button"
+        data-drawer-close
+        class="flex size-10 items-center justify-center rounded-md text-foreground hover:bg-secondary focus-visible:outline-2 focus-visible:outline-focus-blue"
+      >
+        <Icon name="x" size={20} strokeWidth={1.8} />
+      </button>
+    </div>
+    <nav aria-label={siteName} class="flex-1 overflow-y-auto px-3 py-4">
+      <ul class="flex flex-col">
+        {
+          menu.map((item) =>
+            item.children.length > 0 ? (
+              <li>
+                <details open={isActive(item.url)} class="group/details">
+                  <summary
+                    class:list={[
+                      linkClass,
+                      'cursor-pointer list-none [&::-webkit-details-marker]:hidden',
+                    ]}
+                  >
+                    <Icon name={menuIconName(item)} size={20} strokeWidth={1.8} />
+                    <span>{item.label}</span>
+                    <Icon
+                      name="chevronRight"
+                      size={16}
+                      strokeWidth={1.8}
+                      class="ml-auto transition-transform duration-200 group-open/details:rotate-90"
+                    />
+                  </summary>
+                  <ul class="flex flex-col pl-4">
+                    {item.children.map((child) => (
+                      <li>
+                        <a
+                          href={safeHref(child.url) ?? undefined}
+                          aria-current={isActive(child.url) ? 'page' : undefined}
+                          class:list={[
+                            subLinkClass,
+                            isActive(child.url)
+                              ? 'bg-secondary font-semibold text-primary'
+                              : 'text-body-muted',
+                          ]}
+                        >
+                          {child.label}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              </li>
+            ) : (
+              <li>
+                <a
+                  href={safeHref(item.url) ?? undefined}
+                  title={item.label}
+                  aria-current={isActive(item.url) ? 'page' : undefined}
+                  target={isExternal(item.url) ? '_blank' : undefined}
+                  rel={isExternal(item.url) ? 'noreferrer' : undefined}
+                  class:list={[
+                    linkClass,
+                    isActive(item.url)
+                      ? 'bg-secondary font-semibold text-primary'
+                      : 'text-foreground',
+                  ]}
+                >
+                  <Icon name={menuIconName(item)} size={20} strokeWidth={1.8} />
+                  <span>{item.label}</span>
+                </a>
+              </li>
+            ),
+          )
+        }
+      </ul>
+    </nav>
+  </aside>
+</div>
+
+<script>
+  // Drawer open/close, document-level so it survives ClientRouter swaps.
+  // Opening removes inert from both panels and moves focus into the drawer;
+  // closing restores it to the invoking TabBar button. Route swaps replace
+  // the SSR markup, which renders closed — that is the auto-close path.
+  const root = () => document.getElementById('mobile-menu-drawer-root');
+  const panel = () => document.getElementById('mobile-menu-drawer');
+  const overlay = () => document.getElementById('mobile-menu-drawer-overlay');
+
+  const setOpen = (open: boolean) => {
+    root()?.toggleAttribute('data-open', open);
+    panel()?.toggleAttribute('inert', !open);
+    overlay()?.toggleAttribute('inert', !open);
+    for (const button of document.querySelectorAll<HTMLElement>('[data-drawer-toggle]')) {
+      button.setAttribute('aria-expanded', String(open));
+    }
+    if (open) panel()?.focus();
+    else document.querySelector<HTMLElement>('[data-drawer-toggle]')?.focus();
+  };
+
+  document.addEventListener('click', (event) => {
+    if (!(event.target instanceof Element)) return;
+    if (event.target.closest('[data-drawer-toggle]')) {
+      setOpen(true);
+      return;
+    }
+    if (
+      event.target.closest('[data-drawer-close]') ||
+      event.target.closest('[data-drawer-overlay]')
+    ) {
+      setOpen(false);
+      return;
+    }
+    if (event.target.closest('#mobile-menu-drawer a')) setOpen(false);
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && root()?.hasAttribute('data-open')) setOpen(false);
+  });
+</script>

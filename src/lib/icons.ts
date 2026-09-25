@@ -1,4 +1,5 @@
 import * as lucide from 'lucide-static';
+import type { MenuItem } from '@/lib/core/contracts';
 
 /**
  * Server-side icon lookup over lucide-static (2079 icons as SVG strings).
@@ -35,4 +36,19 @@ export function iconInner(name: string): string | null {
   }
   cache.set(key, result);
   return result;
+}
+
+/** Lucide name for a menu row: the settings-set icon wins; otherwise the
+    URL shape picks one. Shared by the desktop sidebar and the mobile
+    TabBar/drawer so both shells can never disagree on an item's icon. */
+export function menuIconName(item: MenuItem): string {
+  if (item.icon) return item.icon;
+  const url = item.url;
+  if (/^https?:\/\//i.test(url)) return 'externalLink';
+  if (url === '/') return 'home';
+  if (url.startsWith('/resources')) return 'image';
+  if (url.startsWith('/community')) return 'messageCircle';
+  if (url.startsWith('/posts')) return 'fileText';
+  if (url.startsWith('/profile')) return 'user';
+  return 'chevronRight';
 }

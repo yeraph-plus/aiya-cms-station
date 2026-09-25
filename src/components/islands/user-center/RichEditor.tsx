@@ -280,6 +280,7 @@ export function PostEditorBlock({
         placeholder={
           mode === 'composer' ? `${labels.title}（${labels.titleOptional}）` : labels.title
         }
+        aria-label={labels.title}
         className="rounded-none border-0 border-b px-3 text-sm shadow-none focus-visible:ring-0 focus-visible:border-border"
       />
       <RichEditor

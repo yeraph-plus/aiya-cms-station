@@ -1,8 +1,10 @@
 import { useState } from 'react';
 
 import { LogInIcon, UserPlusIcon } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -12,6 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { flashToast } from '@/lib/feedback';
 import type { AuthMode, AuthResponse, UserCenterCopy } from './types';
 
 /**
@@ -36,6 +39,7 @@ export function AuthDialog({
 }) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [remember, setRemember] = useState(false);
 
   const switchMode = (next: AuthMode) => {
     setError(null);
@@ -69,10 +73,18 @@ export function AuthDialog({
       });
       const json = (await response.json().catch(() => null)) as AuthResponse | null;
       if (response.ok && json?.ok) {
+        // Success feedback outlives the reload via the flash handoff; the
+        // fresh page's SSR shell also picks up the session cookie.
+        flashToast({
+          kind: 'success',
+          message: mode === 'register' ? copy.registerSuccess : copy.loginSuccess,
+        });
         window.location.reload();
         return;
       }
-      setError(json?.message || copy.authFailed);
+      const message = json?.message || copy.authFailed;
+      toast.error(message);
+      setError(message);
     } catch {
       setError(copy.authFailed);
     } finally {
@@ -90,7 +102,7 @@ export function AuthDialog({
         }
       }}
     >
-      <DialogContent className="w-[min(92vw,380px)] gap-5 sm:max-w-[380px]">
+      <DialogContent className="w-[min(92vw,var(--container-dialog-sm))] gap-5 sm:max-w-dialog-sm">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {mode === 'register' ? (
@@ -157,7 +169,11 @@ export function AuthDialog({
             )}
             {mode === 'login' && (
               <label className="flex items-center gap-2 text-sm text-body-muted">
-                <input type="checkbox" name="remember" className="accent-primary" />
+                <input type="hidden" name="remember" value={remember ? 'on' : 'off'} />
+                <Checkbox
+                  checked={remember}
+                  onCheckedChange={(checked) => setRemember(checked === true)}
+                />
                 {copy.remember}
               </label>
             )}

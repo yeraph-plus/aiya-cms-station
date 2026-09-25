@@ -5,6 +5,8 @@ import SettingsPanel from './SettingsPanel';
 import WalletPanel from './WalletPanel';
 import type { Locale } from '@/lib/i18n/locale';
 import type { MembershipState, CreditEntry } from '@/lib/core/contracts';
+import Avatar from '@/components/islands/Avatar';
+import EmptyNote from '@/components/islands/EmptyNote';
 import type { SettingsCopy, SettingsUser } from './SettingsPanel';
 
 export interface HubFavorite {
@@ -118,9 +120,7 @@ export default function UserHub({
             ))}
           </ul>
         ) : (
-          <p className="rounded-lg border border-dashed border-border bg-surface px-6 py-8 text-center text-sm text-body-muted">
-            {emptyText}
-          </p>
+          <EmptyNote className="px-6 py-8">{emptyText}</EmptyNote>
         )}
       </TabsContent>
 
@@ -133,22 +133,7 @@ export default function UserHub({
                   href={`/profile/${author.slug}/`}
                   className="flex items-center gap-3 rounded-lg border border-border bg-surface p-3 transition-colors hover:border-body-muted"
                 >
-                  {author.avatarUrl ? (
-                    <img
-                      src={author.avatarUrl}
-                      alt=""
-                      width={36}
-                      height={36}
-                      className="size-9 rounded-full object-cover"
-                    />
-                  ) : (
-                    <span
-                      aria-hidden="true"
-                      className="flex size-9 items-center justify-center rounded-full bg-secondary text-sm font-medium"
-                    >
-                      {author.name.slice(0, 1)}
-                    </span>
-                  )}
+                  <Avatar url={author.avatarUrl} name={author.name} className="size-9 text-sm" />
                   <span className="truncate text-sm font-medium text-foreground">
                     {author.name}
                   </span>
@@ -157,9 +142,7 @@ export default function UserHub({
             ))}
           </ul>
         ) : (
-          <p className="rounded-lg border border-dashed border-border bg-surface px-6 py-8 text-center text-sm text-body-muted">
-            {emptyText}
-          </p>
+          <EmptyNote className="px-6 py-8">{emptyText}</EmptyNote>
         )}
       </TabsContent>
 
@@ -172,22 +155,7 @@ export default function UserHub({
                   href={`/profile/${author.slug}/`}
                   className="flex items-center gap-3 rounded-lg border border-border bg-surface p-3 transition-colors hover:border-body-muted"
                 >
-                  {author.avatarUrl ? (
-                    <img
-                      src={author.avatarUrl}
-                      alt=""
-                      width={36}
-                      height={36}
-                      className="size-9 rounded-full object-cover"
-                    />
-                  ) : (
-                    <span
-                      aria-hidden="true"
-                      className="flex size-9 items-center justify-center rounded-full bg-secondary text-sm font-medium"
-                    >
-                      {author.name.slice(0, 1)}
-                    </span>
-                  )}
+                  <Avatar url={author.avatarUrl} name={author.name} className="size-9 text-sm" />
                   <span className="truncate text-sm font-medium text-foreground">
                     {author.name}
                   </span>
@@ -196,9 +164,7 @@ export default function UserHub({
             ))}
           </ul>
         ) : (
-          <p className="rounded-lg border border-dashed border-border bg-surface px-6 py-8 text-center text-sm text-body-muted">
-            {followersEmpty}
-          </p>
+          <EmptyNote className="px-6 py-8">{followersEmpty}</EmptyNote>
         )}
       </TabsContent>
 

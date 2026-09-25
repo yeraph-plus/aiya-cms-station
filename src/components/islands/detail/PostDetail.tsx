@@ -77,7 +77,7 @@ export default function PostDetail({
   return (
     <article className="lg:grid lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start lg:gap-8">
       <div className="min-w-0">
-        <Card className="gap-0 overflow-hidden py-0">
+        <Card className="overflow-hidden">
           <ArticleHeader
             post={post}
             locale={locale}

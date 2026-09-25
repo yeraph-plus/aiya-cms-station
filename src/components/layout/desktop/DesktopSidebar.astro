@@ -1,6 +1,7 @@
 ---
 import Icon from '@/components/layout/Icon.astro';
 import type { MenuItem, Site } from '@/lib/core/contracts';
+import { menuIconName } from '@/lib/icons';
 import { rewriteMediaUrl, safeHref } from '@/lib/media';
 
 interface Props {
@@ -12,18 +13,6 @@ const { site, menu, pathname } = Astro.props;
 
 const isActive = (url: string) => (url === '/' ? pathname === '/' : pathname.startsWith(url));
 const isExternal = (url: string) => /^https?:\/\//i.test(url);
-// Settings-set icon (lucide name) wins; otherwise the icon is picked from
-// the row's URL shape.
-const iconName = (item: MenuItem): string => item.icon ?? iconFor(item.url);
-const iconFor = (url: string): string => {
-  if (isExternal(url)) return 'externalLink';
-  if (url === '/') return 'home';
-  if (url.startsWith('/resources')) return 'image';
-  if (url.startsWith('/community')) return 'messageCircle';
-  if (url.startsWith('/posts')) return 'fileText';
-  if (url.startsWith('/profile')) return 'user';
-  return 'chevronRight';
-};
 
 // Proportions ported 1:1 from the frozen prototype (global.css .nav-items):
 // min-height 44px, 14px text, 0.9rem gap, 5px radius, 0.2rem row gap.
@@ -80,7 +69,7 @@ const subLinkClass =
                   ]}
                   title={item.label}
                 >
-                  <Icon name={iconName(item)} size={20} strokeWidth={1.8} />
+                  <Icon name={menuIconName(item)} size={20} strokeWidth={1.8} />
                   <span class="sidebar-collapse-hide">{item.label}</span>
                   <Icon
                     name="chevronRight"
@@ -124,7 +113,7 @@ const subLinkClass =
                     : 'text-foreground',
                 ]}
               >
-                <Icon name={iconName(item)} size={20} strokeWidth={1.8} />
+                <Icon name={menuIconName(item)} size={20} strokeWidth={1.8} />
                 <span class="sidebar-collapse-hide">{item.label}</span>
               </a>
             </li>

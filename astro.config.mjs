@@ -8,16 +8,37 @@ import tailwindcss from '@tailwindcss/vite';
 // 404 at the router; the canonical slash shape is enforced by the
 // middleware's 308 normalization instead. The backend DTO `url` fields
 // already carry their trailing slash.
+//
+// The SSR-dependency bundling is build-only by way of an integration hook:
+// the top-level config must stay a plain object — Astro 7.3.1's loader never
+// invokes a function-form default export, and mergeConfig then spreads the
+// function into {}, silently dropping the whole file (dev ran on defaults,
+// output=static). Conditional config goes through astro:config:setup instead,
+// whose updateConfig merges plain objects only.
+const bundleSsrDepsForStandalone = {
+  name: 'bundle-ssr-deps-for-standalone',
+  hooks: {
+    'astro:config:setup': ({ command, updateConfig }) => {
+      if (command !== 'build') return;
+      updateConfig({
+        vite: {
+          ssr: { noExternal: true },
+        },
+      });
+    },
+  },
+};
+
 export default defineConfig({
   output: 'server',
   adapter: node({ mode: 'standalone' }),
   trailingSlash: 'ignore',
-  integrations: [react()],
+  integrations: [react(), bundleSsrDepsForStandalone],
   vite: {
     plugins: [tailwindcss()],
-    // Bundle every SSR dependency into dist/server (react included, which
-    // Astro would otherwise externalize): the standalone build then needs no
-    // node_modules at runtime and the production image shrinks to base+dist.
-    ssr: { noExternal: true },
+    // Dev keeps the default dependency externalization — with `ssr.noExternal`
+    // the Vite 8 module runner evaluates react's CJS entry as ESM and crashes
+    // with "module is not defined" before the first request. The standalone
+    // build re-adds the flag via the integration above.
   },
 });

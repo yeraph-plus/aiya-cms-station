@@ -51,6 +51,8 @@ import UnlockGate from '@/components/islands/UnlockGate';
 import { safeContent } from '@/lib/content';
 import { iconInner } from '@/lib/icons';
 import { displayDate } from '@/lib/format';
+import Avatar from '@/components/islands/Avatar';
+import EmptyNote from '@/components/islands/EmptyNote';
 import { t, type Locale } from '@/lib/i18n';
 import type {
   Comment,
@@ -114,24 +116,11 @@ export function MetaRow({
   const item = `inline-flex items-center gap-1 ${muted}`;
   return (
     <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 text-xs ${muted}`}>
-      {post.author.avatar ? (
-        <img
-          src={post.author.avatar.url}
-          alt={post.author.name}
-          width={22}
-          height={22}
-          className="size-[22px] rounded-full object-cover"
-          loading="lazy"
-          decoding="async"
-        />
-      ) : (
-        <span
-          aria-hidden="true"
-          className="flex size-[22px] items-center justify-center rounded-full bg-secondary text-[10px] font-medium text-body-muted"
-        >
-          {post.author.name.slice(0, 1) || '?'}
-        </span>
-      )}
+      <Avatar
+        url={post.author.avatar?.url ?? null}
+        name={post.author.name}
+        className="size-[22px] text-[10px] text-body-muted"
+      />
       <span className="font-medium">{post.author.name}</span>
       <span className={item}>
         <CalendarIcon className="size-3" aria-hidden="true" />
@@ -273,10 +262,12 @@ function TitleRow({
   actions?: React.ReactNode;
 }) {
   return (
-    // No wrapping: the title truncates and the action bar keeps its locked
-    // spot at the right edge on every viewport.
-    <div className="flex w-full flex-nowrap items-center justify-between gap-x-4">
-      <div className="flex min-w-0 flex-nowrap items-center gap-x-3">
+    // On phones the title gets its own line: the action bar (~270px) would
+    // otherwise squeeze a long title down to zero width. From sm: up the
+    // single-line layout returns — the title truncates and the action bar
+    // keeps its locked spot at the right edge.
+    <div className="flex w-full flex-col gap-y-2.5 sm:flex-row sm:flex-nowrap sm:items-center sm:justify-between sm:gap-x-4">
+      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 sm:flex-nowrap">
         <h1
           className={`min-w-0 truncate font-display text-2xl font-semibold leading-tight tracking-tight ${
             hero ? 'text-white drop-shadow' : 'text-foreground'
@@ -438,7 +429,7 @@ export function ArticleBody({ post, locale }: { post: PostDetail; locale: Locale
         animation={{ zoom: 300 }}
         controller={{ closeOnBackdropClick: true }}
         carousel={{ padding: '4%' }}
-        styles={{ container: { backgroundColor: 'rgba(15, 15, 20, 0.85)' } }}
+        styles={{ container: { backgroundColor: 'var(--scrim-immersive)' } }}
       />
     </>
   );
@@ -581,12 +572,11 @@ export function ActionRow({
         labels={{
           favorite: copy.common.favorite,
           favorited: copy.common.favorited,
-          failed: copy.common.favoriteFailed,
           removed: copy.posts.unfavorited,
-          removeFailed: copy.posts.unfavoriteFailed,
         }}
         loggedIn={loggedIn}
         hint={hint}
+        locale={locale}
       />
       {variant === 'resource' ? (
         <RatingRow
@@ -599,10 +589,10 @@ export function ActionRow({
             // the "n raters" line with the fresh count immediately.
             countText: copy.posts.ratingCount,
             thanks: copy.posts.ratingThanks,
-            failed: copy.posts.ratingFailed,
           }}
           loggedIn={loggedIn}
           hint={hint}
+          locale={locale}
         />
       ) : (
         <LikeButton
@@ -611,10 +601,10 @@ export function ActionRow({
           labels={{
             sr: copy.posts.likes,
             success: copy.posts.likeSuccess,
-            failed: copy.posts.likeFailed,
           }}
           loggedIn={loggedIn}
           hint={hint}
+          locale={locale}
         />
       )}
     </div>
@@ -629,7 +619,7 @@ export function PrevNextNav({ post, locale }: { post: PostDetail; locale: Locale
   const copy = t(locale).posts;
   if (!post.previous && !post.next) return null;
   const card = (item: PostSummary, rel: 'prev' | 'next', label: string) => (
-    <Card className="gap-0 overflow-hidden py-0 transition-colors hover:border-body-muted">
+    <Card className="overflow-hidden transition-colors hover:border-body-muted">
       <a href={item.url} rel={rel} className="flex items-center gap-3 p-3">
         {item.thumbnail ? (
           <img
@@ -693,9 +683,7 @@ export function RelatedList({
         {heading ?? copy.posts.related}
       </h2>
       {items.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-border bg-surface px-6 py-6 text-center text-sm text-body-muted">
-          {emptyText ?? copy.posts.relatedEmpty}
-        </p>
+        <EmptyNote>{emptyText ?? copy.posts.relatedEmpty}</EmptyNote>
       ) : (
         <div className="flex flex-col gap-4">
           {items.map((item) => (
@@ -755,26 +743,13 @@ export function AuthorCard({
   const copy = t(locale);
   const profile = post.author.slug ? `/profile/${post.author.slug}/` : null;
   return (
-    <Card className="gap-0 p-4">
+    <Card className="p-4">
       <div className="flex items-center gap-3">
-        {post.author.avatar ? (
-          <img
-            src={post.author.avatar.url}
-            alt={post.author.name}
-            width={48}
-            height={48}
-            className="size-12 flex-none rounded-full object-cover"
-            loading="lazy"
-            decoding="async"
-          />
-        ) : (
-          <span
-            aria-hidden="true"
-            className="flex size-12 flex-none items-center justify-center rounded-full bg-secondary text-lg font-medium text-body-muted"
-          >
-            {post.author.name.slice(0, 1) || '?'}
-          </span>
-        )}
+        <Avatar
+          url={post.author.avatar?.url ?? null}
+          name={post.author.name}
+          className="size-12 flex-none text-lg text-body-muted"
+        />
         <div className="min-w-0 flex-1">
           {profile ? (
             <a
@@ -1247,11 +1222,7 @@ export function DownloadPanel({
 
   return (
     <div className="flex flex-col gap-5">
-      {!hasRows && (
-        <p className="rounded-lg border border-dashed border-border bg-surface px-6 py-6 text-center text-sm text-body-muted">
-          {copy.downloadsEmpty}
-        </p>
-      )}
+      {!hasRows && <EmptyNote>{copy.downloadsEmpty}</EmptyNote>}
       {lists.map((list) => {
         const items = sortEntries(list.items, sort);
         const files = list.items.filter((file) => file.kind === 'file');

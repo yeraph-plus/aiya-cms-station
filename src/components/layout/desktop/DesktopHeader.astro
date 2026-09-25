@@ -87,15 +87,3 @@ const scopeParam = Astro.url.searchParams.get('type') ?? '';
     />
   </div>
 </header>
-
-<script>
-  // Color mode toggle, document-level so it survives ClientRouter swaps.
-  // The header itself is deliberately not sticky (2026-09-11 拍板): it and
-  // the banner underlaying it scroll away together.
-  document.addEventListener('click', (event) => {
-    if (!(event.target instanceof Element)) return;
-    if (!event.target.closest('[data-color-toggle]')) return;
-    const dark = document.documentElement.classList.toggle('dark');
-    localStorage.setItem('aiya-color-mode', dark ? 'dark' : 'light');
-  });
-</script>

@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { CoinsIcon, LoaderCircleIcon } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { MembershipModal } from '@/components/islands/membership/MembershipModal';
 import type { MembershipState } from '@/lib/core/contracts';
+import { apiErrorCopy } from '@/lib/feedback';
 import { t, type Locale } from '@/lib/i18n';
 import { displayDay } from '@/lib/membership';
 import { DEFAULT_TIMEZONE } from '@/lib/format';
@@ -31,7 +33,6 @@ const checkinMarker = (): string => `aiya-checkin-${new Date().toISOString().sli
 export function WalletBubble({ locale, timezone }: { locale: Locale; timezone?: string }) {
   const dict = t(locale);
   const copy = dict.membership;
-  const errorCopy = dict.errors as Record<string, string | undefined>;
   const [open, setOpen] = useState(false);
   const [plansOpen, setPlansOpen] = useState(false);
   const [membership, setMembership] = useState<MembershipState | null>(null);
@@ -62,17 +63,21 @@ export function WalletBubble({ locale, timezone }: { locale: Locale; timezone?: 
         setBalance(json.grant.balance);
         setDone(true);
         setNotice(copy.checkinGranted(json.grant.granted));
+        toast.success(copy.checkinGranted(json.grant.granted));
         return 'granted';
       }
       if (json?.code === 'aiya_credit_checkin_done') {
         setDone(true);
         setNotice(copy.checkinDone);
+        toast.info(copy.checkinDone);
         return 'done';
       }
-      setNotice((json?.code && errorCopy[json.code]) || dict.errors.generic);
+      setNotice(apiErrorCopy(json?.code, locale));
+      toast.error(apiErrorCopy(json?.code, locale));
       return 'failed';
     } catch {
       setNotice(dict.errors.generic);
+      toast.error(dict.errors.generic);
       return 'failed';
     } finally {
       setCheckinBusy(false);

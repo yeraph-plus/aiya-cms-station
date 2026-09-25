@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { toast } from 'sonner';
-
 import {
   ChevronDownIcon,
   LoaderCircleIcon,
@@ -28,11 +26,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import EmptyNote from '@/components/islands/EmptyNote';
 import Spinner from '@/components/islands/Spinner';
+import Avatar from '@/components/islands/Avatar';
+import ConfirmPopover from '@/components/islands/ConfirmPopover';
 import RichEditor, {
   AttachmentStrip,
   PostEditorBlock,
 } from '@/components/islands/user-center/RichEditor';
+import { toastApiError } from '@/lib/feedback';
 import { t, type Locale } from '@/lib/i18n';
 import type { FeedThread, FeedReply } from '@/lib/community';
 
@@ -147,38 +149,6 @@ function ImageGrid({
         })}
       </div>
     </div>
-  );
-}
-
-function Avatar({
-  name,
-  url,
-  size = 'md',
-}: {
-  name: string;
-  url: string | null;
-  /** `lg` (thread header) steps down on mobile; `md` is fixed. */
-  size?: 'md' | 'lg';
-}) {
-  const box = size === 'lg' ? 'size-8 text-sm sm:size-10 sm:text-base' : 'size-9 text-sm';
-  if (url) {
-    return (
-      <img
-        src={url}
-        alt=""
-        width={size === 'lg' ? 40 : 36}
-        height={size === 'lg' ? 40 : 36}
-        className={`${box} rounded-full object-cover`}
-      />
-    );
-  }
-  return (
-    <span
-      aria-hidden="true"
-      className={`flex ${box} items-center justify-center rounded-full bg-secondary font-medium text-foreground`}
-    >
-      {name.slice(0, 1)}
-    </span>
   );
 }
 
@@ -422,7 +392,7 @@ function CommunityFeedInner({
     setUploadingImage(true);
     void uploadImageFile(file).then((url) => {
       if (url) setComposerImages((prev) => [...prev, url]);
-      else toast.error(copy.failed);
+      else toastApiError(null, locale);
       setUploadingImage(false);
     });
   };
@@ -441,7 +411,10 @@ function CommunityFeedInner({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: title.trim(), board: composerBoard, content }),
       });
-      const json = (await response.json().catch(() => null)) as { ok?: boolean } | null;
+      const json = (await response.json().catch(() => null)) as {
+        ok?: boolean;
+        code?: string;
+      } | null;
       if (json?.ok) {
         // Remount the editor empty (key bump) and refresh the SSR feed.
         setDraftHtml('');
@@ -450,11 +423,11 @@ function CommunityFeedInner({
         setComposerImages([]);
         await fetchFeed(stateRef.current.board, stateRef.current.sort, stateRef.current.search);
       } else {
-        toast.error(copy.failed);
+        toastApiError(json?.code ?? null, locale);
       }
     } catch {
       // Network-level rejection: the fetch itself threw — same user message.
-      toast.error(copy.failed);
+      toastApiError(null, locale);
     } finally {
       setPublishing(false);
     }
@@ -528,7 +501,7 @@ function CommunityFeedInner({
     void uploadImageFile(file).then((url) => {
       if (url)
         setReplyImages((prev) => ({ ...prev, [threadId]: [...(prev[threadId] ?? []), url] }));
-      else toast.error(copy.failed);
+      else toastApiError(null, locale);
       setReplyUploadingId(null);
     });
   };
@@ -555,6 +528,7 @@ function CommunityFeedInner({
       const json = (await response.json().catch(() => null)) as {
         ok?: boolean;
         reply?: FeedReply;
+        code?: string;
       } | null;
       if (json?.ok && json.reply) {
         setReplyDrafts((prev) => ({ ...prev, [thread.id]: '' }));
@@ -576,10 +550,10 @@ function CommunityFeedInner({
           },
         }));
       } else {
-        toast.error(copy.failed);
+        toastApiError(json?.code ?? null, locale);
       }
     } catch {
-      toast.error(copy.failed);
+      toastApiError(null, locale);
     } finally {
       setReplyBusy(null);
     }
@@ -590,7 +564,8 @@ function CommunityFeedInner({
       method: 'DELETE',
     });
     if (!response.ok) {
-      toast.error(copy.failed);
+      const json = (await response.json().catch(() => null)) as { code?: string } | null;
+      toastApiError(json?.code ?? null, locale);
       return false;
     }
     setReplies((prev) => ({
@@ -609,7 +584,8 @@ function CommunityFeedInner({
   const deleteThread = async (thread: FeedThread): Promise<boolean> => {
     const response = await fetch(`/api/discussions/${thread.id}/`, { method: 'DELETE' });
     if (!response.ok) {
-      toast.error(copy.failed);
+      const json = (await response.json().catch(() => null)) as { code?: string } | null;
+      toastApiError(json?.code ?? null, locale);
       return false;
     }
     setThreads((prev) => prev.filter((t) => t.id !== thread.id));
@@ -623,7 +599,7 @@ function CommunityFeedInner({
           Card wraps the layout only — the editor block keeps its own single
           border so edit mode (inside a thread card) never nests two. */}
       {canPost ? (
-        <Card className="gap-0 p-3 sm:p-4">
+        <Card className="p-3 sm:p-4">
           <PostEditorBlock
             mode="composer"
             title={title}
@@ -681,9 +657,7 @@ function CommunityFeedInner({
           </div>
         </Card>
       ) : (
-        <div className="rounded-xl border border-border bg-surface px-6 py-6 text-center text-sm text-body-muted">
-          {copy.loginToPost}
-        </div>
+        <EmptyNote>{copy.loginToPost}</EmptyNote>
       )}
 
       {/* Feed toolbar: titled brand mark on the left; sort sits immediately
@@ -735,7 +709,7 @@ function CommunityFeedInner({
           const open = !!expanded[thread.id];
           const cache = replies[thread.id];
           return (
-            <Card key={thread.id} className="gap-0 py-0">
+            <Card key={thread.id}>
               {/* Weibo-style card. Mobile: avatar + author/meta header row,
                   then title/body full-width below (no reserved avatar-column
                   indent, no edge-hugging avatar). Desktop (sm+): the body
@@ -745,7 +719,7 @@ function CommunityFeedInner({
                 <Avatar
                   name={thread.author.name}
                   url={thread.author.avatar?.url ?? null}
-                  size="lg"
+                  className="size-8 text-sm sm:size-10 sm:text-base"
                 />
                 <div className="min-w-0 flex-1">
                   <span className="text-sm font-medium text-foreground sm:text-base">
@@ -753,7 +727,7 @@ function CommunityFeedInner({
                   </span>
                   <div className="mt-0.5 flex items-center gap-2 text-xs text-body-muted">
                     {thread.board && (
-                      <span className="rounded bg-secondary px-1.5 py-px text-[11px] text-body-muted">
+                      <span className="rounded-full bg-secondary px-1.5 py-px text-[11px] text-body-muted">
                         {thread.board.name}
                       </span>
                     )}
@@ -847,7 +821,7 @@ function CommunityFeedInner({
                     </button>
                   )}
                   {thread.canDelete && (
-                    <DeleteConfirm
+                    <ConfirmPopover
                       text={copy.deleteConfirmDesc}
                       cancelLabel={copy.cancel}
                       confirmLabel={copy.delete}
@@ -860,7 +834,7 @@ function CommunityFeedInner({
                         <Trash2Icon className="size-3.5" aria-hidden="true" />
                         {copy.delete}
                       </button>
-                    </DeleteConfirm>
+                    </ConfirmPopover>
                   )}
                 </div>
               </div>
@@ -881,6 +855,7 @@ function CommunityFeedInner({
                               <Avatar
                                 name={reply.author.name}
                                 url={reply.author.avatar?.url ?? null}
+                                className="size-9 text-sm"
                               />
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-2 text-xs text-body-muted">
@@ -889,7 +864,7 @@ function CommunityFeedInner({
                                   </span>
                                   <span>{reply.publishedAt.slice(0, 10)}</span>
                                   {reply.canDelete && (
-                                    <DeleteConfirm
+                                    <ConfirmPopover
                                       text={copy.deleteConfirmDesc}
                                       cancelLabel={copy.cancel}
                                       confirmLabel={copy.delete}
@@ -898,7 +873,7 @@ function CommunityFeedInner({
                                       <button type="button" className="text-error hover:opacity-80">
                                         {copy.delete}
                                       </button>
-                                    </DeleteConfirm>
+                                    </ConfirmPopover>
                                   )}
                                 </div>
                                 {/* Light-gray text bubble for the reply body
@@ -942,7 +917,11 @@ function CommunityFeedInner({
                           the right — same experience as the feed composer. */}
                       {thread.canReply && (
                         <div className="mt-3 flex items-start gap-2.5 border-t border-border pt-3">
-                          <Avatar name={user?.name ?? ''} url={user?.avatarUrl ?? null} />
+                          <Avatar
+                            name={user?.name ?? ''}
+                            url={user?.avatarUrl ?? null}
+                            className="size-9 text-sm"
+                          />
                           <div className="min-w-0 flex-1">
                             <RichEditor
                               initialHtml={replyDrafts[thread.id] ?? ''}
@@ -997,11 +976,7 @@ function CommunityFeedInner({
             </Card>
           );
         })}
-        {threads.length === 0 && (
-          <p className="rounded-lg border border-dashed border-border bg-surface px-6 py-8 text-center text-sm text-body-muted">
-            {copy.listEmpty}
-          </p>
-        )}
+        {threads.length === 0 && <EmptyNote className="px-6 py-8">{copy.listEmpty}</EmptyNote>}
       </div>
 
       {/* Auto-load footer: spinner while appending, end marker when done. */}
@@ -1026,7 +1001,7 @@ function CommunityFeedInner({
         animation={{ zoom: 300 }}
         controller={{ closeOnBackdropClick: true }}
         carousel={{ padding: '4%' }}
-        styles={{ container: { backgroundColor: 'rgba(15, 15, 20, 0.85)' } }}
+        styles={{ container: { backgroundColor: 'var(--scrim-immersive)' } }}
       />
     </div>
   );
@@ -1037,58 +1012,6 @@ export default function CommunityFeed(props: Props) {
     <FeedErrorBoundary>
       <CommunityFeedInner {...props} />
     </FeedErrorBoundary>
-  );
-}
-
-/**
- * Popover-based destructive-action confirmation — replaces native
- * window.confirm with an in-page bubble anchored to the trigger.
- */
-function DeleteConfirm({
-  text,
-  cancelLabel,
-  confirmLabel,
-  onConfirm,
-  children,
-}: {
-  text: string;
-  cancelLabel: string;
-  confirmLabel: string;
-  /** Resolves `true` on success — the popover closes only then. */
-  onConfirm: () => Promise<boolean>;
-  children: React.ReactNode;
-}) {
-  const [open, setOpen] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const run = async () => {
-    setBusy(true);
-    try {
-      const okFlag = await onConfirm();
-      setOpen(okFlag);
-    } finally {
-      setBusy(false);
-    }
-  };
-  return (
-    <Popover
-      open={open}
-      onOpenChange={(next) => {
-        if (!busy) setOpen(next);
-      }}
-    >
-      <PopoverTrigger asChild>{children}</PopoverTrigger>
-      <PopoverContent side="top" align="end" className="w-auto max-w-[220px] p-3">
-        <p className="text-sm text-foreground">{text}</p>
-        <div className="mt-3 flex justify-end gap-2">
-          <Button variant="ghost" size="sm" disabled={busy} onClick={() => setOpen(false)}>
-            {cancelLabel}
-          </Button>
-          <Button variant="destructive" size="sm" disabled={busy} onClick={() => void run()}>
-            {confirmLabel}
-          </Button>
-        </div>
-      </PopoverContent>
-    </Popover>
   );
 }
 
@@ -1117,7 +1040,7 @@ function ThreadEditForm({
     setUploading(true);
     void uploadImageFile(file).then((url) => {
       if (url) setImages((prev) => [...prev, url]);
-      else toast.error(copy.failed);
+      else toastApiError(null, locale);
       setUploading(false);
     });
   };
@@ -1135,12 +1058,15 @@ function ThreadEditForm({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, content: contentWithImages }),
       });
-      const json = (await response.json().catch(() => null)) as { ok?: boolean } | null;
+      const json = (await response.json().catch(() => null)) as {
+        ok?: boolean;
+        code?: string;
+      } | null;
       if (json?.ok) {
         // The parent refetches with its own board/sort/search context.
         onSaved();
       } else {
-        toast.error(copy.failed);
+        toastApiError(json?.code ?? null, locale);
       }
     } finally {
       setBusy(false);

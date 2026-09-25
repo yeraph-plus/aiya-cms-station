@@ -1,10 +1,8 @@
 ---
-/**
- * @pending 992px 以下移动端壳——待就绪：当前只迭代桌面布局，移动端仅保证可用性并显示提示条。
- */
 import UserCenter from '@/components/islands/UserCenter';
+import Icon from '@/components/layout/Icon.astro';
 import type { UserCenterCopy, UserCenterUser } from '@/components/islands/user-center/types';
-import type { Locale } from '@/lib/i18n/locale';
+import { t, type Locale } from '@/lib/i18n';
 
 interface Props {
   siteName: string;
@@ -19,21 +17,118 @@ interface Props {
   timezone?: string;
 }
 const { siteName, user, authCopy, registrationOpen, localeTag, locale, timezone } = Astro.props;
+const copy = t(locale);
+
+// On results pages the row seeds itself from the address bar, mirroring the
+// desktop SearchBox (which gets the same value as a prop).
+const segments = Astro.url.pathname.split('/').filter(Boolean);
+const routedKey = segments[0] === 'search' && segments[1] ? segments[1] : '';
+const seedValue = (() => {
+  try {
+    return decodeURIComponent(routedKey);
+  } catch {
+    return '';
+  }
+})();
 ---
 
-<header
-  class="sticky top-0 z-30 flex h-14 min-[992px]:hidden items-center justify-between border-b border-border bg-surface px-4"
->
-  <a href="/" class="font-display text-lg font-semibold tracking-tight text-foreground">
-    {siteName}
-  </a>
-  <UserCenter
-    client:load
-    user={user}
-    registrationOpen={registrationOpen}
-    copy={authCopy}
-    localeTag={localeTag}
-    locale={locale}
-    timezone={timezone}
-  />
+<header class="sticky top-0 z-30 border-b border-border bg-surface min-[992px]:hidden">
+  <div class="flex h-14 items-center justify-between px-4">
+    <a href="/" class="font-display text-lg font-semibold tracking-tight text-foreground">
+      {siteName}
+    </a>
+    <div class="flex items-center gap-1">
+      <button
+        type="button"
+        data-search-toggle
+        aria-controls="mobile-search-row"
+        aria-expanded="false"
+        aria-label={copy.search.submit}
+        class="flex size-10 items-center justify-center rounded-md text-foreground hover:bg-secondary focus-visible:outline-2 focus-visible:outline-focus-blue"
+      >
+        <Icon name="search" size={20} strokeWidth={1.8} />
+      </button>
+      <button
+        type="button"
+        data-color-toggle
+        aria-label={copy.shell.colorMode}
+        title={copy.shell.colorMode}
+        class="flex size-10 items-center justify-center rounded-md text-foreground hover:bg-secondary focus-visible:outline-2 focus-visible:outline-focus-blue"
+      >
+        <Icon name="moon" size={18} class="dark:hidden" />
+        <Icon name="sun" size={18} class="hidden dark:block" />
+      </button>
+      <UserCenter
+        client:load
+        user={user}
+        registrationOpen={registrationOpen}
+        copy={authCopy}
+        localeTag={localeTag}
+        locale={locale}
+        timezone={timezone}
+      />
+    </div>
+  </div>
+  <form id="mobile-search-row" role="search" inert hidden class="border-t border-border px-4 py-2">
+    <div class="flex items-center gap-2">
+      <input
+        type="search"
+        name="q"
+        value={seedValue}
+        placeholder={copy.search.placeholder}
+        aria-label={copy.search.placeholder}
+        class="h-9 w-full min-w-0 flex-1 rounded-md border border-border bg-canvas px-3 text-sm text-foreground placeholder:text-body-muted focus-visible:outline-2 focus-visible:outline-focus-blue"
+      />
+      <button
+        type="submit"
+        aria-label={copy.search.submit}
+        class="flex size-10 shrink-0 items-center justify-center rounded-md text-foreground hover:bg-secondary focus-visible:outline-2 focus-visible:outline-focus-blue"
+      >
+        <Icon name="search" size={18} strokeWidth={1.8} />
+      </button>
+    </div>
+  </form>
 </header>
+
+<script>
+  // Search row toggle + submit, document-level so it survives ClientRouter
+  // swaps. The route's keyword rides the path segment (`/search/{key}/`),
+  // which a plain GET form cannot express — so submit goes through
+  // searchHref() and the `all` scope (UX.md §6: no range picker on mobile).
+  import { searchHref } from '@/lib/search';
+
+  const submitSearch = (form: Element) => {
+    const input = form.querySelector('input[name="q"]');
+    const key = (input instanceof HTMLInputElement ? input.value : '').trim();
+    if (key === '') return;
+    window.location.href = searchHref(key, 'all');
+  };
+  document.addEventListener('click', (event) => {
+    if (!(event.target instanceof Element)) return;
+    if (!event.target.closest('[data-search-toggle]')) return;
+    const row = document.getElementById('mobile-search-row');
+    if (!row) return;
+    const open = row.hasAttribute('hidden');
+    row.toggleAttribute('hidden', !open);
+    row.toggleAttribute('inert', !open);
+    event.target.closest('[data-search-toggle]')?.setAttribute('aria-expanded', String(open));
+    if (open) row.querySelector('input')?.focus();
+  });
+  document.addEventListener('submit', (event) => {
+    if (!(event.target instanceof Element)) return;
+    if (!event.target.closest('#mobile-search-row')) return;
+    event.preventDefault();
+    submitSearch(event.target);
+  });
+  // Enter is handled here rather than left to implicit submission — the
+  // desktop SearchBox hit the same wall (synthetic Enter never reaches the
+  // submit event), so both headers own their Enter path explicitly.
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter') return;
+    if (!(event.target instanceof Element)) return;
+    const form = event.target.closest('#mobile-search-row');
+    if (!form) return;
+    event.preventDefault();
+    submitSearch(form);
+  });
+</script>

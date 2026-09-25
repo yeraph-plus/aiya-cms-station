@@ -6,7 +6,11 @@ function Card({ className, ...props }: React.ComponentProps<'div'>) {
     <div
       data-slot="card"
       className={cn(
-        'flex flex-col gap-6 rounded-xl border bg-card py-6 text-card-foreground shadow-sm',
+        // Site-default card face (UX.md §3): the hairline recipe — no gap,
+        // no resting shadow, the 6px-scale lg radius. shadcn's factory
+        // defaults (gap-6 / py-6 / rounded-xl / shadow-sm) fought every
+        // call site; localized 2026-09-25 per the convergence plan.
+        'flex flex-col gap-0 rounded-lg border border-border bg-card py-0 text-card-foreground',
         className,
       )}
       {...props}

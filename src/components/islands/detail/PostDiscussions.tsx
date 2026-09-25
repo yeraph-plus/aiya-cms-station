@@ -24,6 +24,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { PostEditorBlock } from '@/components/islands/user-center/RichEditor';
+import EmptyNote from '@/components/islands/EmptyNote';
+import { toastApiError } from '@/lib/feedback';
 import { t, type Locale } from '@/lib/i18n';
 import { displayDate } from '@/lib/format';
 import type { FeedThread } from '@/lib/community';
@@ -139,7 +141,7 @@ export default function PostDiscussions({
     setUploading(true);
     void uploadImageFile(file).then((url) => {
       if (url) setImages((prev) => [...prev, url]);
-      else toast.error(community.failed);
+      else toastApiError(null, locale);
       setUploading(false);
     });
   };
@@ -184,14 +186,17 @@ export default function PostDiscussions({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: title.trim(), board, content, postId }),
       });
-      const json = (await response.json().catch(() => null)) as { ok?: boolean } | null;
+      const json = (await response.json().catch(() => null)) as {
+        ok?: boolean;
+        code?: string;
+      } | null;
       if (json?.ok) {
         setOpen(false);
         resetDraft();
         toast.success(community.published);
         await refresh();
       } else {
-        toast.error(community.failed);
+        toastApiError(json?.code ?? null, locale);
       }
     } finally {
       setPublishing(false);
@@ -221,9 +226,7 @@ export default function PostDiscussions({
       </Button>
 
       {threads.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-border bg-surface px-6 py-6 text-center text-sm text-body-muted">
-          {community.relatedThreadsEmpty}
-        </p>
+        <EmptyNote>{community.relatedThreadsEmpty}</EmptyNote>
       ) : (
         <div
           className={

@@ -1,0 +1,131 @@
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { join } from 'node:path';
+import { describe, expect, it } from 'vitest';
+
+/**
+ * Style guard (DESIGN.md §3 守卫 + UX.md 判据的常驻执法): the convergence
+ * rules the review audits check by hand, enforced on every `vitest run`.
+ * Each rule names its escape hatch explicitly — a violation is a diff away,
+ * not a discussion.
+ */
+
+const ROOT = join(import.meta.dirname, '..');
+
+function walk(dir: string, exts: string[]): string[] {
+  const out: string[] = [];
+  for (const entry of readdirSync(dir)) {
+    const full = join(dir, entry);
+    if (statSync(full).isDirectory()) {
+      out.push(...walk(full, exts));
+    } else if (exts.some((ext) => entry.endsWith(ext))) {
+      out.push(full);
+    }
+  }
+  return out;
+}
+
+const rel = (p: string) => p.replace(ROOT + '\\', '').replaceAll('\\', '/');
+
+function scan(dirs: string[], exts: string[]): Map<string, string> {
+  const files = new Map<string, string>();
+  for (const dir of dirs) {
+    for (const full of walk(join(ROOT, dir), exts)) {
+      files.set(rel(full), readFileSync(full, 'utf-8'));
+    }
+  }
+  return files;
+}
+
+const SRC = ['src'];
+const TS_ASTRO = ['.ts', '.tsx', '.astro'];
+
+function violations(files: Map<string, string>, rx: RegExp): string[] {
+  const hits: string[] = [];
+  for (const [file, text] of files) {
+    if (rx.test(text)) hits.push(file);
+  }
+  return hits.sort();
+}
+
+/** Files that are deliberately dependency-free or backend-driven and carry
+    their own colors (DESIGN.md §1: design decisions, not oversights). */
+const HEX_ALLOWLIST = new Set([
+  'src/lib/gate.ts',
+  'src/pages/500.astro',
+  'src/lib/theme.ts',
+  'src/lib/page.server.ts',
+]);
+
+/** The one documented color-literal exemption: the image-strip delete
+    button's on-thumbnail scrim (RichEditor, UX.md §3 图上元素豁免). */
+const COLOR_LITERAL_ALLOWLIST = new Set(['src/components/islands/user-center/RichEditor.tsx']);
+
+describe('style guard', () => {
+  it('rounded-xl stays inside ui/ (the 6px scale rule, DESIGN.md §6#24)', () => {
+    const files = new Map(
+      [...scan(SRC, TS_ASTRO)].filter(([f]) => !f.startsWith('src/components/ui/')),
+    );
+    expect(violations(files, /rounded-xl/)).toEqual([]);
+  });
+
+  it('min-[1440px] never appears (Tailwind v4 does not generate it)', () => {
+    expect(violations(scan(SRC, TS_ASTRO), /min-\[1440px\]/)).toEqual([]);
+  });
+
+  it('viewport-height caps use svh, never vh', () => {
+    expect(violations(scan(SRC, TS_ASTRO), /max-h-\[\d+vh\]/)).toEqual([]);
+  });
+
+  it('repeated container widths ride the named tokens', () => {
+    expect(violations(scan(SRC, TS_ASTRO), /max-w-\[1510px\]|max-w-\[380px\]/)).toEqual([]);
+  });
+
+  it('scrim literals stay out of islands (the two-step --scrim tokens)', () => {
+    const files = new Map(
+      [...scan(['src/components/islands'], ['.tsx'])].filter(
+        ([f]) => !COLOR_LITERAL_ALLOWLIST.has(f),
+      ),
+    );
+    expect(violations(files, /bg-black\/|rgba\(15,\s*15,\s*20/)).toEqual([]);
+  });
+
+  it('hex colors stay on the dependency-free whitelist (brand colors ride tokens)', () => {
+    const hexed = [...scan(SRC, ['.astro', '.tsx'])]
+      .filter(([f]) => !HEX_ALLOWLIST.has(f))
+      .filter(([, text]) =>
+        /#[0-9a-fA-F]{3,8}\b/.test(
+          text.replace(/https?:\/\/[^\s"'<)]*/g, '').replace(/&#x?[0-9a-fA-F]+;/g, ''),
+        ),
+      );
+    expect(hexed).toEqual([]);
+  });
+
+  it('the letter-fallback avatar has exactly one recipe', () => {
+    const files = new Map(
+      [...scan(['src/components/islands'], ['.tsx'])].filter(
+        ([f]) => f !== 'src/components/islands/Avatar.tsx',
+      ),
+    );
+    expect(violations(files, /slice\(0, 1\)/)).toEqual([]);
+  });
+
+  it('error-code lookups go through lib/feedback (no hand-rolled tables)', () => {
+    expect(
+      violations(
+        scan(['src/components/islands'], ['.tsx']),
+        /\.errors as Record<string, string \| undefined>/,
+      ),
+    ).toEqual([]);
+  });
+
+  it('the three converged bare inputs keep their labels pinned', () => {
+    const cs = readFileSync(join(ROOT, 'src/components/islands/CommentSection.tsx'), 'utf-8');
+    expect(cs).toContain('aria-label={copy.guestName}');
+    expect(cs).toContain('aria-label={copy.guestEmail}');
+    const rich = readFileSync(
+      join(ROOT, 'src/components/islands/user-center/RichEditor.tsx'),
+      'utf-8',
+    );
+    expect(rich).toContain('aria-label={labels.title}');
+  });
+});

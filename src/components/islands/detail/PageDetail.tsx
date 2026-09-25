@@ -29,7 +29,7 @@ export default function PageDetail({
   useViewPing(post.id);
   return (
     <article>
-      <Card className="gap-0 overflow-hidden py-0">
+      <Card className="overflow-hidden">
         <SimpleHeader
           post={post}
           locale={locale}

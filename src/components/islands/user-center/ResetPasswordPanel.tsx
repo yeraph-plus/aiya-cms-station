@@ -5,6 +5,7 @@ import { KeyRoundIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { apiErrorCopy } from '@/lib/feedback';
 import { t, type Locale } from '@/lib/i18n';
 
 export interface ResetPanelCopy {
@@ -57,7 +58,6 @@ export default function ResetPasswordPanel({ login, resetKey, locale, copy }: Pr
   const hasKey = Boolean(login && resetKey);
   const [status, setStatus] = useState<Status>(hasKey ? 'validating' : 'request');
   const [errorCode, setErrorCode] = useState<string | null>(null);
-  const errors = t(locale).errors as Record<string, string | undefined>;
 
   // With login+key in the URL, validate the key before showing the form.
   useEffect(() => {
@@ -203,11 +203,7 @@ export default function ResetPasswordPanel({ login, resetKey, locale, copy }: Pr
   }
 
   const formError =
-    status === 'error'
-      ? errorCode
-        ? (errors[errorCode] ?? copy.authFailed)
-        : copy.authFailed
-      : null;
+    status === 'error' ? (errorCode ? apiErrorCopy(errorCode, locale) : copy.authFailed) : null;
   return shell(
     <form onSubmit={(event) => void submitReset(event)} className="flex flex-col gap-4">
       <FieldGroup className="gap-4">

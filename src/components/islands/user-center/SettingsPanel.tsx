@@ -4,7 +4,16 @@ import AvatarDialog from '@/components/islands/user-center/AvatarDialog';
 import { Button } from '@/components/ui/button';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import Avatar from '@/components/islands/Avatar';
+import { apiErrorCopy } from '@/lib/feedback';
 import { t, type Locale } from '@/lib/i18n';
 
 export interface SettingsUser {
@@ -20,6 +29,8 @@ export interface SettingsCopy {
   avatarTitle: string;
   changeAvatar: string;
   removeAvatar: string;
+  avatarRemoveConfirm: string;
+  cancel: string;
   profileTitle: string;
   nicknameLabel: string;
   descriptionLabel: string;
@@ -44,9 +55,6 @@ interface Props {
   copy: SettingsCopy;
 }
 
-const inputClass =
-  'w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-focus-blue';
-
 /** Account settings: one card, subheaded sections — 头像 / 基本资料 / 修改密码. */
 export default function SettingsPanel({ user, locale, localeOptions, copy }: Props) {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(user.avatarUrl);
@@ -60,8 +68,7 @@ export default function SettingsPanel({ user, locale, localeOptions, copy }: Pro
 
   const errorText = (state: 'idle' | 'saved' | string | null): string | null => {
     if (!state || state === 'idle' || state === 'saved') return null;
-    const errors = t(locale).errors as Record<string, string | undefined>;
-    return errors[state] ?? copy.authFailed;
+    return apiErrorCopy(state, locale);
   };
 
   const submitProfile = async (event: React.SubmitEvent<HTMLFormElement>) => {
@@ -146,22 +153,7 @@ export default function SettingsPanel({ user, locale, localeOptions, copy }: Pro
       <section className="border-b border-border p-6">
         <h3 className="text-sm font-semibold tracking-wide text-foreground">{copy.avatarTitle}</h3>
         <div className="mt-3 flex items-center gap-4">
-          {avatarUrl ? (
-            <img
-              src={avatarUrl}
-              alt=""
-              width={64}
-              height={64}
-              className="size-16 rounded-full object-cover"
-            />
-          ) : (
-            <span
-              aria-hidden="true"
-              className="flex size-16 items-center justify-center rounded-full bg-secondary text-xl font-semibold"
-            >
-              {user.nickname.slice(0, 1)}
-            </span>
-          )}
+          <Avatar url={avatarUrl} name={user.nickname} className="size-16 text-xl font-semibold" />
           <Button variant="outline" size="sm" onClick={() => setDialogOpen(true)}>
             {copy.changeAvatar}
           </Button>
@@ -174,6 +166,8 @@ export default function SettingsPanel({ user, locale, localeOptions, copy }: Pro
             avatarTitle: copy.avatarTitle,
             changeAvatar: copy.changeAvatar,
             removeAvatar: copy.removeAvatar,
+            avatarRemoveConfirm: copy.avatarRemoveConfirm,
+            cancel: copy.cancel,
             save: copy.save,
             authFailed: copy.authFailed,
           }}
@@ -218,18 +212,18 @@ export default function SettingsPanel({ user, locale, localeOptions, copy }: Pro
             </Field>
             <Field>
               <FieldLabel htmlFor="st-locale">{copy.localeLabel}</FieldLabel>
-              <select
-                id="st-locale"
-                name="locale"
-                defaultValue={user.locale}
-                className={inputClass}
-              >
-                {localeOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+              <Select name="locale" defaultValue={user.locale}>
+                <SelectTrigger id="st-locale" className="w-full bg-surface">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {localeOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </Field>
             <Field>
               <FieldLabel htmlFor="st-email">{copy.emailLabel}</FieldLabel>
