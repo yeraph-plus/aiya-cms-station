@@ -1,5 +1,5 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, relative, sep } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 /**
@@ -24,7 +24,10 @@ function walk(dir: string, exts: string[]): string[] {
   return out;
 }
 
-const rel = (p: string) => p.replace(ROOT + '\\', '').replaceAll('\\', '/');
+// path.relative + sep split: on POSIX the naive "strip ROOT + '\\'" prefix
+// never matches, keys stay absolute, and every startsWith/set filter below
+// silently misses (the CI-only style-guard failures this replaced).
+const rel = (p: string) => relative(ROOT, p).split(sep).join('/');
 
 function scan(dirs: string[], exts: string[]): Map<string, string> {
   const files = new Map<string, string>();
