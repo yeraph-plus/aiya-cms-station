@@ -8,6 +8,7 @@ import {
 } from '@/lib/api-auth';
 import { authClient } from '@/lib/core/server';
 import { readSessionToken } from '@/lib/core/session';
+import { cloakProfileMedia } from '@/lib/media';
 
 /** Mirrors the backend's avatar gate (aiya_upload_too_large / _type). */
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
@@ -51,7 +52,9 @@ export const POST: APIRoute = async (Astro) => {
   }
   try {
     const result = await authClient(token, ip).uploadAvatar(file, file.name || 'avatar');
-    return jsonResponse({ ok: true, user: result.data });
+    // The refreshed user projection carries WP-absolute avatar URLs; the
+    // island renders them directly, so they must arrive already cloaked.
+    return jsonResponse({ ok: true, user: cloakProfileMedia(result.data) });
   } catch (error) {
     return jsonResponse({ ok: false, code: errorCode(error) }, errorStatus(error));
   }
@@ -63,7 +66,7 @@ export const DELETE: APIRoute = async (Astro) => {
   if (!token) return jsonResponse({ ok: false }, 401);
   try {
     const result = await authClient(token, ip).removeAvatar();
-    return jsonResponse({ ok: true, user: result.data });
+    return jsonResponse({ ok: true, user: cloakProfileMedia(result.data) });
   } catch (error) {
     return jsonResponse({ ok: false, code: errorCode(error) }, errorStatus(error));
   }

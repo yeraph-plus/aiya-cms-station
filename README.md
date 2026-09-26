@@ -17,14 +17,14 @@ npm test                  # 单测（契约不变式 / i18n / SEO / 净化 / 门
 
 环境变量（服务端专用，经 `astro:env/server` 读取，绝不会进入浏览器产物）：
 
-| 变量                    | 说明                                                            |
-| ----------------------- | --------------------------------------------------------------- |
-| `AIYA_SITE_URL`         | 前端站点自身 origin（canonical / sitemap / cookie secure 判定） |
-| `AIYA_WP_API_URL`       | 后端契约根，必须以 `/wp-json/aiya/core/v1/` 结尾                |
-| `AIYA_API_TIMEOUT_MS`   | 上游超时，默认 8000                                             |
-| `AIYA_ALLOW_LOCAL_HTTP` | 仅 loopback 允许 HTTP 的开发开关                                |
-| `AIYA_PROXY_SECRET`     | 反代桥共享秘钥（须等于 wp-config 的 `AIYA_PROXY_SECRET` 常量）  |
-| `AIYA_CLIENT_IP_HEADER` | 可选：信任的访客地址请求头（如 `X-Real-IP`），缺省 socket 地址  |
+| 变量                    | 说明                                                                                                                        |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `AIYA_SITE_URL`         | 前端站点自身 origin（canonical / sitemap / cookie secure 判定）                                                             |
+| `AIYA_WP_API_URL`       | 后端契约根，必须以 `/wp-json/aiya/core/v1/` 结尾；其 origin 必须与 WP 的 siteurl 一致（见下方「媒体单源与 origin 一致性」） |
+| `AIYA_API_TIMEOUT_MS`   | 上游超时，默认 8000                                                                                                         |
+| `AIYA_ALLOW_LOCAL_HTTP` | 仅 loopback 允许 HTTP 的开发开关                                                                                            |
+| `AIYA_PROXY_SECRET`     | 反代桥共享秘钥（须等于 wp-config 的 `AIYA_PROXY_SECRET` 常量）                                                              |
+| `AIYA_CLIENT_IP_HEADER` | 可选：信任的访客地址请求头（如 `X-Real-IP`），缺省 socket 地址                                                              |
 
 **无机器身份**（2026-09-10 拍板）：前台不做管理/预览能力，内容读全部匿名——
 `serverClient()` 不持有任何 WP 账号；浏览器端仅存访客各自的 Bearer（HttpOnly
@@ -139,6 +139,31 @@ server {
 - `AIYA_ALLOW_LOCAL_HTTP` 不进生产（仅 loopback HTTP 的开发开关）。
 - 容器以非 root 的 `node` 用户运行；HEALTHCHECK 探测本进程（后端宕机时的 503
   门禁页也算健康——它检查的是前端容器，不是 WP）。
+
+### 媒体单源与 origin 一致性（必读）
+
+浏览器只与前端域名通信：页面、`/api/*`（同源 JSON 代理）与 `/media/*`（媒体
+代理，把 WP 的 `wp-content/` 流式转发出来）都挂在前端 origin 下。所有 WP 媒体
+URL 的改写都发生在**服务端**——浏览器 bundle 不持有 WP origin（`AIYA_WP_API_URL`
+是非公开环境变量，Vite 不进客户端产物，客户端即便调用改写也是空转）。因此每条
+进入浏览器的数据路径（feed / 评论 / 社区 / 表情包 / 登录与头像投影）都在 `/api/*`
+代理层完成 cloak，岛屿端保留的改写调用只是幂等的纵深防御。
+
+这要求一条部署铁律：**WP 的 siteurl 必须与 `AIYA_WP_API_URL` 的 origin 一致**。
+后端 `content_url()` 等按 siteurl 产出媒体绝对 URL，改写靠 origin 匹配——两边
+不一致（比如 siteurl 还停在 `http://127.0.0.1:8000` 而契约根已是 https 域名）时
+匹配全部失配，缩略图/头像/表情包会原样泄漏 WP 主机并直连加载。
+
+按计划的线上形态（WP 在 `admin.site.name`，前端在 `www.site.name`）：
+
+- WP 后台「设置 → 常规」两个地址都填 `https://admin.site.name`（`content_url()`
+  由此产出匹配的媒体 URL）；
+- 容器注入 `AIYA_SITE_URL='https://www.site.name/'`、
+  `AIYA_WP_API_URL='https://admin.site.name/wp-json/aiya/core/v1/'`；
+- nginx 两个 server 块分别反代 `www.site.name` → 前端容器 4321、
+  `admin.site.name` → WP（后者同时承载 `/wp-admin` 与支付回调）；
+- 浏览器侧对 `admin.site.name` 应当**零请求**——线上验收时开发者工具里不应
+  出现任何指向 WP 域名的资源加载。
 
 ### 本机试跑（WP 尚无 https 域名时）
 

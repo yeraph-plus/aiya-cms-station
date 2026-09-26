@@ -77,6 +77,23 @@ interface PostSummaryMedia {
   author: { name: string; avatar: { url: string } | null };
 }
 
+/** Cloaks both avatar URLs inside an owner-facing user projection (the
+    `/users/me` shape, avatar always present). Client-fetched /api answers
+    must arrive already cloaked: the browser bundle has no WP origin
+    (non-public env), so a client-side rewrite is a no-op there. */
+export function cloakProfileMedia<T extends { avatar: { url: string; thumbUrl: string } }>(
+  user: T,
+): T {
+  return {
+    ...user,
+    avatar: {
+      ...user.avatar,
+      url: rewriteMediaUrl(user.avatar.url),
+      thumbUrl: rewriteMediaUrl(user.avatar.thumbUrl),
+    },
+  };
+}
+
 /**
  * CSS `url('…')` string escape for settings-sourced artwork: a URL is
  * contract-validated http(s), but quote/backslash bytes are still legal in

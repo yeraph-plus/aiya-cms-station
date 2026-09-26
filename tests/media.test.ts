@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { AiyaApiError } from '@/lib/core/errors';
 import { createAiyaClient } from '@/lib/core/client';
-import { rewriteMediaUrl, rewriteSrcset } from '@/lib/media';
+import { cloakProfileMedia, rewriteMediaUrl, rewriteSrcset } from '@/lib/media';
 import { proxyMedia, resolveMediaTarget } from '@/lib/media-proxy';
 import { safeContent } from '@/lib/content';
 
@@ -138,6 +138,38 @@ describe('safeContent media rewriting', () => {
     expect(cleaned).toContain('loading="lazy"');
     expect(cleaned).toContain('https://cdn.example.com/foreign.png');
     expect(cleaned).not.toContain('localhost:8000');
+  });
+});
+
+describe('cloakProfileMedia', () => {
+  it('cloaks both avatar URLs in the owner projection, other fields untouched', () => {
+    expect(
+      cloakProfileMedia({
+        id: 7,
+        nickname: 'tester',
+        avatar: {
+          url: 'http://localhost:8000/wp-content/aiya_thumbnail/avatars/7/128.jpg',
+          thumbUrl: 'http://localhost:8000/wp-content/aiya_thumbnail/avatars/7/64.jpg',
+        },
+      }),
+    ).toEqual({
+      id: 7,
+      nickname: 'tester',
+      avatar: {
+        url: '/media/wp-content/aiya_thumbnail/avatars/7/128.jpg',
+        thumbUrl: '/media/wp-content/aiya_thumbnail/avatars/7/64.jpg',
+      },
+    });
+  });
+
+  it('leaves foreign (gravatar) avatar hosts untouched', () => {
+    const user = {
+      avatar: {
+        url: 'https://secure.gravatar.com/avatar/abc',
+        thumbUrl: 'https://secure.gravatar.com/avatar/abc?s=64',
+      },
+    };
+    expect(cloakProfileMedia(user)).toEqual(user);
   });
 });
 

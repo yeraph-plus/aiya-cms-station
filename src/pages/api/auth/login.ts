@@ -11,6 +11,7 @@ import {
   readJsonBody,
 } from '@/lib/api-auth';
 import { aiyaErrorCopy, t } from '@/lib/i18n';
+import { rewriteMediaUrl } from '@/lib/media';
 
 /** Same-origin login proxy: forwards to WP, then turns the bearer into the session cookie. */
 export const POST: APIRoute = async (Astro) => {
@@ -30,7 +31,12 @@ export const POST: APIRoute = async (Astro) => {
     setSessionCookie(Astro.cookies, session.token, session.expiresAt);
     return jsonResponse({
       ok: true,
-      user: { nickname: session.user.nickname, avatarUrl: session.user.avatar.url || null },
+      // Cloak server-side: the browser bundle has no WP origin (non-public
+      // env), so the island rendering this avatar cannot rewrite it.
+      user: {
+        nickname: session.user.nickname,
+        avatarUrl: session.user.avatar.url ? rewriteMediaUrl(session.user.avatar.url) : null,
+      },
     });
   } catch (error) {
     return jsonResponse(
