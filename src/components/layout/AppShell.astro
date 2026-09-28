@@ -12,6 +12,7 @@ import Breadcrumb from '@/components/layout/Breadcrumb.astro';
 import AdSpace from '@/components/islands/AdSpace';
 import { t, toBcp47 } from '@/lib/i18n';
 import { cssUrl, rewriteMediaUrl } from '@/lib/media';
+import { softShowNsfw } from '@/lib/nsfw';
 import { brandThemeStyle } from '@/lib/theme';
 import { Toaster } from '@/components/ui/sonner';
 import type { PageResult } from '@/lib/page.server';
@@ -54,6 +55,10 @@ const sessionUser = page.user
       slug: page.user.slug,
       email: page.user.email,
       showNsfw: page.user.showNsfw,
+      // The NSFW soft switch is read here, on the server, and rides down as
+      // a prop: an island that read the cookie itself would do it during
+      // SSR too (`document is not defined`) and break the response stream.
+      softNsfw: softShowNsfw(Astro.cookies),
     }
   : null;
 const authCopy = {

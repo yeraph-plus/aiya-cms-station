@@ -77,6 +77,7 @@ Popover。
 - **MobileTopBar**：sticky h-14 = 站名（左）+ 搜索切换 + 暗色切换 + UserCenter（右）；搜索按钮展开全宽搜索行，提交 `searchHref(key, 'all')` → `/search/{key}/`（`all` 范围，v1 无范围选择）。
 - **抽屉（MobileMenuDrawer）**：完整主菜单树（子项缩进，`<details>` 折叠沿桌面侧栏手法）；**非模态**——遮罩点击关闭、Escape 关闭、路由换页自动关闭；开合 = data 属性 + CSS 过渡，关闭态 `inert`；次级菜单维持页脚入口。
 - **PendingBanner 退役**：`shell.mobilePending` 字典键随组件一并删除。
+- **岛屿渲染期不许碰浏览器全局（2026-09-28 线上事故后的常驻判据，全岛适用）**：岛屿先在服务端渲染再水合，渲染路径（组件体、`useState` 惰性初始化函数、`useMemo`）里出现 `document` / `window` / `localStorage` 就是服务端 `ReferenceError`；异常发生在流中途，响应当场截断——登录用户的每页只剩头部，正文与后续岛屿脚本全部丢失，表现为「所有岛组件都失效」，且匿名访问完全正常（极难排查）。访客态一律由壳层在服务端解析后**当 prop 传进岛屿**（`UserMenu` 的 `user.softNsfw` ← `lib/nsfw.ts` 读 cookie，先例即修复）；cookie 是服务端状态，壳是唯一读点。浏览器全局只允许出现在 `useEffect` 与事件回调里，`tests/island-ssr.test.ts` 三条用例常驻执法。
 
 ## 7. 迁移清单（现状 → 目标）
 

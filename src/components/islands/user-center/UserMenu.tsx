@@ -29,18 +29,17 @@ import type { UserCenterCopy, UserCenterUser } from './types';
  * with a tab param (the hub island reads ?tab=); the public archive stays
  * reachable from the hub itself, not from this menu. The NSFW soft switch
  * rides here (0.96.0): locked on when the account's "always show" meta is
- * set, otherwise stored in the browser — toggling reloads so the SSR lists
- * re-render with the new exclusion state. Logout is the destructive item
- * and revokes the session before reloading; the outcome toast rides the
- * flash handoff so it survives the reload.
+ * set, otherwise it mirrors the browser cookie (server-read, handed in as
+ * user.softNsfw) — toggling rewrites the cookie and reloads so the SSR
+ * lists re-render with the new exclusion state. Logout is the destructive
+ * item and revokes the session before reloading; the outcome toast rides
+ * the flash handoff so it survives the reload.
  */
 
 /** Browser-side soft switch: first-party cookie, readable by the SSR
- * server (the content lists render there) and by this island. */
-function readNsfwCookie(): boolean {
-  return document.cookie.split('; ').includes(`${NSFW_COOKIE}=1`);
-}
-
+ * server (the content lists render there) and by this island. Written on
+ * toggle only — the read side arrives as a server prop (user.softNsfw),
+ * because reading a cookie during render also runs under SSR. */
 function writeNsfwCookie(on: boolean): void {
   // Secure rides only on https so local plain-http development keeps working.
   const secure = window.location.protocol === 'https:' ? '; secure' : '';
@@ -53,7 +52,11 @@ export function UserMenu({ user, copy }: { user: UserCenterUser; copy: UserCente
   // The hard switch wins: the backend ignores NSFW exclusions for this
   // account, so the soft switch renders permanently on and unclickable.
   const nsfwLocked = user.showNsfw;
-  const [showNsfw, setShowNsfw] = useState<boolean>(() => nsfwLocked || readNsfwCookie());
+  // The soft state comes from the shell (user.softNsfw ← the cookie read by
+  // the SSR side): the initializer of useState runs during server rendering
+  // as well, so a document.cookie read here would throw `document is not
+  // defined` and cut the response stream mid-page.
+  const [showNsfw, setShowNsfw] = useState<boolean>(user.showNsfw || user.softNsfw);
   const toggleNsfw = (next: boolean) => {
     setShowNsfw(next);
     writeNsfwCookie(next);

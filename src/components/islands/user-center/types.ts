@@ -11,6 +11,12 @@ export interface UserCenterUser {
   /** "Always show NSFW content" (0.96.0): when true the dropdown's soft
       switch renders locked-on (the backend ignores NSFW exclusions). */
   showNsfw: boolean;
+  /** The visitor's soft switch ("show NSFW content"), resolved server-side
+      from the first-party cookie (lib/nsfw.ts softShowNsfw). It travels as
+      a prop because the island must not read document.cookie while it
+      renders: the initial render runs under SSR too, where `document` does
+      not exist and the throw aborts the whole response stream. */
+  softNsfw: boolean;
 }
 
 export interface UserCenterCopy {
