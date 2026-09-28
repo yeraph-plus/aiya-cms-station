@@ -203,6 +203,8 @@ export const siteThemeSchema = z.object({
 });
 export const siteDefaultsSchema = z.object({
   colorMode: z.enum(['system', 'dark', 'light']),
+  /** Site fallback cover: list card thumbnails, category cards and the
+      article hero, each surface deriving its own crop from this image. */
   thumb: imageSchema.nullable(),
   /** Placeholder for empty lists and error cards (0.44.0). */
   emptyImage: imageSchema.nullable(),
@@ -552,6 +554,10 @@ export const userSchema = z.object({
   role: z.enum(['administrator', 'author', 'sponsor', 'subscriber']),
   /** Account-level disable switch; rides beside the role, never replaces a level. */
   banned: z.boolean(),
+  /** "Always show NSFW content" (0.96.0): when true the backend ignores
+      every NSFW exclusion for this account, overriding the per-browser
+      soft switch the front end keeps. */
+  showNsfw: z.boolean(),
   avatar: avatarImageSchema,
   /** Owner-facing profile counters (posts / favorited / followers). */
   stats: profileStatsSchema.nullable(),
@@ -726,6 +732,8 @@ export const searchQuerySchema = z.object({
   type: searchTypeSchema.optional(),
   page: z.number().int().min(1).default(1),
   perPage: z.number().int().min(1).max(50).default(10),
+  /** NSFW exclusion request; same semantics as postsQuerySchema. */
+  excludeNsfw: z.boolean().optional(),
 });
 export const postResponseSchema = itemEnvelope(postDetailSchema);
 export const resourcesResponseSchema = postsResponseSchema;
@@ -792,6 +800,10 @@ export const postsQuerySchema = z.object({
   /** Comma-separated tag slugs; any chosen tag in any vocabulary counts. */
   tag: z.string().max(200).default(''),
   sort: z.enum(['newest', 'oldest', 'rand']).default('newest'),
+  /** NSFW exclusion request (0.96.0): rows carrying any backend-configured
+      NSFW term drop out. Omitted = no exclusion (the backend's default);
+      the client factory attaches it from the visitor's soft switch. */
+  excludeNsfw: z.boolean().optional(),
 });
 export const resourcesQuerySchema = z.object({
   page: z.number().int().min(1).default(1),
@@ -803,6 +815,8 @@ export const resourcesQuerySchema = z.object({
       vocabularies. */
   tag: z.string().max(200).default(''),
   sort: z.enum(['newest', 'oldest', 'rand']).default('newest'),
+  /** NSFW exclusion request; same semantics as postsQuerySchema. */
+  excludeNsfw: z.boolean().optional(),
 });
 export const discussionsQuerySchema = z.object({
   board: z.string().max(50).default(''),
@@ -837,6 +851,11 @@ export const termsQuerySchema = z.object({
   /** "all" flattens every vocabulary the type maps to the contract groups. */
   taxonomy: z.enum(['all', 'category', 'tag']).default('all'),
   type: z.enum(['post', 'page', 'resource']).default('post'),
+  /** Withhold the NSFW-configured terms of the type (default false). */
+  excludeNsfw: z.boolean().optional(),
+  /** 0-count terms leave the published list by default; resolution reads
+      (sitemap walkers, direct archive lookups) ask for the full set. */
+  hideEmpty: z.boolean().optional(),
 });
 
 // ---------------------------------------------------------------------------
@@ -879,6 +898,8 @@ export const profileUpdateSchema = z.object({
   url: z.string().optional(),
   email: z.email().optional(),
   locale: z.enum(['zh_CN', 'zh_TW', 'zh_HK', 'en_US']).optional(),
+  /** "Always show NSFW content" (0.96.0); absent leaves the stored value. */
+  showNsfw: z.boolean().optional(),
   /** Re-authentication credential: the backend refuses an email change
       without it (403 aiya_reauth_required). Absent for plain profile edits. */
   currentPassword: z.string().min(1).max(200).optional(),

@@ -4,6 +4,7 @@ import type { Menu, Site, User } from './core/contracts';
 import { backend } from './core/health';
 import { currentUser, readSessionToken } from './core/session';
 import { authClient, serverClient, siteOrigin } from './core/server';
+import { nsfwExcluded } from './nsfw';
 import { resolveLocale, t } from './i18n';
 import { pageError, type PageErrorCopy } from './page-error';
 import { isBackendOutage } from './reachability';
@@ -92,7 +93,13 @@ const fallbackSite: Site = {
  * backend, so a failure here is a mid-flight outage.
  */
 export async function loadPage<T>(
-  resource: (client: AiyaClient, site: Site) => Promise<T>,
+  resource: (
+    client: AiyaClient,
+    site: Site,
+    /** The visitor's NSFW soft state: true when the content reads this page
+        renders must carry the backend exclusion flag (lib/nsfw.ts). */
+    ctx: { excludeNsfw: boolean },
+  ) => Promise<T>,
   cookies: AstroCookies,
   // Resolved by the middleware (App.locals.visitorIp): every SSR read rides
   // the proxy bridge with the real visitor address, or the backend's rate
@@ -107,7 +114,14 @@ export async function loadPage<T>(
     // own bearer: /users/me* resources (profile hub, settings) need it, and
     // public reads simply stay public. No token → anonymous client.
     const token = readSessionToken(cookies);
-    const client = token ? authClient(token, clientIp) : serverClient(clientIp);
+    // The NSFW soft switch rides the same factory as the list reads: the
+    // factory flag merges into every list query the resource issues. The
+    // hard switch (user meta) is enforced by the backend itself, so the
+    // flag may ride even for a hard-switch user — it is ignored there.
+    const excludeNsfw = nsfwExcluded(cookies);
+    const client = token
+      ? authClient(token, clientIp, excludeNsfw)
+      : serverClient(clientIp, excludeNsfw);
     const [siteResult, user] = await Promise.all([client.site(), currentUser(cookies)]);
     const site = siteResult.data;
     // The shell's dynamic blocks ride the /site payload (0.83.0 merge):
@@ -118,7 +132,7 @@ export async function loadPage<T>(
     try {
       // The shell's site payload doubles as loader input — display
       // settings (comments per page, window order) shape resource reads.
-      const value = await resource(client, site);
+      const value = await resource(client, site, { excludeNsfw });
       return { ok: true, site, origin, menu, footerMenu, user, locale, degraded: false, value };
     } catch (error) {
       return {

@@ -8,6 +8,9 @@ export interface UserCenterUser {
   /** Public profile route key (/profile/{slug}/). */
   slug: string;
   email: string;
+  /** "Always show NSFW content" (0.96.0): when true the dropdown's soft
+      switch renders locked-on (the backend ignores NSFW exclusions). */
+  showNsfw: boolean;
 }
 
 export interface UserCenterCopy {
@@ -40,6 +43,12 @@ export interface UserCenterCopy {
   notificationsLoading: string;
   notificationsEmpty: string;
   notificationsError: string;
+  /** Dropdown NSFW soft switch (0.96.0). */
+  showNsfw: string;
+  showNsfwLocked: string;
+  /** Notification bubble + feed page (0.96.0): view-all entry, load-more. */
+  notificationsViewAll: string;
+  notificationsLoadMore: string;
 }
 
 export type AuthMode = 'login' | 'register';

@@ -11,9 +11,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import Avatar from '@/components/islands/Avatar';
-import { apiErrorCopy } from '@/lib/feedback';
+import { apiErrorCopy, flashToast } from '@/lib/feedback';
 import { t, type Locale } from '@/lib/i18n';
 
 export interface SettingsUser {
@@ -23,6 +24,8 @@ export interface SettingsUser {
   description: string;
   locale: string;
   avatarUrl: string | null;
+  /** "Always show NSFW content" (0.96.0) — the account-level hard switch. */
+  showNsfw: boolean;
 }
 
 export interface SettingsCopy {
@@ -42,6 +45,9 @@ export interface SettingsCopy {
   passwordTitle: string;
   newPasswordLabel: string;
   passwordConfirmLabel: string;
+  /** Account-level NSFW hard switch (0.96.0). */
+  alwaysShowNsfw: string;
+  alwaysShowNsfwHint: string;
   save: string;
   saved: string;
   passwordSaved: string;
@@ -65,6 +71,31 @@ export default function SettingsPanel({ user, locale, localeOptions, copy }: Pro
   const [profileBusy, setProfileBusy] = useState(false);
   const [passwordState, setPasswordState] = useState<'idle' | 'saved' | string | null>(null);
   const [passwordBusy, setPasswordBusy] = useState(false);
+  // The NSFW hard switch saves immediately (no form submit): it is a
+  // standalone account flag, PATCHed as its own field.
+  const [showNsfw, setShowNsfw] = useState<boolean>(user.showNsfw);
+  const [showNsfwBusy, setShowNsfwBusy] = useState(false);
+
+  const toggleShowNsfw = async (next: boolean) => {
+    setShowNsfw(next);
+    setShowNsfwBusy(true);
+    try {
+      const response = await fetch('/api/account/profile/', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ showNsfw: next }),
+      });
+      if (!response.ok) {
+        setShowNsfw(!next);
+        flashToast({ kind: 'error', message: apiErrorCopy('generic', locale) });
+      }
+    } catch {
+      setShowNsfw(!next);
+      flashToast({ kind: 'error', message: apiErrorCopy('generic', locale) });
+    } finally {
+      setShowNsfwBusy(false);
+    }
+  };
 
   const errorText = (state: 'idle' | 'saved' | string | null): string | null => {
     if (!state || state === 'idle' || state === 'saved') return null;
@@ -249,6 +280,18 @@ export default function SettingsPanel({ user, locale, localeOptions, copy }: Pro
                 <p className="text-xs text-body-muted">{copy.currentPasswordHint}</p>
               </Field>
             )}
+            <Field>
+              <div className="flex items-center justify-between gap-3">
+                <FieldLabel htmlFor="st-show-nsfw">{copy.alwaysShowNsfw}</FieldLabel>
+                <Switch
+                  id="st-show-nsfw"
+                  checked={showNsfw}
+                  disabled={showNsfwBusy}
+                  onCheckedChange={(next) => void toggleShowNsfw(next)}
+                />
+              </div>
+              <p className="text-xs text-body-muted">{copy.alwaysShowNsfwHint}</p>
+            </Field>
             {profileError && (
               <p role="alert" className="text-sm text-error">
                 {errorText(profileError)}

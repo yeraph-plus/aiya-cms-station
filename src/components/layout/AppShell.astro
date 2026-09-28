@@ -53,6 +53,7 @@ const sessionUser = page.user
       roleLabel: copy.shell.roleLabels[page.user.role],
       slug: page.user.slug,
       email: page.user.email,
+      showNsfw: page.user.showNsfw,
     }
   : null;
 const authCopy = {
@@ -82,6 +83,10 @@ const authCopy = {
   notificationsLoading: copy.shell.notificationsLoading,
   notificationsEmpty: copy.shell.notificationsEmpty,
   notificationsError: copy.shell.notificationsError,
+  showNsfw: copy.shell.showNsfw,
+  showNsfwLocked: copy.shell.showNsfwLocked,
+  notificationsViewAll: copy.shell.notificationsViewAll,
+  notificationsLoadMore: copy.shell.notificationsLoadMore,
 };
 const brandStyle = brandThemeStyle(page.site.defaults.theme.primary);
 // Banner src goes through the media proxy like every WP asset; the CSS

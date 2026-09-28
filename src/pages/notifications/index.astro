@@ -1,0 +1,39 @@
+---
+/**
+ * Notification feed page (`/notifications/`, 0.96.0): the full list behind
+ * the header bubble, same same-origin proxy and client-owned read state.
+ * No session gate — guests read the backend's guest-level broadcasts;
+ * signed-in visitors additionally get their targeted rows.
+ */
+import AppShell from '@/components/layout/AppShell.astro';
+import NotificationFeed from '@/components/islands/user-center/NotificationFeed';
+import { t } from '@/lib/i18n';
+import { loadPage } from '@/lib/page.server';
+import { setCrumbs } from '@/lib/breadcrumbs';
+
+const page = await loadPage(async () => ({ ready: true }), Astro.cookies, Astro.locals.visitorIp);
+const copy = t(page.locale);
+if (page.ok) setCrumbs(Astro.locals, page.locale, [{ label: copy.shell.notifications }]);
+---
+
+<AppShell page={page} title={copy.shell.notifications} description={page.site.description} noindex>
+  <h1 class="mb-6 font-display text-2xl font-semibold text-foreground">
+    {copy.shell.notifications}
+  </h1>
+  {
+    page.ok && (
+      <NotificationFeed
+        client:load
+        localeTag={page.locale}
+        timezone={page.site.timezone}
+        copy={{
+          notifications: copy.shell.notifications,
+          notificationsLoading: copy.shell.notificationsLoading,
+          notificationsEmpty: copy.shell.notificationsEmpty,
+          notificationsError: copy.shell.notificationsError,
+          notificationsLoadMore: copy.shell.notificationsLoadMore,
+        }}
+      />
+    )
+  }
+</AppShell>

@@ -1583,6 +1583,11 @@
         "nullable": false
       },
       {
+        "name": "showNsfw",
+        "type": "bool",
+        "nullable": false
+      },
+      {
         "name": "avatar",
         "type": "AvatarImage",
         "nullable": false

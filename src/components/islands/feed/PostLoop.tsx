@@ -46,8 +46,12 @@ export interface LoopChip {
   slug: string;
   name: string;
   /** Crawlable single-term target (the entry page) for the non-JS
-      fallback; multi-select toggling pushStates query URLs instead. */
+      fallback; a click toggles the query URL instead (single-select). */
   href: string;
+  /** Published content count of the term (WP's own per-term count, direct
+      relationships only, unfiltered by the visitor's NSFW preference — a
+      total-volume figure) — marked beside the name; absent renders none. */
+  count?: number;
   /** Inner SVG of the term's icon meta, resolved server-side through the
       lucide lookup; null/absent renders the label only. */
   icon?: string | null;
@@ -701,15 +705,16 @@ export default function PostLoop({
     );
   };
 
-  /** Category chips toggle slugs in the comma list (multi-select): a click
-      adds/removes the term and the query re-fetches with any chosen
-      category counting (backend IN). */
+  /** Category chips are single-select (0.96.0): a click makes the term the
+      only chosen category — clicking the active one (or "all") clears the
+      filter. Multi-select stays the tag panel's job. The "all" chip
+      normalizes to an empty selection so its own highlight rule
+      (chipActive on an empty set) stays truthful. */
   const applyChip = (chip: LoopChip) => {
     const s = stateRef.current;
     const current = activeCategories ?? splitSlugs(s.query.category);
-    const next = current.includes(chip.slug)
-      ? current.filter((slug) => slug !== chip.slug)
-      : [...current, chip.slug];
+    const next =
+      chip.slug === '' || (current.length === 1 && current[0] === chip.slug) ? [] : [chip.slug];
     setActiveCategories(next);
     const nextQuery: Record<string, string> = { ...s.query, category: next.join(',') };
     fetchState(
@@ -837,6 +842,9 @@ export default function PostLoop({
                       />
                     )}
                     {chip.name}
+                    {chip.count !== undefined && (
+                      <span className="text-[11px] font-normal opacity-70">{chip.count}</span>
+                    )}
                   </a>
                 </Button>
               );

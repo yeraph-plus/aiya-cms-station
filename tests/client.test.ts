@@ -161,6 +161,7 @@ describe('reads and writes', () => {
               registeredAt: '2026-01-01T00:00:00+08:00',
               role: 'subscriber',
               banned: false,
+              showNsfw: false,
               avatar: { url: '', thumbUrl: '' },
               stats: { favorites: 0, contributions: 0, followers: 0 },
             },

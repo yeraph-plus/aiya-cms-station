@@ -1,5 +1,6 @@
 ---
 import UserCenter from '@/components/islands/UserCenter';
+import { NotificationPopover } from '@/components/islands/user-center/NotificationPopover';
 import SearchBox from '@/components/islands/SearchBox';
 import type { UserCenterCopy, UserCenterUser } from '@/components/islands/user-center/types';
 import Icon from '@/components/layout/Icon.astro';
@@ -76,6 +77,11 @@ const scopeParam = Astro.url.searchParams.get('type') ?? '';
       <Icon name="moon" size={18} class="dark:hidden" />
       <Icon name="sun" size={18} class="hidden dark:block" />
     </button>
+    {
+      /* The notification bubble sits OUTSIDE the session gate (0.96.0),
+        next to the color-mode toggle: guests read guest-level broadcasts. */
+    }
+    <NotificationPopover client:load copy={authCopy} localeTag={localeTag} timezone={timezone} />
     <UserCenter
       client:load
       user={user}

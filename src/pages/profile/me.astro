@@ -90,6 +90,8 @@ const settingsCopy = {
   currentPasswordHint: copy.settings.currentPasswordHint,
   passwordTitle: copy.settings.passwordTitle,
   newPasswordLabel: copy.settings.newPasswordLabel,
+  alwaysShowNsfw: copy.settings.alwaysShowNsfw,
+  alwaysShowNsfwHint: copy.settings.alwaysShowNsfwHint,
   passwordConfirmLabel: copy.shell.passwordConfirmLabel,
   save: copy.settings.save,
   saved: copy.settings.saved,
@@ -156,6 +158,7 @@ const initialTab =
               url: page.value.user.url,
               description: page.value.user.description,
               locale: page.value.user.locale,
+              showNsfw: page.value.user.showNsfw,
               avatarUrl: page.value.user.avatar.url
                 ? rewriteMediaUrl(page.value.user.avatar.url)
                 : null,

@@ -4,7 +4,6 @@ import { LogInIcon, UserPlusIcon } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { AuthDialog } from './user-center/AuthDialog';
-import { NotificationPopover } from './user-center/NotificationPopover';
 import { UserMenu } from './user-center/UserMenu';
 import { WalletBubble } from './user-center/WalletBubble';
 import type { AuthMode, UserCenterCopy, UserCenterUser } from './user-center/types';
@@ -26,10 +25,11 @@ export interface UserCenterProps {
 
 /**
  * Aggregated user-center island: logged-out = login/register entries plus
- * the auth dialogs; logged-in = wallet bubble + notification bubble + user
- * menu bubble. All of the interaction lives in React — the Astro shell
- * renders this one island (per shell) and keeps its own vanilla surface
- * UI-only.
+ * the auth dialogs; logged-in = wallet bubble + user menu bubble. The
+ * notification bubble is NOT here anymore (0.96.0): it moved out of the
+ * session gate next to the color-mode toggle, where guests read it too.
+ * All of the interaction lives in React — the Astro shell renders this one
+ * island (per shell) and keeps its own vanilla surface UI-only.
  *
  * Cross-island bridge: any island can dispatch the window event
  * `aiya:open-auth` to pop the login dialog (e.g. a guest hitting a
@@ -64,7 +64,6 @@ export default function UserCenter({
     return (
       <div className="flex items-center gap-1.5">
         <WalletBubble locale={locale} timezone={timezone} />
-        <NotificationPopover copy={copy} localeTag={localeTag} timezone={timezone} />
         <UserMenu user={user} copy={copy} />
       </div>
     );

@@ -1,7 +1,9 @@
 import type { APIRoute } from 'astro';
 import { errorCode, errorStatus, jsonResponse, visitorIp } from '@/lib/api-auth';
 import { postsQuerySchema, resourcesQuerySchema } from '@/lib/core/contracts';
-import { serverClient } from '@/lib/core/server';
+import { authClient, serverClient } from '@/lib/core/server';
+import { readSessionToken } from '@/lib/core/session';
+import { nsfwExcluded } from '@/lib/nsfw';
 import { cloakPostSummaryMedia } from '@/lib/media';
 import { isSearchScope, loadSearchPage, normalizeKeyword, type SearchScope } from '@/lib/search';
 
@@ -16,7 +18,7 @@ import { isSearchScope, loadSearchPage, normalizeKeyword, type SearchScope } fro
  * `search` is the same loop over /search's own read (lib/search), so a
  * paged search body never re-implements the scope rules.
  */
-export const GET: APIRoute = async ({ params, url, request, clientAddress }) => {
+export const GET: APIRoute = async ({ params, url, request, clientAddress, cookies }) => {
   const ip = visitorIp(request, clientAddress);
   const kind = params.type ?? '';
   if (kind !== 'posts' && kind !== 'resources' && kind !== 'pages' && kind !== 'search')
@@ -35,7 +37,14 @@ export const GET: APIRoute = async ({ params, url, request, clientAddress }) => 
   };
 
   try {
-    const client = serverClient(ip);
+    // The feed paginates from the browser, so the visitor's NSFW soft
+    // switch and session ride here instead of the URL: the client carries
+    // the exclusion flag and — with a session cookie — the viewer's own
+    // bearer, matching the SSR page-one read (whose backend override for
+    // "always show NSFW" users then applies to later pages too).
+    const token = readSessionToken(cookies);
+    const excludeNsfw = nsfwExcluded(cookies);
+    const client = token ? authClient(token, ip, excludeNsfw) : serverClient(ip, excludeNsfw);
     if (kind === 'search') {
       // Search is the one feed whose scope rides the query string: the
       // keyword is a path segment on its page and `type` is the scope the

@@ -52,9 +52,13 @@ export const GET: APIRoute = async () => {
         collect((page) => client.posts({ page, perPage: 100 })),
         collect((page) => client.resources({ page, perPage: 100 })),
         collect((page) => client.pages({ page, perPage: 100 })),
-        client.terms('category', 'post'),
-        client.terms('all', 'resource'),
-        client.terms('category', 'page'),
+        // Full sets for the crawler (0.96.0): no empties filter and no NSFW
+        // withholding — the sitemap is not a human-facing surface, so every
+        // category archive stays enumerable regardless of the visitor's
+        // own NSFW preference.
+        client.terms('category', 'post', { hideEmpty: false }),
+        client.terms('all', 'resource', { hideEmpty: false }),
+        client.terms('category', 'page', { hideEmpty: false }),
         client.discussionBoards(),
       ]);
     for (const path of STATIC_PATHS) locs.push(new URL(path, origin).href);

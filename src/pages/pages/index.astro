@@ -54,6 +54,7 @@ const chips = [
     ? page.value.categories.map((term) => ({
         slug: term.slug,
         name: term.name,
+        count: term.count,
         icon: term.icon ? iconInner(term.icon) : null,
         href: `/pages/?category=${encodeURIComponent(term.slug)}`,
       }))

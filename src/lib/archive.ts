@@ -189,18 +189,20 @@ export async function loadCategoryHub(
   let resolved: TermArchiveProps['type'] | null = null;
   try {
     const probes = await Promise.all([
-      // Same-origin server client only — resolution needs no cookies.
+      // Same-origin server client only — resolution needs no cookies. The
+      // full set (no empties filter, no NSFW withholding): a direct visit
+      // to an empty or NSFW-marked category archive still resolves (0.96.0).
       (async () => {
         const client = (await import('@/lib/core/server')).serverClient(astro.locals.visitorIp);
-        return client.terms('category', 'post');
+        return client.terms('category', 'post', { hideEmpty: false });
       })(),
       (async () => {
         const client = (await import('@/lib/core/server')).serverClient(astro.locals.visitorIp);
-        return client.terms('category', 'resource');
+        return client.terms('category', 'resource', { hideEmpty: false });
       })(),
       (async () => {
         const client = (await import('@/lib/core/server')).serverClient(astro.locals.visitorIp);
-        return client.terms('category', 'page');
+        return client.terms('category', 'page', { hideEmpty: false });
       })(),
     ]);
     for (let i = 0; i < CATEGORY_TYPES.length; i += 1) {
@@ -249,12 +251,15 @@ export async function loadTermArchive(
       // pages+tag is never mounted; fall back to the category vocabulary
       const [termsTaxonomy, termsType] = config.terms[taxonomy] ?? config.terms.category;
       const [list, terms] = await Promise.all([
+        // The list rides the factory's NSFW flag (the loop is a human
+        // surface); the term lookup resolves from the FULL vocabulary so a
+        // direct visit to an empty or NSFW-marked archive keeps its title.
         type === 'posts'
           ? client.posts({ ...filter, page: pageNumber, sort })
           : type === 'resources'
             ? client.resources({ ...filter, page: pageNumber, sort })
             : client.pages({ ...filter, page: pageNumber, sort }),
-        client.terms(termsTaxonomy, termsType),
+        client.terms(termsTaxonomy, termsType, { excludeNsfw: false, hideEmpty: false }),
       ]);
       const term = terms.data.find((entry) => entry.slug === slug && entry.taxonomy === taxonomy);
       if (!term) throw new AiyaApiError('http', 404, undefined, 'aiya_not_found');

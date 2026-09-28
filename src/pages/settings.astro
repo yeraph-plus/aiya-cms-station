@@ -48,6 +48,7 @@ const localeOptions = LOCALE_OPTIONS;
           url: user.url,
           description: user.description,
           locale: user.locale,
+          showNsfw: user.showNsfw,
           avatarUrl: user.avatar.url ? rewriteMediaUrl(user.avatar.url) : null,
         }}
         copy={{
@@ -66,6 +67,8 @@ const localeOptions = LOCALE_OPTIONS;
           currentPasswordHint: copy.settings.currentPasswordHint,
           passwordTitle: copy.settings.passwordTitle,
           newPasswordLabel: copy.settings.newPasswordLabel,
+          alwaysShowNsfw: copy.settings.alwaysShowNsfw,
+          alwaysShowNsfwHint: copy.settings.alwaysShowNsfwHint,
           passwordConfirmLabel: copy.shell.passwordConfirmLabel,
           save: copy.settings.save,
           saved: copy.settings.saved,

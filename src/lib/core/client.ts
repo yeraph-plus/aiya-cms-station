@@ -100,6 +100,14 @@ export interface ClientOptions {
   /** The visitor IP this server resolved (lib/visitor-ip.ts); rides
       X-Forwarded-For next to the secret header. */
   clientIp?: string | null;
+  /** NSFW soft switch (0.96.0): when true, every human content list read
+      (posts / pages / resources / search / related) requests the
+      backend's configured NSFW exclusion, and /terms withholds the NSFW
+      terms. Detail reads and term resolution stay untouched — direct
+      access keeps working. The backend re-checks the signed-in viewer's
+      "always show" meta server-side, so a hard-switch user is safe even
+      when the flag rides along. */
+  excludeNsfw?: boolean;
   fetcher?: typeof fetch;
 }
 
@@ -182,6 +190,9 @@ export function createAiyaClient(options: ClientOptions) {
     headers.set('X-Forwarded-For', options.clientIp);
   }
   const fetcher = options.fetcher ?? fetch;
+  // The exclusion rides one factory flag: list reads merge it into the
+  // parsed query, term reads pass it as their own option.
+  const nsfwQuery = options.excludeNsfw === true ? { excludeNsfw: true } : {};
 
   /** Detail reads are slug-keyed: one path segment, no separators, and no
       %-escape/?/# bytes — those change what the URL points at (query and
@@ -197,7 +208,10 @@ export function createAiyaClient(options: ClientOptions) {
     method: 'GET' | WriteMethod,
     path: string,
     schema: T,
-    { query, body }: { query?: Record<string, string | number | undefined>; body?: unknown } = {},
+    {
+      query,
+      body,
+    }: { query?: Record<string, string | number | boolean | undefined>; body?: unknown } = {},
   ): Promise<z.output<T>> {
     // Only fixed resource methods below can call this; callers cannot supply a URL or headers.
     if (
@@ -270,25 +284,38 @@ export function createAiyaClient(options: ClientOptions) {
     terms: (
       taxonomy: 'all' | 'category' | 'tag' = 'all',
       type: 'post' | 'page' | 'resource' = 'post',
+      options: { excludeNsfw?: boolean; hideEmpty?: boolean } = {},
     ) =>
       request('GET', 'terms', termsResponseSchema, {
-        query: termsQuerySchema.parse({ taxonomy, type }),
+        query: termsQuerySchema.parse({
+          taxonomy,
+          type,
+          // Per-call options win over the factory flag: archive resolution
+          // and sitemap walkers read the full, unfiltered vocabulary set.
+          ...(options.excludeNsfw !== undefined || options.hideEmpty !== undefined
+            ? options
+            : nsfwQuery),
+        }),
       }),
     posts: (query: ListQuery = {}) =>
-      request('GET', 'posts', postsResponseSchema, { query: postsQuerySchema.parse(query) }),
+      request('GET', 'posts', postsResponseSchema, {
+        query: postsQuerySchema.parse({ ...nsfwQuery, ...query }),
+      }),
     post: (slug: string) => {
       assertSlug(slug);
       return request('GET', `posts/${slug}`, postResponseSchema);
     },
     pages: (query: ListQuery = {}) =>
-      request('GET', 'pages', pagesResponseSchema, { query: postsQuerySchema.parse(query) }),
+      request('GET', 'pages', pagesResponseSchema, {
+        query: postsQuerySchema.parse({ ...nsfwQuery, ...query }),
+      }),
     page: (slug: string) => {
       assertSlug(slug);
       return request('GET', `pages/${slug}`, pageResponseSchema);
     },
     resources: (query: ResourcesListQuery = {}) =>
       request('GET', 'resources', resourcesResponseSchema, {
-        query: resourcesQuerySchema.parse(query),
+        query: resourcesQuerySchema.parse({ ...nsfwQuery, ...query }),
       }),
     resource: (slug: string) => {
       assertSlug(slug);
@@ -297,7 +324,10 @@ export function createAiyaClient(options: ClientOptions) {
     related: (id: number, query: { number?: number } = {}) => {
       if (!Number.isSafeInteger(id) || id < 1) throw new AiyaApiError('configuration', 400);
       return request('GET', `content/${id}/related`, relatedResponseSchema, {
-        query: query.number === undefined ? {} : { number: query.number },
+        query: {
+          ...(query.number === undefined ? {} : { number: query.number }),
+          ...nsfwQuery,
+        },
       });
     },
     downloads: (id: number) => {
@@ -344,6 +374,7 @@ export function createAiyaClient(options: ClientOptions) {
           type: parsed.type,
           page: parsed.page,
           perPage: parsed.perPage,
+          ...nsfwQuery,
         },
       });
     },
@@ -356,10 +387,16 @@ export function createAiyaClient(options: ClientOptions) {
       const parsed = searchQuerySchema.parse(query);
 
       return request('GET', 'search', searchGroupedResponseSchema, {
-        query: { q: parsed.q, perPage: parsed.perPage },
+        query: { q: parsed.q, perPage: parsed.perPage, ...nsfwQuery },
       });
     },
-    notifications: () => request('GET', 'notifications', notificationsResponseSchema),
+    notifications: (query: { page?: number; perPage?: number } = {}) =>
+      request('GET', 'notifications', notificationsResponseSchema, {
+        query: {
+          ...(query.page !== undefined && query.page > 1 ? { page: query.page } : {}),
+          ...(query.perPage !== undefined ? { perPage: query.perPage } : {}),
+        },
+      }),
 
     // ---- auth ----
     login: (input: LoginRequest) =>

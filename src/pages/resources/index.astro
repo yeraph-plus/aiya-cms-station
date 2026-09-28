@@ -113,6 +113,7 @@ if (page.ok) {
             ...page.value.categories.map((term) => ({
               slug: term.slug,
               name: term.name,
+              count: term.count,
               icon: term.icon ? iconInner(term.icon) : null,
               href: chipHref(term.slug),
             })),

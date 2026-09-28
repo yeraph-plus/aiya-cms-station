@@ -284,8 +284,8 @@ function TitleRow({
 
 /**
  * The POST header: the hero area ALWAYS renders — the backend's featured
- * chain resolves the post cover, the site default post cover, or the site
- * fallback cover, so the image is practically always present; the
+ * chain resolves the post cover or the site fallback cover, so the image
+ * is practically always present; the
  * meta/title block rides the gradient at its bottom edge.
  */
 export function ArticleHeader({
@@ -351,7 +351,7 @@ export function ArticleHeader({
 
 /**
  * The PAGE/RESOURCE header: no hero — pages and resources keep no hero
- * settings and the backend answers no site-default cover for them, so
+ * settings and the backend answers no site cover defaults for them, so
  * this fork renders the meta row, the title row and the term lines
  * directly on the card surface.
  */

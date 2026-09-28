@@ -54,16 +54,25 @@ export function clientIpHeader(): string {
  * capability, so content reads are exactly what any visitor would see.
  * Revisit only if preview/admin is ever added.
  */
-export function serverClient(clientIp?: string | null) {
-  return createAiyaClient(liveOptions(clientIp));
+export function serverClient(clientIp?: string | null, excludeNsfw?: boolean) {
+  return createAiyaClient({ ...liveOptions(clientIp), ...(excludeNsfw ? { excludeNsfw } : {}) });
 }
 
 /**
  * Identity client for visitor accounts (`/auth/*`, `/users/me`). Adds the
  * visitor's own bearer when the session carries one; without a token it is
- * equivalent to serverClient().
+ * equivalent to serverClient(). `excludeNsfw` threads the visitor's soft
+ * switch into content list reads (see lib/nsfw.ts).
  */
-export function authClient(bearer?: string | null, clientIp?: string | null) {
+export function authClient(
+  bearer?: string | null,
+  clientIp?: string | null,
+  excludeNsfw?: boolean,
+) {
   const token = bearer?.trim();
-  return createAiyaClient({ ...liveOptions(clientIp), ...(token ? { bearer: token } : {}) });
+  return createAiyaClient({
+    ...liveOptions(clientIp),
+    ...(token ? { bearer: token } : {}),
+    ...(excludeNsfw ? { excludeNsfw } : {}),
+  });
 }
