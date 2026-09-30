@@ -8,6 +8,7 @@ import {
   t,
   toBcp47,
 } from '@/lib/i18n';
+import { notificationTime } from '@/lib/format';
 import { zh_CN } from '@/lib/i18n/dictionaries/zh_CN';
 import { en_US } from '@/lib/i18n/dictionaries/en_US';
 import { zh_HK } from '@/lib/i18n/dictionaries/zh_HK';
@@ -169,5 +170,31 @@ describe('backend error-code coverage', () => {
         ).toBeTypeOf('string');
       }
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Locale tags that reach Intl (regression: /notifications/ fed the WP
+// underscore form 'zh_CN' straight into toLocaleString → RangeError inside
+// a row renderer → React unmounted the whole island → an empty page for
+// every signed-in visitor with at least one notification).
+// ---------------------------------------------------------------------------
+
+describe('locale tags are Intl-safe end to end', () => {
+  it('every toBcp47 mapping is a valid Intl locale tag', () => {
+    for (const locale of SUPPORTED_LOCALES) {
+      expect(() => new Intl.DateTimeFormat(toBcp47(locale))).not.toThrow();
+    }
+  });
+
+  it('notificationTime degrades a malformed tag instead of throwing', () => {
+    const value = '2026-10-01T04:10:41+08:00';
+    expect(notificationTime(value, 'zh_CN')).toBe(notificationTime(value, 'zh-CN'));
+    expect(() => notificationTime(value, 'not a tag')).not.toThrow();
+    expect(notificationTime(value, 'not a tag')).not.toBe('');
+  });
+
+  it('notificationTime answers an unusable date with an empty string', () => {
+    expect(notificationTime('garbage', 'zh-CN')).toBe('');
   });
 });

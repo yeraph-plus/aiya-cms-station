@@ -17,7 +17,7 @@ const sort = Astro.url.searchParams.get('sort') === 'oldest' ? 'oldest' : 'newes
 const n = Number(Astro.params.n);
 if (!PROFILE_SLUG_PATTERN.test(slug) || !Number.isInteger(n) || n < 2) {
   // Re-encode: params arrive decoded and a raw CJK slug breaks the header.
-  return Astro.redirect(`/profile/${encodeURIComponent(slug)}/`);
+  return Astro.redirect(`/profile/${encodeURIComponent(slug)}/${Astro.url.search}`, 308);
 }
 
 const page = await loadPage(

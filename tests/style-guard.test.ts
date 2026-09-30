@@ -121,6 +121,15 @@ describe('style guard', () => {
     ).toEqual([]);
   });
 
+  it('lucide-static stays server-side (islands take icons as props, termIconMap)', () => {
+    // The dynamic namespace import defeats tree-shaking: one island import
+    // of lib/icons put the whole ~2000-icon SVG table (~1MB) into the
+    // client bundle. Resolution happens server-side; islands render props.
+    expect(
+      violations(scan(['src/components/islands'], ['.tsx']), /from ['"]@\/lib\/icons['"]/),
+    ).toEqual([]);
+  });
+
   it('the three converged bare inputs keep their labels pinned', () => {
     const cs = readFileSync(join(ROOT, 'src/components/islands/CommentSection.tsx'), 'utf-8');
     expect(cs).toContain('aria-label={copy.guestName}');

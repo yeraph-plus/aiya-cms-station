@@ -458,14 +458,18 @@ const manifest: Record<string, z.ZodType> = {
   UserProfile: userSchema,
 };
 
-/** Strips nullable/optional/default wrappers and returns the inner type tag. */
+/** Strips nullable/optional/default/catch wrappers and returns the inner
+    type tag. `catch` is the degrade-not-503 fallback (zod parses the field,
+    an unknown future enum value lands on the safe default) — the inner
+    schema still governs the snapshot type comparison. */
 function unwrapField(field: z.ZodType): { type: string; nullable: boolean } {
   let current = field;
   let nullable = false;
   while (
     current.def.type === 'nullable' ||
     current.def.type === 'optional' ||
-    current.def.type === 'default'
+    current.def.type === 'default' ||
+    current.def.type === 'catch'
   ) {
     if (current.def.type === 'nullable') nullable = true;
     current = (current.def as unknown as { innerType: z.ZodType }).innerType;
@@ -567,5 +571,41 @@ describe('v1 contract lock (additive-only)', () => {
       }
     }
     expect(violations, 'v1 baseline violations').toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Enum degrade (.catch): the snapshot records these fields as plain
+// "string", so a backend-first rollout can ship a value the zod enum does
+// not know yet. Each registered narrowing must degrade to its safe default
+// instead of rejecting the payload (a /site field would 503 the whole
+// site). Known values still parse strictly.
+// ---------------------------------------------------------------------------
+
+const field = (schema: z.ZodType, key: string): z.ZodType =>
+  ((schema as unknown as z.ZodObject).shape as Record<string, z.ZodType>)[key];
+
+describe('enum catch defaults (backend-first rollout safety)', () => {
+  it('unknown enum values land on their safe default, never a parse error', () => {
+    expect(field(termSchema, 'taxonomy').parse('topic')).toBe('tag');
+    expect(field(siteDefaultsSchema, 'colorMode').parse('auto')).toBe('system');
+    expect(field(beianLinkSchema, 'icon').parse('banner')).toBe('shield');
+    expect(field(siteCommentsSchema, 'defaultCommentsPage').parse('random')).toBe('newest');
+    expect(field(siteCommentsSchema, 'commentOrder').parse('rand')).toBe('desc');
+    expect(field(menuItemSchema, 'target').parse('tab')).toBe('self');
+    expect(field(homeSectionSchema, 'type').parse('page')).toBe('post');
+    expect(field(membershipBadgeSchema, 'status').parse('paused')).toBe('inactive');
+    expect(field(membershipEntitlementSchema, 'status').parse('paused')).toBe('cancelled');
+    expect(field(planChannelsSchema, 'methods').parse(['stripe'])).toEqual([]);
+    expect(field(creditEntrySchema, 'direction').parse('swap')).toBe('out');
+  });
+
+  it('known values still parse strictly', () => {
+    expect(field(termSchema, 'taxonomy').parse('category')).toBe('category');
+    expect(field(planChannelsSchema, 'methods').parse(['alipay', 'usdt'])).toEqual([
+      'alipay',
+      'usdt',
+    ]);
+    expect(field(membershipEntitlementSchema, 'status').parse('active')).toBe('active');
   });
 });

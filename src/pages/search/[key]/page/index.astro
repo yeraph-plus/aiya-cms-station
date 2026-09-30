@@ -4,5 +4,5 @@
 import { searchPath } from '@/lib/search';
 
 const key = Array.isArray(Astro.params.key) ? Astro.params.key[0] : (Astro.params.key ?? '');
-return Astro.redirect(key === '' ? '/' : searchPath(key));
+return Astro.redirect(key === '' ? '/' : `${searchPath(key)}${Astro.url.search}`, 308);
 ---

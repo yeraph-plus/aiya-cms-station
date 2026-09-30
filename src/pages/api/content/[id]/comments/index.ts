@@ -1,5 +1,12 @@
 import type { APIRoute } from 'astro';
-import { errorCode, errorStatus, jsonResponse, visitorIp, readJsonBody } from '@/lib/api-auth';
+import {
+  errorCode,
+  errorRequestId,
+  errorStatus,
+  jsonResponse,
+  readJsonBody,
+  visitorIp,
+} from '@/lib/api-auth';
 import { authClient, serverClient } from '@/lib/core/server';
 import { readSessionToken } from '@/lib/core/session';
 import { rewriteMediaUrl } from '@/lib/media';
@@ -47,7 +54,10 @@ export const GET: APIRoute = async ({ params, url, request, clientAddress }) => 
       pagination: result.meta.pagination,
     });
   } catch (error) {
-    return jsonResponse({ ok: false, code: errorCode(error) }, errorStatus(error));
+    return jsonResponse(
+      { ok: false, code: errorCode(error), requestId: errorRequestId(error) },
+      errorStatus(error),
+    );
   }
 };
 
@@ -73,10 +83,15 @@ export const POST: APIRoute = async ({ cookies, params, request, clientAddress }
     const result = await client.addComment(id, {
       body: body.body,
       ...(typeof body.parentId === 'number' ? { parentId: body.parentId } : {}),
-      // Guest identity rides only for guests; the backend ignores it for
-      // session writers. Without a cookie this proxy 401s before anything.
-      ...(typeof body.authorName === 'string' ? { authorName: body.authorName } : {}),
-      ...(typeof body.authorEmail === 'string' ? { authorEmail: body.authorEmail } : {}),
+      // Guest identity rides only for guests — the proxy strips it for
+      // session writers instead of trusting the backend to ignore it
+      // (defense in depth: identity comes from the session, not the body).
+      ...(token
+        ? {}
+        : {
+            ...(typeof body.authorName === 'string' ? { authorName: body.authorName } : {}),
+            ...(typeof body.authorEmail === 'string' ? { authorEmail: body.authorEmail } : {}),
+          }),
     });
     return jsonResponse({
       ok: true,
@@ -85,6 +100,9 @@ export const POST: APIRoute = async ({ cookies, params, request, clientAddress }
       status: result.data.status,
     });
   } catch (error) {
-    return jsonResponse({ ok: false, code: errorCode(error) }, errorStatus(error));
+    return jsonResponse(
+      { ok: false, code: errorCode(error), requestId: errorRequestId(error) },
+      errorStatus(error),
+    );
   }
 };

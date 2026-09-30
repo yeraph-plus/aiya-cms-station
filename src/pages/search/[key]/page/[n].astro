@@ -21,7 +21,7 @@ import {
 const key = normalizeKeyword(Astro.params.key ?? '');
 const n = Number(Astro.params.n);
 if (key === '' || !Number.isInteger(n) || n < 2) {
-  return Astro.redirect(key === '' ? '/' : searchPath(key));
+  return Astro.redirect(key === '' ? '/' : `${searchPath(key)}${Astro.url.search}`, 308);
 }
 
 const scopeParam = Astro.url.searchParams.get('type') ?? '';

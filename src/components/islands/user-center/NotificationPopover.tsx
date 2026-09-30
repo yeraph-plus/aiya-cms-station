@@ -5,6 +5,7 @@ import { BellIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import Spinner from '@/components/islands/Spinner';
+import { notificationTime } from '@/lib/format';
 import { fetchFeed, markSeen, SEEN_KEY, type NotificationFeedItem } from '@/lib/notifications';
 import type { UserCenterCopy } from './types';
 
@@ -44,7 +45,13 @@ export function NotificationPopover({
       if (feed?.ok) {
         const list = feed.items ?? [];
         setItems(list);
-        setUnread(list.some((item) => item.createdAt > (localStorage.getItem(SEEN_KEY) ?? '')));
+        let seen = '';
+        try {
+          seen = localStorage.getItem(SEEN_KEY) ?? '';
+        } catch {
+          /* storage unavailable (private mode) — everything reads unread */
+        }
+        setUnread(list.some((item) => item.createdAt > seen));
       }
       // failures stay silent here: the dot simply never lights up
     })();
@@ -147,13 +154,10 @@ export function FeedRow({
       <p className="truncate text-sm font-medium">{item.title}</p>
       {valid && (
         <time dateTime={item.createdAt} className="mt-0.5 block text-[11px] text-body-muted">
-          {created.toLocaleString(localeTag || navigator.language, {
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            ...(timezone ? { timeZone: timezone } : {}),
-          })}
+          {/* localeTag is the BCP 47 tag the shells convert from page.locale;
+              notificationTime degrades a malformed tag instead of throwing
+              (a throw inside this row unmounts the whole island). */}
+          {notificationTime(item.createdAt, localeTag, timezone)}
         </time>
       )}
       <p className="mt-1 line-clamp-2 text-xs leading-5 text-body-muted">{item.body}</p>

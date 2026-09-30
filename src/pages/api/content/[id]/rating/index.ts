@@ -1,5 +1,12 @@
 import type { APIRoute } from 'astro';
-import { errorCode, errorStatus, jsonResponse, visitorIp, readJsonBody } from '@/lib/api-auth';
+import {
+  errorCode,
+  errorRequestId,
+  errorStatus,
+  jsonResponse,
+  readJsonBody,
+  visitorIp,
+} from '@/lib/api-auth';
 import { authClient, serverClient } from '@/lib/core/server';
 import { readSessionToken } from '@/lib/core/session';
 
@@ -30,6 +37,9 @@ export const POST: APIRoute = async (Astro) => {
       already: result.data.already,
     });
   } catch (error) {
-    return jsonResponse({ ok: false, code: errorCode(error) }, errorStatus(error));
+    return jsonResponse(
+      { ok: false, code: errorCode(error), requestId: errorRequestId(error) },
+      errorStatus(error),
+    );
   }
 };

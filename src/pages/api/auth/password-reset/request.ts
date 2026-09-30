@@ -1,5 +1,12 @@
 import type { APIRoute } from 'astro';
-import { errorCode, errorStatus, jsonResponse, visitorIp, readJsonBody } from '@/lib/api-auth';
+import {
+  errorCode,
+  errorRequestId,
+  errorStatus,
+  jsonResponse,
+  readJsonBody,
+  visitorIp,
+} from '@/lib/api-auth';
 import { authClient, siteOrigin } from '@/lib/core/server';
 
 /**
@@ -24,6 +31,9 @@ export const POST: APIRoute = async (Astro) => {
     await authClient(null, ip).passwordResetRequest({ email, domain });
     return jsonResponse({ ok: true });
   } catch (error) {
-    return jsonResponse({ ok: false, code: errorCode(error) }, errorStatus(error));
+    return jsonResponse(
+      { ok: false, code: errorCode(error), requestId: errorRequestId(error) },
+      errorStatus(error),
+    );
   }
 };

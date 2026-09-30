@@ -8,9 +8,10 @@ import { loadPage } from '@/lib/page.server';
 import { setCrumbs } from '@/lib/breadcrumbs';
 
 const n = Number(Astro.params.n);
-// Page 1 and non-numeric shapes live at /posts/ — bounce there (302).
+// Page 1 and non-numeric shapes live at /posts/ — permanent
+// normalization (308), and the active filter query rides along.
 if (!Number.isInteger(n) || n < 2) {
-  return Astro.redirect('/posts/');
+  return Astro.redirect(`/posts/${Astro.url.search}`, 308);
 }
 
 // Same filter contract as /posts/ — q / category / tag / sort. Page 1 and its

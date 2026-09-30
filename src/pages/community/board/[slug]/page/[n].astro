@@ -8,7 +8,7 @@ const n = Number(Astro.params.n);
 if (!Number.isInteger(n) || n < 2) {
   // Astro params arrive decoded; re-encode the segment (a raw CJK slug
   // would break the Location header).
-  return Astro.redirect(`/community/board/${encodeURIComponent(slug)}/`);
+  return Astro.redirect(`/community/board/${encodeURIComponent(slug)}/${Astro.url.search}`, 308);
 }
 const view = await loadCommunityBoard(Astro.response, Astro.url, Astro.cookies, Astro.locals, {
   boardSlug: slug,

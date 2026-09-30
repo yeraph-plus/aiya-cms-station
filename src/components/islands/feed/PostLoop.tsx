@@ -617,6 +617,9 @@ export default function PostLoop({
    */
   const sentinelRef = useRef<HTMLDivElement>(null);
   const failuresRef = useRef(0);
+  // The re-arm timeout outlives the append that scheduled it; unmount must
+  // cancel it or it fires one append (and a setState) into a dead island.
+  const rearmRef = useRef<number | null>(null);
   const appendNext = () => {
     if (busyRef.current) return;
     const s = stateRef.current;
@@ -641,17 +644,27 @@ export default function PostLoop({
         /* silent: the sentinel retriggers on the next scroll */
       } finally {
         busyRef.current = false;
-        setLoading(false);
-        // Re-arm while the sentinel is still on screen (short pages): the
-        // observer will not refire without an intersection change. A failed
-        // fetch backs off exponentially (capped) so a dead endpoint is not
-        // hammered at poll cadence; one success resets the ladder.
-        failuresRef.current = ok ? 0 : failuresRef.current + 1;
-        const delay = ok ? 200 : Math.min(200 * 2 ** failuresRef.current, 10_000);
-        setTimeout(() => {
-          const el = sentinelRef.current;
-          if (el && el.getBoundingClientRect().top < window.innerHeight + 600) appendNext();
-        }, delay);
+        const queued = queuedRef.current;
+        queuedRef.current = null;
+        if (queued) {
+          // A chip/tag/sort/pager click landed while this append was in
+          // flight — it queued through fetchState and is the authoritative
+          // next fetch (same drain as fetchState's own finally). Skip this
+          // append's re-arm: its page belongs to the superseded query.
+          fetchState(queued.next, queued.historyUrl);
+        } else {
+          setLoading(false);
+          // Re-arm while the sentinel is still on screen (short pages): the
+          // observer will not refire without an intersection change. A failed
+          // fetch backs off exponentially (capped) so a dead endpoint is not
+          // hammered at poll cadence; one success resets the ladder.
+          failuresRef.current = ok ? 0 : failuresRef.current + 1;
+          const delay = ok ? 200 : Math.min(200 * 2 ** failuresRef.current, 10_000);
+          rearmRef.current = window.setTimeout(() => {
+            const el = sentinelRef.current;
+            if (el && el.getBoundingClientRect().top < window.innerHeight + 600) appendNext();
+          }, delay);
+        }
       }
     })();
   };
@@ -675,6 +688,7 @@ export default function PostLoop({
     return () => {
       io.disconnect();
       window.clearInterval(poll);
+      if (rearmRef.current !== null) window.clearTimeout(rearmRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoLoad]);
@@ -949,7 +963,7 @@ export default function PostLoop({
           <div className="space-y-1.5">
             {/* Sort row: moved out of the chips nav into the panel. */}
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="shrink-0 text-sm text-body-muted">{copy.posts.sort}：</span>
+              <span className="shrink-0 text-sm text-body-muted">{copy.posts.sort}</span>
               <FilterPill
                 active={(state.query.sort ?? 'newest') !== 'oldest'}
                 onClick={() => applySort('newest')}
@@ -965,7 +979,7 @@ export default function PostLoop({
             </div>
             {groups.map((group) => (
               <div key={group.key} className="flex flex-wrap items-center gap-1.5">
-                <span className="shrink-0 text-sm text-body-muted">{group.label}：</span>
+                <span className="shrink-0 text-sm text-body-muted">{group.label}</span>
                 {group.items.map((tag) => (
                   <FilterPill
                     key={tag.slug}

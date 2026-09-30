@@ -4,11 +4,12 @@ import { authClient } from '@/lib/core/server';
 import { setSessionCookie } from '@/lib/core/session';
 import {
   errorCode,
+  errorRequestId,
   errorStatus,
   jsonResponse,
+  readJsonBody,
   requesterLocale,
   visitorIp,
-  readJsonBody,
 } from '@/lib/api-auth';
 import { aiyaErrorCopy, t } from '@/lib/i18n';
 import { rewriteMediaUrl } from '@/lib/media';
@@ -40,7 +41,12 @@ export const POST: APIRoute = async (Astro) => {
     });
   } catch (error) {
     return jsonResponse(
-      { ok: false, code: errorCode(error), message: aiyaErrorCopy(error, locale) },
+      {
+        ok: false,
+        code: errorCode(error),
+        requestId: errorRequestId(error),
+        message: aiyaErrorCopy(error, locale),
+      },
       errorStatus(error),
     );
   }

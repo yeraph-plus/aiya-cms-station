@@ -3,13 +3,11 @@ import { ClientRouter } from 'astro:transitions';
 import type { Site } from '@/lib/core/contracts';
 import { rewriteMediaUrl } from '@/lib/media';
 import { serializeJsonLd } from '@/lib/seo';
-import type { Locale } from '@/lib/i18n/locale';
 interface Props {
   /** Page title; empty on the homepage (bare site name, no suffix). */
   title: string;
   description: string;
   site: Site;
-  locale: Locale;
   /** Absolute http(s) origin, from siteOrigin(). */
   origin: string;
   canonicalPath?: string;
@@ -26,7 +24,6 @@ const {
   title,
   description,
   site,
-  locale,
   origin,
   canonicalPath,
   noindex = false,
@@ -93,7 +90,9 @@ const faviconHref = site.favicon ? rewriteMediaUrl(site.favicon.url) : '/favicon
 <meta property="og:description" content={description} />
 <meta property="og:type" content={ogType} />
 {canonical && <meta property="og:url" content={canonical} />}
-<meta property="og:locale" content={locale} />
+<!-- og:locale describes the served content language (site setting), not
+     the viewer's resolved UI locale — the same URL serves one language. -->
+<meta property="og:locale" content={site.language} />
 {imageUrl && <meta property="og:image" content={imageUrl} />}
 <meta name="twitter:card" content={imageUrl ? 'summary_large_image' : 'summary'} />
 <meta name="twitter:title" content={fullTitle} />

@@ -21,3 +21,14 @@ export function rawWpApiUrl(): string {
   cached = typeof fromImportMeta === 'string' ? fromImportMeta : '';
   return cached;
 }
+
+/** Origin of the WP install ('' when unconfigured/unparseable). One
+    definition for the media URL rewriter and the /media proxy — the two
+    consumers used to carry byte-identical copies that could drift. */
+export function wpOrigin(): string {
+  try {
+    return new URL(rawWpApiUrl()).origin;
+  } catch {
+    return '';
+  }
+}

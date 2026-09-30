@@ -45,6 +45,9 @@ export interface DetailShellProps {
   locale: Locale;
   /** Site calendar timezone (from /site); dates render in it. */
   timezone?: string;
+  /** Term icons pre-resolved server-side (termIconMap) — keyed by term id;
+      lucide-static must never enter the client bundle. */
+  termIcons?: Record<string, string | null>;
 }
 
 /** Post detail shell: two columns — the article left, author + related right. */
@@ -63,6 +66,7 @@ export default function PostDetail({
   isSelf,
   locale,
   timezone,
+  termIcons,
   window,
 }: DetailShellProps & {
   related: PostSummary[];
@@ -82,6 +86,7 @@ export default function PostDetail({
             post={post}
             locale={locale}
             basePath="/posts/"
+            termIcons={termIcons}
             actions={<ActionRow post={post} locale={locale} variant="post" loggedIn={loggedIn} />}
           />
           <CardContent className="px-6 py-6">

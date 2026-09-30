@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { errorCode, errorStatus, jsonResponse, visitorIp } from '@/lib/api-auth';
+import { errorCode, errorRequestId, errorStatus, jsonResponse, visitorIp } from '@/lib/api-auth';
 import { serverClient } from '@/lib/core/server';
 import { rewriteMediaUrl } from '@/lib/media';
 
@@ -20,6 +20,9 @@ export const GET: APIRoute = async ({ request, clientAddress }) => {
       })),
     });
   } catch (error) {
-    return jsonResponse({ ok: false, code: errorCode(error) }, errorStatus(error));
+    return jsonResponse(
+      { ok: false, code: errorCode(error), requestId: errorRequestId(error) },
+      errorStatus(error),
+    );
   }
 };

@@ -1,4 +1,4 @@
 ---
 // Slug-less shape: bounce to the community root instead of a 404.
-return Astro.redirect('/community/');
+return Astro.redirect(`/community/${Astro.url.search}`, 308);
 ---

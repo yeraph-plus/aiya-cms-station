@@ -10,16 +10,7 @@
  * (Astro dev).
  */
 
-import { rawWpApiUrl } from '@/lib/wp-env';
-
-const wpOrigin = (): string => {
-  const raw = rawWpApiUrl();
-  try {
-    return new URL(raw).origin;
-  } catch {
-    return '';
-  }
-};
+import { wpOrigin } from '@/lib/wp-env';
 
 /** Dev loopback hosts (localhost / 127.0.0.1) point at the same WP. */
 const normalizeHost = (origin: string): string =>

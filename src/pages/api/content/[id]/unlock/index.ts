@@ -1,6 +1,13 @@
 import type { APIRoute } from 'astro';
 import { cloakPostDetail } from '@/lib/detail';
-import { errorCode, errorStatus, jsonResponse, visitorIp, readJsonBody } from '@/lib/api-auth';
+import {
+  errorCode,
+  errorRequestId,
+  errorStatus,
+  jsonResponse,
+  readJsonBody,
+  visitorIp,
+} from '@/lib/api-auth';
 import { authClient, serverClient } from '@/lib/core/server';
 import { readSessionToken } from '@/lib/core/session';
 
@@ -26,6 +33,9 @@ export const POST: APIRoute = async (Astro) => {
     const result = await client.unlockPost(id, body.password);
     return jsonResponse({ ok: true, post: cloakPostDetail(result.data) });
   } catch (error) {
-    return jsonResponse({ ok: false, code: errorCode(error) }, errorStatus(error));
+    return jsonResponse(
+      { ok: false, code: errorCode(error), requestId: errorRequestId(error) },
+      errorStatus(error),
+    );
   }
 };

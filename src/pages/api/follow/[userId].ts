@@ -1,5 +1,5 @@
 import type { APIRoute, AstroCookies } from 'astro';
-import { errorCode, errorStatus, jsonResponse, visitorIp } from '@/lib/api-auth';
+import { errorCode, errorRequestId, errorStatus, jsonResponse, visitorIp } from '@/lib/api-auth';
 import { authClient } from '@/lib/core/server';
 import { readSessionToken } from '@/lib/core/session';
 
@@ -18,7 +18,10 @@ export const GET: APIRoute = async ({ cookies, params, request, clientAddress })
     const result = await authClient(token, ip).isFollowing(userId);
     return jsonResponse({ ok: true, following: result.data.following });
   } catch (error) {
-    return jsonResponse({ ok: false, code: errorCode(error) }, errorStatus(error));
+    return jsonResponse(
+      { ok: false, code: errorCode(error), requestId: errorRequestId(error) },
+      errorStatus(error),
+    );
   }
 };
 
@@ -46,6 +49,9 @@ async function toggle(
       action === 'follow' ? await client.follow(userId) : await client.unfollow(userId);
     return jsonResponse({ ok: true, following: result.data.following });
   } catch (error) {
-    return jsonResponse({ ok: false, code: errorCode(error) }, errorStatus(error));
+    return jsonResponse(
+      { ok: false, code: errorCode(error), requestId: errorRequestId(error) },
+      errorStatus(error),
+    );
   }
 }

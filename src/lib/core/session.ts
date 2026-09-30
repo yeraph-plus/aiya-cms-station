@@ -17,16 +17,30 @@ export function readSessionToken(cookies: AstroCookies): string | null {
 /**
  * The signed-in visitor, or null for guests and dead sessions. Any
  * failure (revoked token, backend down, contract drift) renders as
- * logged-out instead of breaking the page.
+ * logged-out instead of breaking the page. Pass the middleware-resolved
+ * visitor IP: without it `/users/me` skips the proxy bridge and the
+ * request is attributed to the server's own REMOTE_ADDR.
+ *
+ * One page read calls this twice (session gate + loadPage shell); the
+ * WeakMap keys on the request's own AstroCookies instance, so the second
+ * call reuses the first read within the request and the entry dies with it.
  */
-export async function currentUser(cookies: AstroCookies): Promise<User | null> {
-  const token = readSessionToken(cookies);
-  if (!token) return null;
-  try {
-    return (await authClient(token).me()).data;
-  } catch {
-    return null;
-  }
+const meCache = new WeakMap<AstroCookies, Promise<User | null>>();
+
+export function currentUser(cookies: AstroCookies, clientIp?: string | null): Promise<User | null> {
+  const cached = meCache.get(cookies);
+  if (cached) return cached;
+  const read = (async (): Promise<User | null> => {
+    const token = readSessionToken(cookies);
+    if (!token) return null;
+    try {
+      return (await authClient(token, clientIp).me()).data;
+    } catch {
+      return null;
+    }
+  })();
+  meCache.set(cookies, read);
+  return read;
 }
 
 export function setSessionCookie(cookies: AstroCookies, token: string, expiresAt: number): void {

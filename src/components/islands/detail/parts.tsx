@@ -49,7 +49,6 @@ import LikeButton from '@/components/islands/LikeButton';
 import RatingRow from '@/components/islands/RatingRow';
 import UnlockGate from '@/components/islands/UnlockGate';
 import { safeContent } from '@/lib/content';
-import { iconInner } from '@/lib/icons';
 import { displayDate } from '@/lib/format';
 import Avatar from '@/components/islands/Avatar';
 import EmptyNote from '@/components/islands/EmptyNote';
@@ -157,16 +156,19 @@ export function MetaRow({
 
 function TermChip({
   term,
+  icon,
   href,
   title,
   locale,
 }: {
   term: Term;
+  /** Inner SVG pre-resolved server-side (termIconMap) — the lucide table
+      must never enter the client bundle. */
+  icon: string | null;
   href: string;
   title?: string;
   locale: Locale;
 }) {
-  const icon = term.icon ? iconInner(term.icon) : null;
   return (
     <a
       href={href}
@@ -203,11 +205,14 @@ export function TermRows({
   locale,
   basePath,
   tagVocabLabels,
+  termIcons,
 }: {
   post: PostDetail;
   locale: Locale;
   basePath: string;
   tagVocabLabels?: Record<string, string>;
+  /** Server-resolved icons keyed by term id (termIconMap). */
+  termIcons?: Record<string, string | null>;
 }) {
   const copy = t(locale).posts;
   const groups = new Map<string, Term[]>();
@@ -226,6 +231,7 @@ export function TermRows({
             <TermChip
               key={term.id}
               term={term}
+              icon={termIcons?.[String(term.id)] ?? null}
               href={`${basePath}?category=${term.slug}`}
               locale={locale}
             />
@@ -239,6 +245,7 @@ export function TermRows({
             <TermChip
               key={term.id}
               term={term}
+              icon={termIcons?.[String(term.id)] ?? null}
               href={`${basePath}?tag=${term.slug}`}
               locale={locale}
             />
@@ -294,6 +301,7 @@ export function ArticleHeader({
   timezone,
   basePath,
   tagVocabLabels,
+  termIcons,
   actions,
 }: {
   post: PostDetail;
@@ -302,6 +310,8 @@ export function ArticleHeader({
 
   basePath: string;
   tagVocabLabels?: Record<string, string>;
+  /** Server-resolved icons keyed by term id (termIconMap). */
+  termIcons?: Record<string, string | null>;
   /** The action bar (like/rating + favorite) at the title row's right. */
   actions?: React.ReactNode;
 }) {
@@ -338,7 +348,13 @@ export function ArticleHeader({
         </div>
       </div>
       <div className="px-6 pt-4">
-        <TermRows post={post} locale={locale} basePath={basePath} tagVocabLabels={tagVocabLabels} />
+        <TermRows
+          post={post}
+          locale={locale}
+          basePath={basePath}
+          tagVocabLabels={tagVocabLabels}
+          termIcons={termIcons}
+        />
       </div>
       {post.hasManualExcerpt && post.excerpt !== '' && !post.gated && !post.locked && (
         <p className="mt-4 bg-muted/60 px-6 py-3 text-center text-sm leading-relaxed text-body-muted">
@@ -361,6 +377,7 @@ export function SimpleHeader({
   timezone,
   basePath,
   tagVocabLabels,
+  termIcons,
   actions,
 }: {
   post: PostDetail;
@@ -369,6 +386,8 @@ export function SimpleHeader({
 
   basePath: string;
   tagVocabLabels?: Record<string, string>;
+  /** Server-resolved icons keyed by term id (termIconMap). */
+  termIcons?: Record<string, string | null>;
   actions?: React.ReactNode;
 }) {
   return (
@@ -378,7 +397,13 @@ export function SimpleHeader({
         <MetaRow post={post} locale={locale} timezone={timezone} />
       </div>
       <div className="px-6 pt-4">
-        <TermRows post={post} locale={locale} basePath={basePath} tagVocabLabels={tagVocabLabels} />
+        <TermRows
+          post={post}
+          locale={locale}
+          basePath={basePath}
+          tagVocabLabels={tagVocabLabels}
+          termIcons={termIcons}
+        />
       </div>
       {post.hasManualExcerpt && post.excerpt !== '' && !post.gated && !post.locked && (
         <p className="mt-4 bg-muted/60 px-6 py-3 text-center text-sm leading-relaxed text-body-muted">
@@ -879,21 +904,24 @@ function claimFailure(status: number, payload: { code?: string | null } | null):
   return 'failed';
 }
 
+const ARIA2_FALLBACK: Aria2Config = { enabled: false, rpcUrl: ARIA2_PRESETS[0].url, token: '' };
+
 function readAria2Config(): Aria2Config {
-  const fallback: Aria2Config = { enabled: false, rpcUrl: ARIA2_PRESETS[0].url, token: '' };
-  if (typeof window === 'undefined') return fallback;
+  if (typeof window === 'undefined') return ARIA2_FALLBACK;
   try {
     const raw = window.localStorage.getItem(ARIA2_CONFIG_KEY);
-    if (raw === null) return fallback;
+    if (raw === null) return ARIA2_FALLBACK;
     const stored = JSON.parse(raw) as Partial<Aria2Config>;
     return {
       enabled: stored.enabled === true,
       rpcUrl:
-        typeof stored.rpcUrl === 'string' && stored.rpcUrl !== '' ? stored.rpcUrl : fallback.rpcUrl,
+        typeof stored.rpcUrl === 'string' && stored.rpcUrl !== ''
+          ? stored.rpcUrl
+          : ARIA2_FALLBACK.rpcUrl,
       token: typeof stored.token === 'string' ? stored.token : '',
     };
   } catch {
-    return fallback;
+    return ARIA2_FALLBACK;
   }
 }
 
@@ -911,12 +939,12 @@ function deliverFile(url: string, external: boolean): void {
   const frame = document.createElement('iframe');
   frame.style.display = 'none';
   frame.src = url;
-  frame.addEventListener('load', () => {
-    // Keep the frame alive through long transfers; a removed frame aborts
-    // the download it is carrying.
-    window.setTimeout(() => frame.remove(), 120_000);
-  });
+  // One unconditional cleanup timer: a blocked or failed delivery never
+  // fires 'load', and the old load-gated removal leaked the hidden frame
+  // in exactly those cases. A completed download keeps its transfer alive
+  // for the same window, then the frame goes either way.
   document.body.appendChild(frame);
+  window.setTimeout(() => frame.remove(), 120_000);
 }
 
 /**
@@ -978,7 +1006,11 @@ export function DownloadPanel({
   const [pending, setPending] = useState<string>('');
   const [sort, setSort] = useState<{ key: SortKey; dir: 'asc' | 'desc' } | null>(null);
   const [selected, setSelected] = useState<Record<string, true>>({});
-  const [aria2, setAria2State] = useState<Aria2Config>(readAria2Config);
+  // SSR and the first client render agree on the fallback config; the
+  // stored choice lands in an effect (same pattern as PostLoop's view) —
+  // reading localStorage in the state initializer would diverge the
+  // hydration pass for anyone who ever flipped the push switch.
+  const [aria2, setAria2State] = useState<Aria2Config>(ARIA2_FALLBACK);
 
   // The push switch is a site-wide preference: every write goes through the
   // storage + a sync event, so every mounted panel on the site flips with it
@@ -997,6 +1029,9 @@ export function DownloadPanel({
   }, []);
 
   useEffect(() => {
+    // Same deferred read: this effect also picks up the persisted config
+    // once after mount.
+    setAria2State(readAria2Config());
     const sync = (event: Event): void => {
       const config = (event as CustomEvent<Aria2Config>).detail;
       if (config && typeof config === 'object') setAria2State(config);

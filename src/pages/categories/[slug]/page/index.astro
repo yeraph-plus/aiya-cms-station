@@ -4,6 +4,9 @@ const slug = Astro.params.slug ?? '';
 // Astro params arrive decoded; re-encode the segment (a raw CJK slug
 // would break the Location header).
 return Astro.redirect(
-  slug === 'page' ? '/categories/' : `/categories/${encodeURIComponent(slug)}/`,
+  slug === 'page'
+    ? `/categories/${Astro.url.search}`
+    : `/categories/${encodeURIComponent(slug)}/${Astro.url.search}`,
+  308,
 );
 ---

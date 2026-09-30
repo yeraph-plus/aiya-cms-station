@@ -1,5 +1,12 @@
 import type { APIRoute } from 'astro';
-import { errorCode, errorStatus, jsonResponse, visitorIp, readJsonBody } from '@/lib/api-auth';
+import {
+  errorCode,
+  errorRequestId,
+  errorStatus,
+  jsonResponse,
+  readJsonBody,
+  visitorIp,
+} from '@/lib/api-auth';
 import { authClient } from '@/lib/core/server';
 import { readSessionToken } from '@/lib/core/session';
 import { cloakProfileMedia } from '@/lib/media';
@@ -17,6 +24,9 @@ export const PATCH: APIRoute = async (Astro) => {
     const result = await authClient(token, ip).updateProfile(body as Record<string, unknown>);
     return jsonResponse({ ok: true, user: cloakProfileMedia(result.data) });
   } catch (error) {
-    return jsonResponse({ ok: false, code: errorCode(error) }, errorStatus(error));
+    return jsonResponse(
+      { ok: false, code: errorCode(error), requestId: errorRequestId(error) },
+      errorStatus(error),
+    );
   }
 };

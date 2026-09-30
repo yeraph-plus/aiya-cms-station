@@ -8,12 +8,16 @@ import type { Locale } from '@/lib/i18n';
 import { t } from '@/lib/i18n';
 import type { PageResult } from '@/lib/page.server';
 import { loadPage } from '@/lib/page.server';
+import { categoryArchivePaths } from '@/lib/routes';
 
 export interface TermArchiveProps {
   type: 'posts' | 'resources' | 'pages';
   taxonomy: 'category' | 'tag';
   slug: string;
   page: number;
+  /** Mounted-route URL base (categoryArchivePaths) — canonical, pagination
+      and retry links all derive from it, never from the section root. */
+  archiveBase: string;
 }
 
 export interface TermArchiveValue {
@@ -30,7 +34,7 @@ export interface TermArchiveValue {
 
 export interface TermArchiveView {
   page: PageResult<TermArchiveValue>;
-  /** Owning public type (hub-resolved; = props.type for nested routes). */
+  /** Owning public type (hub-resolved; = props.type on delegation). */
   type: TermArchiveProps['type'];
   /** Raw term name (the view title carries the localized prefix). */
   name: string;
@@ -51,9 +55,10 @@ export interface TermArchiveView {
   locale: Locale;
 }
 
-// Static per-type wiring: which URL base, which feed proxy and which
-// /terms arguments resolve the term name ('all' sweeps the five resource
-// tag vocabularies). pages has no tag vocabulary — never mounted.
+// Static per-type wiring: which section root (breadcrumb link only — the
+// archive URL base lives in categoryArchivePaths), which feed proxy and
+// which /terms arguments resolve the term name ('all' sweeps the five
+// resource tag vocabularies). pages has no tag vocabulary — never mounted.
 const CONFIG = {
   posts: {
     base: '/posts/',
@@ -172,8 +177,8 @@ export async function loadCategoryHub(
       type: 'posts',
       name: '',
       pageNumber: props.page,
-      archiveBase: `/categories/${props.slug}/`,
-      pagePattern: `/categories/${props.slug}/page/{page}/`,
+      archiveBase: paths.base,
+      pagePattern: paths.pagePattern,
       feed: '',
       filter: { sort: 'newest' },
       title: page.error.title,
@@ -187,6 +192,7 @@ export async function loadCategoryHub(
   };
 
   let resolved: TermArchiveProps['type'] | null = null;
+  const paths = categoryArchivePaths(props.slug);
   try {
     const probes = await Promise.all([
       // Same-origin server client only — resolution needs no cookies. The
@@ -224,14 +230,16 @@ export async function loadCategoryHub(
     taxonomy: 'category',
     slug: props.slug,
     page: props.page,
+    archiveBase: paths.base,
   });
 }
 
 /**
  * Resolves one term archive (page fetch, term name, titles, status codes,
- * breadcrumbs) for the nested /{base}/(category|tag)/[slug]/ routes. MUST
- * run in page frontmatter: the 404 / over-range status assignments only
- * apply before the page body starts rendering.
+ * breadcrumbs) under the unified /categories/ routes — the URL base rides
+ * in on props (categoryArchivePaths); the type's section root is only the
+ * breadcrumb link. MUST run in page frontmatter: the 404 / over-range
+ * status assignments only apply before the page body starts rendering.
  */
 export async function loadTermArchive(
   response: { status?: number },
@@ -240,10 +248,9 @@ export async function loadTermArchive(
   locals: { breadcrumbs?: Crumb[]; visitorIp?: string | null },
   props: TermArchiveProps,
 ): Promise<TermArchiveView> {
-  const { type, taxonomy, slug, page: pageNumber } = props;
+  const { type, taxonomy, slug, page: pageNumber, archiveBase } = props;
   const config = CONFIG[type];
   const sort = url.searchParams.get('sort') === 'oldest' ? 'oldest' : 'newest';
-  const archiveBase = `${config.base}${taxonomy}/${slug}/`;
 
   const page = await loadPage<TermArchiveValue>(
     async (client) => {

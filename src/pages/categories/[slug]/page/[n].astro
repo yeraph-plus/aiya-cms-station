@@ -8,7 +8,7 @@ const n = Number(Astro.params.n);
 if (!Number.isInteger(n) || n < 2) {
   // Astro params arrive decoded; a raw CJK/control slug would break the
   // Location header (non-ASCII throws in Headers). Re-encode the segment.
-  return Astro.redirect(`/categories/${encodeURIComponent(slug)}/`);
+  return Astro.redirect(`/categories/${encodeURIComponent(slug)}/${Astro.url.search}`, 308);
 }
 const view = await loadCategoryHub(Astro, {
   slug,

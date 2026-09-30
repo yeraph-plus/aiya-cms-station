@@ -1,5 +1,12 @@
 import type { APIRoute } from 'astro';
-import { errorCode, errorStatus, jsonResponse, visitorIp, readJsonBody } from '@/lib/api-auth';
+import {
+  errorCode,
+  errorRequestId,
+  errorStatus,
+  jsonResponse,
+  readJsonBody,
+  visitorIp,
+} from '@/lib/api-auth';
 import { authClient, serverClient } from '@/lib/core/server';
 import { readSessionToken } from '@/lib/core/session';
 import { cloakReply } from '@/lib/community';
@@ -23,7 +30,10 @@ export const GET: APIRoute = async ({ cookies, params, url, request, clientAddre
       pagination: result.meta.pagination,
     });
   } catch (error) {
-    return jsonResponse({ ok: false, code: errorCode(error) }, errorStatus(error));
+    return jsonResponse(
+      { ok: false, code: errorCode(error), requestId: errorRequestId(error) },
+      errorStatus(error),
+    );
   }
 };
 
@@ -42,6 +52,9 @@ export const POST: APIRoute = async ({ cookies, params, request, clientAddress }
     const result = await authClient(token, ip).addDiscussionReply(id, body.content);
     return jsonResponse({ ok: true, reply: cloakReply(result.data) });
   } catch (error) {
-    return jsonResponse({ ok: false, code: errorCode(error) }, errorStatus(error));
+    return jsonResponse(
+      { ok: false, code: errorCode(error), requestId: errorRequestId(error) },
+      errorStatus(error),
+    );
   }
 };

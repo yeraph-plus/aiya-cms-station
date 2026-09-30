@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { errorCode, errorStatus, jsonResponse, visitorIp } from '@/lib/api-auth';
+import { errorCode, errorRequestId, errorStatus, jsonResponse, visitorIp } from '@/lib/api-auth';
 import { authClient, serverClient } from '@/lib/core/server';
 import { readSessionToken } from '@/lib/core/session';
 
@@ -58,6 +58,9 @@ export const GET: APIRoute = async ({ request, cookies, clientAddress }) => {
     }
     // Backend down: the bell degrades to an error note instead of
     // breaking the shell.
-    return jsonResponse({ ok: false, code: errorCode(error) }, errorStatus(error));
+    return jsonResponse(
+      { ok: false, code: errorCode(error), requestId: errorRequestId(error) },
+      errorStatus(error),
+    );
   }
 };

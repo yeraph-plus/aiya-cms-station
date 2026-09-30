@@ -44,7 +44,9 @@ export function FollowButton({
         } | null;
         setStatus(json?.ok ? (json.following ? 'on' : 'off') : 'guest');
       } catch {
-        setStatus('guest');
+        // A dead network is not "signed out": keep the current state
+        // ('loading' keeps the button disabled) instead of flashing the
+        // login prompt over a transient failure.
       }
     })();
   }, [userId, self]);

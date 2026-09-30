@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { authClient, serverClient } from '@/lib/core/server';
 import { readSessionToken } from '@/lib/core/session';
-import { errorCode, errorStatus, jsonResponse, visitorIp } from '@/lib/api-auth';
+import { errorCode, errorRequestId, errorStatus, jsonResponse, visitorIp } from '@/lib/api-auth';
 
 /**
  * Anonymous view-beacon proxy (`POST /api/content/{id}/view/`). Counted per
@@ -24,6 +24,9 @@ export const POST: APIRoute = async (Astro) => {
     // apiVersion) stays server-side like on every other proxy route.
     return jsonResponse({ ok: true, views: result.data.views }, 200);
   } catch (error) {
-    return jsonResponse({ ok: false, code: errorCode(error) }, errorStatus(error));
+    return jsonResponse(
+      { ok: false, code: errorCode(error), requestId: errorRequestId(error) },
+      errorStatus(error),
+    );
   }
 };

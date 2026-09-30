@@ -1,5 +1,6 @@
 import { cloakPostSummaryMedia, rewriteMediaUrl } from '@/lib/media';
 import { safeContent } from '@/lib/content';
+import { iconInner } from '@/lib/icons';
 import type { PostDetail } from '@/lib/core/contracts';
 
 /**
@@ -40,4 +41,18 @@ export function cloakPostDetail(detail: PostDetail): PostDetail {
     previous: detail.previous ? cloakPostSummaryMedia(detail.previous) : null,
     next: detail.next ? cloakPostSummaryMedia(detail.next) : null,
   };
+}
+
+/**
+ * Term icons pre-resolved for the detail headers: term id → inner SVG
+ * (absent when the term carries no icon or the name does not resolve).
+ * lucide-static is a server-only lookup — without this map riding the
+ * island props, the ~2000-icon table enters the client bundle.
+ */
+export function termIconMap(detail: PostDetail): Record<string, string | null> {
+  const map: Record<string, string | null> = {};
+  for (const term of [...detail.categories, ...detail.tags]) {
+    if (term.icon) map[String(term.id)] = iconInner(term.icon);
+  }
+  return map;
 }

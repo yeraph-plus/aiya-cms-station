@@ -89,5 +89,12 @@ export const onRequest = defineMiddleware(async (context, next) => {
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   response.headers.set('X-Frame-Options', 'SAMEORIGIN');
+  // Defense-in-depth base trio (no script-src yet: the pre-paint theme
+  // script is inline; a nonce pipeline is its own batch). The sanitize-html
+  // boundary stays the first line for content HTML.
+  response.headers.set(
+    'Content-Security-Policy',
+    "object-src 'none'; frame-ancestors 'self'; base-uri 'none'",
+  );
   return response;
 });

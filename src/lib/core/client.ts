@@ -59,7 +59,6 @@ import {
   resetValidatedSchema,
   afdianOrderUrlResponseSchema,
   redeemSchema,
-  searchGroupedResponseSchema,
   searchQuerySchema,
   sentResponseSchema,
   siteResponseSchema,
@@ -153,6 +152,30 @@ const WRITE_ALLOWLIST: ReadonlyArray<{ method: WriteMethod; pattern: RegExp }> =
 ];
 
 /** Server transport. Import server.ts from Astro; components never receive this object. */
+/**
+ * One error-envelope read for all three transports (JSON request, image
+ * upload, avatar upload): only the machine code and requestId cross the
+ * boundary, never the upstream body. A timeout while reading the body
+ * rethrows so the caller's own catch keeps its 'timeout' identity instead
+ * of degrading to 'http' — one implementation, no drift (the upload paths
+ * used to carry this fix while request() had lost it).
+ */
+async function readErrorEnvelope(
+  response: Response,
+  aborted: () => boolean,
+): Promise<{ requestId?: string; code?: string }> {
+  try {
+    const error = errorEnvelopeSchema.safeParse(await response.json());
+    if (error.success) {
+      return { requestId: error.data.meta.requestId, code: error.data.error.code };
+    }
+  } catch (inner) {
+    if (aborted()) throw inner;
+    /* A WP/native/proxy error may not use our JSON envelope. */
+  }
+  return {};
+}
+
 export function createAiyaClient(options: ClientOptions) {
   let base: URL;
   try {
@@ -200,7 +223,10 @@ export function createAiyaClient(options: ClientOptions) {
       origin server's decoding policy). */
   function assertSlug(slug: string): void {
     if (!/^[^/\\%?#]{1,200}$/.test(slug) || slug === '' || slug === '.' || slug === '..') {
-      throw new AiyaApiError('configuration', 400);
+      // A malformed slug is a nonexistent resource, not a deployment
+      // problem: 404 (pageError's allow404 branch), never the 503-unready
+      // shape a 'configuration' kind would produce.
+      throw new AiyaApiError('http', 404, undefined, 'aiya_not_found');
     }
   }
 
@@ -240,19 +266,12 @@ export function createAiyaClient(options: ClientOptions) {
     try {
       const response = await fetcher(url, { ...init, signal: controller.signal });
       if (!response.ok) {
-        let requestId: string | undefined;
-        let code: string | undefined;
-        try {
-          const error = errorEnvelopeSchema.safeParse(await response.json());
-          if (error.success) {
-            requestId = error.data.meta.requestId;
-            code = error.data.error.code;
-          }
-        } catch {
-          /* A WP/native/proxy error may not use our JSON envelope. */
-        }
         // Only the machine code crosses the boundary; display copy is the
         // front end's own.
+        const { requestId, code } = await readErrorEnvelope(
+          response,
+          () => controller.signal.aborted,
+        );
         throw new AiyaApiError('http', response.status, requestId, code);
       }
       let payload: unknown;
@@ -323,9 +342,15 @@ export function createAiyaClient(options: ClientOptions) {
     },
     related: (id: number, query: { number?: number } = {}) => {
       if (!Number.isSafeInteger(id) || id < 1) throw new AiyaApiError('configuration', 400);
+      // Contract window is 1-20; out-of-window callers clamp instead of
+      // shipping a raw value into the URL.
+      const number =
+        query.number === undefined
+          ? undefined
+          : Math.min(20, Math.max(1, Math.floor(query.number)));
       return request('GET', `content/${id}/related`, relatedResponseSchema, {
         query: {
-          ...(query.number === undefined ? {} : { number: query.number }),
+          ...(number === undefined ? {} : { number }),
           ...nsfwQuery,
         },
       });
@@ -349,7 +374,7 @@ export function createAiyaClient(options: ClientOptions) {
     discussionReplies: (id: number, page = 1) => {
       if (!Number.isSafeInteger(id) || id < 1) throw new AiyaApiError('configuration', 400);
       return request('GET', `discussions/${id}/replies`, discussionRepliesResponseSchema, {
-        query: { page },
+        query: { page: Number.isSafeInteger(page) && page >= 1 ? page : 1 },
       });
     },
     profile: (slug: string) => {
@@ -378,23 +403,15 @@ export function createAiyaClient(options: ClientOptions) {
         },
       });
     },
-    /** The endpoint's grouped mode (no `type`): page one plus a total per
-        public type, and no pagination. The search page does not use it —
-        its "all" scope unions typed reads so paging stays available — but
-        this is the contract's other mode, and the shape a quick-results
-        panel would want. */
-    searchGrouped: (query: Pick<z.input<typeof searchQuerySchema>, 'q' | 'perPage'>) => {
-      const parsed = searchQuerySchema.parse(query);
-
-      return request('GET', 'search', searchGroupedResponseSchema, {
-        query: { q: parsed.q, perPage: parsed.perPage, ...nsfwQuery },
-      });
-    },
     notifications: (query: { page?: number; perPage?: number } = {}) =>
       request('GET', 'notifications', notificationsResponseSchema, {
+        // Same clamp window the /api proxy enforces; the client stays the
+        // second gate rather than trusting every caller.
         query: {
           ...(query.page !== undefined && query.page > 1 ? { page: query.page } : {}),
-          ...(query.perPage !== undefined ? { perPage: query.perPage } : {}),
+          ...(query.perPage !== undefined && query.perPage >= 1
+            ? { perPage: Math.min(50, Math.floor(query.perPage)) }
+            : {}),
         },
       }),
 
@@ -437,9 +454,13 @@ export function createAiyaClient(options: ClientOptions) {
       }),
     removeAvatar: () => request('DELETE', 'users/me/avatar', meResponseSchema),
     following: (query: FavoritesListQuery = {}) =>
-      request('GET', 'users/me/following', followingResponseSchema, { query }),
+      request('GET', 'users/me/following', followingResponseSchema, {
+        query: favoritesQuerySchema.parse(query),
+      }),
     followers: (query: FavoritesListQuery = {}) =>
-      request('GET', 'users/me/followers', followingResponseSchema, { query }),
+      request('GET', 'users/me/followers', followingResponseSchema, {
+        query: favoritesQuerySchema.parse(query),
+      }),
     follow: (userId: number) => request('POST', `users/me/following/${userId}`, followStateSchema),
     unfollow: (userId: number) =>
       request('DELETE', `users/me/following/${userId}`, followStateSchema),
@@ -571,20 +592,10 @@ export function createAiyaClient(options: ClientOptions) {
           signal: controller.signal,
         });
         if (!response.ok) {
-          let requestId: string | undefined;
-          let code: string | undefined;
-          try {
-            const error = errorEnvelopeSchema.safeParse(await response.json());
-            if (error.success) {
-              requestId = error.data.meta.requestId;
-              code = error.data.error.code;
-            }
-          } catch (inner) {
-            // A timeout while reading the error body must keep its identity:
-            // rethrow so the outer catch maps it to 'timeout', not 'http'.
-            if (controller.signal.aborted) throw inner;
-            /* non-envelope error */
-          }
+          const { requestId, code } = await readErrorEnvelope(
+            response,
+            () => controller.signal.aborted,
+          );
           throw new AiyaApiError('http', response.status, requestId, code);
         }
         // The envelope wraps the payload: { data: UploadResult, meta } —
@@ -624,20 +635,10 @@ export function createAiyaClient(options: ClientOptions) {
           signal: controller.signal,
         });
         if (!response.ok) {
-          let requestId: string | undefined;
-          let code: string | undefined;
-          try {
-            const error = errorEnvelopeSchema.safeParse(await response.json());
-            if (error.success) {
-              requestId = error.data.meta.requestId;
-              code = error.data.error.code;
-            }
-          } catch (inner) {
-            // A timeout while reading the error body must keep its identity:
-            // rethrow so the outer catch maps it to 'timeout', not 'http'.
-            if (controller.signal.aborted) throw inner;
-            /* non-envelope error */
-          }
+          const { requestId, code } = await readErrorEnvelope(
+            response,
+            () => controller.signal.aborted,
+          );
           throw new AiyaApiError('http', response.status, requestId, code);
         }
         const parsed = meResponseSchema.safeParse(await response.json());

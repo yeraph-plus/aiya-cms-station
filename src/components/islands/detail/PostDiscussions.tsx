@@ -171,6 +171,10 @@ export default function PostDiscussions({
         setThreads(json.items);
         setTotal(json.pagination.totalItems);
       }
+    } catch {
+      // Best-effort sidebar reload: the toast keeps the fire-and-forget
+      // feedback contract; the section keeps whatever it had.
+      toastApiError(null, locale);
     } finally {
       setLoading(false);
     }
@@ -198,6 +202,10 @@ export default function PostDiscussions({
       } else {
         toastApiError(json?.code ?? null, locale);
       }
+    } catch {
+      // A dead network must not read as "publish is stuck": same feedback
+      // as a refused publish, draft and dialog stay for a retry.
+      toastApiError(null, locale);
     } finally {
       setPublishing(false);
     }

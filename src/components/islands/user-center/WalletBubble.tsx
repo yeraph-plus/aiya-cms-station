@@ -30,6 +30,23 @@ const checkinMarker = (): string => `aiya-checkin-${new Date().toISOString().sli
  * result is visible), guarded by a local once-per-day marker so page
  * navigation never re-fires it.
  */
+/** Daily auto-checkin marker; guarded reads/writes (private mode throws). */
+function readCheckinMarker(): string | null {
+  try {
+    return localStorage.getItem(checkinMarker());
+  } catch {
+    return null;
+  }
+}
+
+function writeCheckinMarker(): void {
+  try {
+    localStorage.setItem(checkinMarker(), '1');
+  } catch {
+    /* storage unavailable — the backend dedups anyway */
+  }
+}
+
 export function WalletBubble({ locale, timezone }: { locale: Locale; timezone?: string }) {
   const dict = t(locale);
   const copy = dict.membership;
@@ -119,19 +136,14 @@ export function WalletBubble({ locale, timezone }: { locale: Locale; timezone?: 
     if (rootRef.current && rootRef.current.getClientRects().length === 0) return;
     void (async () => {
       const next = await fetchWallet();
-      if (
-        next !== null &&
-        next.active &&
-        next.checkin.enabled &&
-        !localStorage.getItem(checkinMarker())
-      ) {
+      if (next !== null && next.active && next.checkin.enabled && !readCheckinMarker()) {
         setOpen(true);
         const result = await claimCheckin();
         // Mark only after the backend settled the day (grant or 409): a
         // network blip must not burn the day's only automatic attempt — the
         // backend dedups anyway, so erring toward another attempt is safe.
         if (result === 'granted' || result === 'done') {
-          localStorage.setItem(checkinMarker(), '1');
+          writeCheckinMarker();
         }
       }
     })();
@@ -148,16 +160,17 @@ export function WalletBubble({ locale, timezone }: { locale: Locale; timezone?: 
     const result = await claimCheckin();
     // A manual click shares the auto path's daily marker only when the
     // backend settled the day (granted or 409); failures stay re-clickable.
-    if (result === 'granted' || result === 'done') localStorage.setItem(checkinMarker(), '1');
+    if (result === 'granted' || result === 'done') writeCheckinMarker();
   };
 
   const shown = balance ?? membership?.balance ?? null;
   const checkin = membership?.checkin;
   // The currently effective plan: the queue row whose window contains now.
-  const now = Date.now();
+  // Compare ISO strings, not a render-time clock — a pure render must stay
+  // deterministic for hydration (membership is null on the SSR pass anyway).
+  const nowIso = new Date().toISOString();
   const currentPlan = membership?.queue.find(
-    (row) =>
-      row.status === 'active' && Date.parse(row.startsAt) <= now && now < Date.parse(row.endsAt),
+    (row) => row.status === 'active' && row.startsAt <= nowIso && nowIso < row.endsAt,
   );
 
   return (

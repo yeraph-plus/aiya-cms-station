@@ -4,6 +4,7 @@ import { AwardIcon, CoinsIcon } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import type { CreditEntry, MembershipState } from '@/lib/core/contracts';
+import { toastApiError } from '@/lib/feedback';
 import { t, type Locale } from '@/lib/i18n';
 import { displayDay } from '@/lib/membership';
 
@@ -54,6 +55,11 @@ export default function WalletPanel({
         // keep the button alive so the visitor can retry.
         setMore(true);
       }
+    } catch {
+      // Network-level failure: same contract — the button stays alive and
+      // the toast carries the reason.
+      setMore(true);
+      toastApiError(null, locale);
     } finally {
       setBusy(false);
     }

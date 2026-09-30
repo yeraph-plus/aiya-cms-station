@@ -5,7 +5,7 @@ import { loadCommunityBoard } from '@/lib/community-board';
 const n = Number(Astro.params.n);
 // Page 1 lives at /community/; anything non-numeric 404s.
 if (!Number.isInteger(n) || n < 2) {
-  return Astro.redirect('/community/');
+  return Astro.redirect(`/community/${Astro.url.search}`, 308);
 }
 const view = await loadCommunityBoard(Astro.response, Astro.url, Astro.cookies, Astro.locals, {
   boardSlug: '',

@@ -534,6 +534,43 @@
         "nullable": false
       }
     ],
+    "HomeSection": [
+      {
+        "name": "id",
+        "type": "int",
+        "nullable": false
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "nullable": false
+      },
+      {
+        "name": "type",
+        "type": "string",
+        "nullable": false
+      },
+      {
+        "name": "categories",
+        "type": "array",
+        "nullable": false
+      },
+      {
+        "name": "count",
+        "type": "int",
+        "nullable": false
+      },
+      {
+        "name": "icon",
+        "type": "string",
+        "nullable": true
+      },
+      {
+        "name": "moreUrl",
+        "type": "string",
+        "nullable": false
+      }
+    ],
     "Image": [
       {
         "name": "url",
@@ -1200,6 +1237,11 @@
         "name": "adsBottom",
         "type": "array",
         "nullable": false
+      },
+      {
+        "name": "sections",
+        "type": "array",
+        "nullable": false
       }
     ],
     "SiteComments": [
@@ -1537,6 +1579,11 @@
       },
       {
         "name": "banned",
+        "type": "bool",
+        "nullable": false
+      },
+      {
+        "name": "showNsfw",
         "type": "bool",
         "nullable": false
       },

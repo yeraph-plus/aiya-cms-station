@@ -58,14 +58,20 @@ ENV NODE_ENV=production \
 # ERR_MODULE_NOT_FOUND (visible immediately; the healthcheck fails): scan
 # dist/server for bare imports before touching this stage.
 COPY --from=build --chown=node:node /app/dist ./dist
+COPY --chown=node:node entrypoint.mjs ./entrypoint.mjs
 
 USER node
 EXPOSE 4321
 
 # Any HTTP answer proves the process serves (the 503 gate page counts — it
 # means the frontend is up and its backend is not, which is not this
-# container's health).
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+# container's health). The timeout clears the probe's own worst case (the
+# client request timeout, AIYA_API_TIMEOUT_MS, defaults to 8s) so a backend
+# outage plus a circuit re-probe cannot flap the container unhealthy.
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
   CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||4321)+'/robots.txt').then(r=>process.exit(r.ok||r.status<500?0:1)).catch(()=>process.exit(1))"
 
-CMD ["node", "dist/server/entry.mjs"]
+# The entrypoint is a signal supervisor: as PID 1 a bare node process never
+# receives SIGTERM (the kernel drops default-disposition signals for PID 1),
+# so `docker stop` used to run out its grace period and SIGKILL mid-request.
+CMD ["node", "entrypoint.mjs"]

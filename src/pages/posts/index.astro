@@ -36,6 +36,16 @@ const copy = t(page.locale);
 if (page.ok) setCrumbs(Astro.locals, page.locale, [{ label: copy.posts.title }]);
 const filtered = q !== '' || category !== '' || tag !== '';
 const listTitle = q !== '' ? copy.posts.searchTitle(q) : copy.posts.title;
+// Category chips filter this same list, so each chip href is the query
+// state the island itself produces — same contract as /resources/.
+const chipHref = (slug: string) => {
+  const params = new URLSearchParams();
+  if (q !== '') params.set('q', q);
+  if (slug !== '') params.set('category', slug);
+  if (tag !== '') params.set('tag', tag);
+  const s = params.toString();
+  return s ? `/posts/?${s}` : '/posts/';
+};
 // Category chips filter this same list, so their crawlable fallback href is
 // the query state the island itself produces — the path route they used to
 // point at (/posts/category/{slug}/) no longer exists. The crawlable category
@@ -57,7 +67,7 @@ const chips = [
         name: term.name,
         count: term.count,
         icon: term.icon ? iconInner(term.icon) : null,
-        href: `/posts/?category=${encodeURIComponent(term.slug)}`,
+        href: chipHref(term.slug),
       }))
     : []),
 ];

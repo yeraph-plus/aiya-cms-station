@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { errorCode, errorStatus, jsonResponse, visitorIp } from '@/lib/api-auth';
+import { errorCode, errorRequestId, errorStatus, jsonResponse, visitorIp } from '@/lib/api-auth';
 import { postsQuerySchema, resourcesQuerySchema } from '@/lib/core/contracts';
 import { authClient, serverClient } from '@/lib/core/server';
 import { readSessionToken } from '@/lib/core/session';
@@ -86,6 +86,9 @@ export const GET: APIRoute = async ({ params, url, request, clientAddress, cooki
       pagination: result.meta.pagination,
     });
   } catch (error) {
-    return jsonResponse({ ok: false, code: errorCode(error) }, errorStatus(error));
+    return jsonResponse(
+      { ok: false, code: errorCode(error), requestId: errorRequestId(error) },
+      errorStatus(error),
+    );
   }
 };

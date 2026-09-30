@@ -122,7 +122,7 @@ export async function loadPage<T>(
     const client = token
       ? authClient(token, clientIp, excludeNsfw)
       : serverClient(clientIp, excludeNsfw);
-    const [siteResult, user] = await Promise.all([client.site(), currentUser(cookies)]);
+    const [siteResult, user] = await Promise.all([client.site(), currentUser(cookies, clientIp)]);
     const site = siteResult.data;
     // The shell's dynamic blocks ride the /site payload (0.83.0 merge):
     // the menu consumers keep their Menu shape, sourced from site.blocks.

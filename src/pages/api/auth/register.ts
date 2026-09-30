@@ -4,13 +4,15 @@ import { authClient } from '@/lib/core/server';
 import { setSessionCookie } from '@/lib/core/session';
 import {
   errorCode,
+  errorRequestId,
   errorStatus,
   jsonResponse,
+  readJsonBody,
   requesterLocale,
   visitorIp,
-  readJsonBody,
 } from '@/lib/api-auth';
 import { aiyaErrorCopy, t } from '@/lib/i18n';
+import { rewriteMediaUrl } from '@/lib/media';
 
 /** Same-origin registration proxy; success signs the visitor in immediately. */
 export const POST: APIRoute = async (Astro) => {
@@ -30,11 +32,20 @@ export const POST: APIRoute = async (Astro) => {
     setSessionCookie(Astro.cookies, session.token, session.expiresAt);
     return jsonResponse({
       ok: true,
-      user: { nickname: session.user.nickname, avatarUrl: session.user.avatar.url || null },
+      // Cloak server-side like login: the browser bundle has no WP origin.
+      user: {
+        nickname: session.user.nickname,
+        avatarUrl: session.user.avatar.url ? rewriteMediaUrl(session.user.avatar.url) : null,
+      },
     });
   } catch (error) {
     return jsonResponse(
-      { ok: false, code: errorCode(error), message: aiyaErrorCopy(error, locale) },
+      {
+        ok: false,
+        code: errorCode(error),
+        requestId: errorRequestId(error),
+        message: aiyaErrorCopy(error, locale),
+      },
       errorStatus(error),
     );
   }

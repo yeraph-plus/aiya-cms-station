@@ -9,16 +9,7 @@
  * reached — the wp-content prefix is part of the whitelist, not a filter.
  */
 
-import { rawWpApiUrl } from '@/lib/wp-env';
-
-const wpOrigin = (): string => {
-  const raw = rawWpApiUrl();
-  try {
-    return new URL(raw).origin;
-  } catch {
-    return '';
-  }
-};
+import { wpOrigin } from '@/lib/wp-env';
 
 /** Maps the pathname after `/media` onto an upstream URL, or null when suspicious. */
 export function resolveMediaTarget(pathname: string): string | null {
@@ -97,7 +88,10 @@ export async function proxyMedia(pathname: string, request: Request): Promise<Re
     signal: AbortSignal.timeout(30_000),
     redirect: 'error',
   }).catch((error: unknown) => {
-    if (error instanceof TypeError) return new Response('Upstream redirect', { status: 502 });
+    // fetch's TypeError covers both a redirect refusal (redirect: 'error')
+    // and DNS/connection failure — indistinguishable here, so the body
+    // names neither; no consumer reads it anyway.
+    if (error instanceof TypeError) return new Response('Upstream unreachable', { status: 502 });
     return new Response('Upstream timeout', { status: 504 });
   });
   const responseHeaders = new Headers();

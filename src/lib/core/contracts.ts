@@ -89,7 +89,9 @@ export const authorSchema = z.object({
 });
 export const termSchema = z.object({
   id,
-  taxonomy: z.enum(['category', 'tag']),
+  // .catch: a future contract taxonomy degrades to the tag chip instead of
+  // 503ing every term-consuming page until the frontend ships support.
+  taxonomy: z.enum(['category', 'tag']).catch('tag'),
   slug: z.string().min(1),
   name: z.string(),
   description: z.string(),
@@ -202,7 +204,7 @@ export const siteThemeSchema = z.object({
   primary: z.string().regex(/^#[0-9a-fA-F]{6}$/),
 });
 export const siteDefaultsSchema = z.object({
-  colorMode: z.enum(['system', 'dark', 'light']),
+  colorMode: z.enum(['system', 'dark', 'light']).catch('system'),
   /** Site fallback cover: list card thumbnails, category cards and the
       article hero, each surface deriving its own crop from this image. */
   thumb: imageSchema.nullable(),
@@ -220,7 +222,7 @@ export const siteDefaultsSchema = z.object({
 export const beianLinkSchema = z.object({
   label: z.string(),
   url: linkTargetSchema,
-  icon: z.enum(['shield', 'police', 'custom']),
+  icon: z.enum(['shield', 'police', 'custom']).catch('shield'),
   iconUrl: z.string(),
 });
 /** Compliance footer; hitokoto switches the front end's random sign-off. */
@@ -240,8 +242,8 @@ export const siteCommentsSchema = z.object({
   threadCommentsDepth: count,
   pageComments: z.boolean(),
   commentsPerPage: count,
-  defaultCommentsPage: z.enum(['newest', 'oldest']),
-  commentOrder: z.enum(['asc', 'desc']),
+  defaultCommentsPage: z.enum(['newest', 'oldest']).catch('newest'),
+  commentOrder: z.enum(['asc', 'desc']).catch('desc'),
   /** "Users must be logged in to comment"; false lets guests use the native name/email composer. */
   commentRegistration: z.boolean(),
 });
@@ -262,7 +264,7 @@ export const menuItemSchema: z.ZodType<MenuItem> = z.object({
   id,
   label: z.string().min(1),
   url: linkTargetSchema,
-  target: z.enum(['self', 'blank']),
+  target: z.enum(['self', 'blank']).catch('self'),
   /** Optional Lucide icon name from the primary-menu repeater. */
   icon: z.string().nullable(),
   children: z.array(z.lazy(() => menuItemSchema)),
@@ -292,7 +294,9 @@ export type AdSlot = z.infer<typeof adSlotSchema>;
 export const homeSectionSchema = z.object({
   id: count,
   title: z.string().min(1),
-  type: z.enum(['post', 'resource']),
+  // .catch: a section type the frontend cannot load yet degrades to the
+  // post loop instead of taking the whole /site payload (and site) down.
+  type: z.enum(['post', 'resource']).catch('post'),
   categories: z.array(z.string()),
   count: z.number().int().min(1).max(20),
   icon: z.string().nullable(),
@@ -575,7 +579,7 @@ export const authSessionSchema = z.object({
 
 /** Membership badge = state + expiry only; the wording is this app's i18n. */
 export const membershipBadgeSchema = z.object({
-  status: z.enum(['active', 'inactive']),
+  status: z.enum(['active', 'inactive']).catch('inactive'),
   renewsAt: isoSchema.nullable(),
 });
 export const profileSchema = z.object({
@@ -617,7 +621,9 @@ export const membershipEntitlementSchema = z.object({
   cyclesGranted: count,
   startsAt: isoSchema,
   endsAt: isoSchema,
-  status: z.enum(['active', 'cancelled']),
+  // .catch: an unknown future state must read as "not active" — the
+  // entitlement gates treat only 'active' as live, so this is the safe side.
+  status: z.enum(['active', 'cancelled']).catch('cancelled'),
 });
 /** The site's daily check-in policy (membership settings page), projected
     so the panel can describe the grant before taking it; the paid amount
@@ -645,8 +651,10 @@ export const planChannelsSchema = z.object({
   epay: z.boolean(),
   /** Platform-push gateway: activation rides webhooks, not the cashier. */
   afdian: z.boolean(),
-  /** Enabled channels as a list; new gateways extend without reshaping. */
-  methods: z.array(z.enum(['alipay', 'wxpay', 'usdt'])),
+  /** Enabled channels as a list; new gateways extend without reshaping.
+      .catch([]): a gateway the frontend cannot render yet hides the epay
+      channel row entirely — no buttons, no 503 — until support ships. */
+  methods: z.array(z.enum(['alipay', 'wxpay', 'usdt'])).catch([]),
 });
 export const tiersPayloadSchema = z.object({
   channels: planChannelsSchema,
@@ -672,8 +680,10 @@ export const creditBalanceSchema = z.object({
 });
 export const creditEntrySchema = z.object({
   id,
-  /** `in` = grant bucket (remaining tracks what is left), `out` = one spend. */
-  direction: z.enum(['in', 'out']),
+  /** `in` = grant bucket (remaining tracks what is left), `out` = one spend.
+      .catch('out'): an unknown future direction must not inflate the ledger
+      display; conservative side shows it as a spend. */
+  direction: z.enum(['in', 'out']).catch('out'),
   source: z.string(),
   ref: z.string(),
   amount: count,
@@ -722,7 +732,6 @@ export const searchResultSchema = z.object({
   pages: searchGroupSchema,
   resources: searchGroupSchema,
 });
-export const searchGroupedResponseSchema = itemEnvelope(searchResultSchema);
 /** Public content types `/search` can be scoped to. */
 export const searchTypeSchema = z.enum(['post', 'page', 'resource']);
 /** With `type` present the endpoint answers the standard list shape —
@@ -737,7 +746,6 @@ export const searchQuerySchema = z.object({
 });
 export const postResponseSchema = itemEnvelope(postDetailSchema);
 export const resourcesResponseSchema = postsResponseSchema;
-export const resourceResponseSchema = postResponseSchema;
 export const pagesResponseSchema = postsResponseSchema;
 export const pageResponseSchema = postResponseSchema;
 export const profileResponseSchema = itemEnvelope(profileSchema);
@@ -765,9 +773,8 @@ export const favoritedResponseSchema = itemEnvelope(z.object({ favorited: z.bool
 export const tiersResponseSchema = itemEnvelope(tiersPayloadSchema);
 export const membershipResponseSchema = itemEnvelope(membershipStateSchema);
 export const orderCreatedResponseSchema = itemEnvelope(orderCreatedSchema);
-export const postDetailResponseSchema = itemEnvelope(postDetailSchema);
 /** POST content/{id}/unlock: the verified post's full detail in the same response (cookie-less unlock). */
-export const postUnlockResponseSchema = postDetailResponseSchema;
+export const postUnlockResponseSchema = itemEnvelope(postDetailSchema);
 /** GET content/{id}/related: shared-term neighbours as bare PostSummary rows. */
 export const relatedResponseSchema = itemEnvelope(z.array(postSummarySchema));
 export const afdianOrderUrlResponseSchema = itemEnvelope(z.object({ url: httpUrlSchema }));

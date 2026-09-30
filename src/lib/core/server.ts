@@ -5,7 +5,12 @@ import { AiyaApiError } from './errors';
 
 export function siteOrigin(): string {
   try {
-    const url = new URL(getSecret('AIYA_SITE_URL') ?? 'http://localhost:4321');
+    // Fail closed on a MISSING value too: the localhost fallback would
+    // render the site fine while every canonical/og:url/JSON-LD/sitemap
+    // pointed at localhost (page.server.ts documents the same contract).
+    const configured = getSecret('AIYA_SITE_URL');
+    if (configured === undefined || configured === '') throw new Error();
+    const url = new URL(configured);
     if (
       !['http:', 'https:'].includes(url.protocol) ||
       url.username ||

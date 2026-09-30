@@ -36,3 +36,35 @@ export function displayDate(
     }).format(date);
   }
 }
+
+/**
+ * Notification row stamp (month/day hour:minute), visitor-facing in the
+ * site timezone. Takes the already-converted BCP 47 tag the shells hand
+ * down; a malformed tag must degrade to the site default instead of
+ * throwing — an uncaught RangeError inside a row renderer unmounts the
+ * whole React island (the /notifications/ feed once shipped WP-underscore
+ * tags and rendered as an empty page for any signed-in visitor).
+ */
+export function notificationTime(
+  value: string,
+  bcp47Tag: string,
+  timeZone: string = DEFAULT_TIMEZONE,
+): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const options: Intl.DateTimeFormatOptions = {
+    timeZone,
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  };
+  try {
+    return new Intl.DateTimeFormat(bcp47Tag, options).format(date);
+  } catch {
+    return new Intl.DateTimeFormat(toBcp47(DEFAULT_LOCALE_FALLBACK), options).format(date);
+  }
+}
+
+/** Underscore-form site default, kept next to the fallback that uses it. */
+const DEFAULT_LOCALE_FALLBACK = 'zh_CN' as const;

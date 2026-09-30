@@ -208,7 +208,14 @@ lib/core/         contracts.ts（zod 线上契约，后端 PHP DTO 的逐字段�
                   失败）→ session.ts（Bearer → HttpOnly cookie，失败降级游客）→
                   errors.ts（错误分类，从不携带上游正文）；health.ts（进程级
                   熔断器，503 门禁的探活核心）与 contracts.snapshot*.json
-                  （后端生成、vitest 比对的快照）同住此目录
+                  （后端生成、vitest 比对的快照）同住此目录。snapshot.v1.json
+                  为冻结基线（单向加法锁；2026-10-01 修订到 live 形状——
+                  0.93.0 的替换形状 HomeSection/sections 此前漏吸收）。
+                  入站枚举收窄点带 zod `.catch` 安全缺省：后端先发未知枚举值
+                  时按字段降级而非拒收载荷（/site 字段拒收 = 整站 503），
+                  降级行为由 tests/contracts.test.ts 锁定；结构性枚举
+                  （role/visibility/type/badges/kind/discussionStatus/
+                  commentStatus/locale）刻意保持严格——新增值需要前端同步支持
 lib/i18n/         前端自有文案（D8）：locale 解析 user.locale → site.language →
                   zh_CN；字典属性访问（支持函数值插值），四语言结构由类型 + 测试锁齐
 lib/seo.ts        JSON-LD 纯函数（WebSite / Article / BreadcrumbList）

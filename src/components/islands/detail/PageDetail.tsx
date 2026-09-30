@@ -24,6 +24,7 @@ export default function PageDetail({
   loggedIn,
   locale,
   timezone,
+  termIcons,
   window,
 }: DetailShellProps & { downloads: FileList[] | null; window: CommentsWindow }) {
   useViewPing(post.id);
@@ -34,6 +35,7 @@ export default function PageDetail({
           post={post}
           locale={locale}
           basePath="/pages/"
+          termIcons={termIcons}
           actions={<ActionRow post={post} locale={locale} variant="page" loggedIn={loggedIn} />}
         />
         <CardContent className="px-6 py-6">

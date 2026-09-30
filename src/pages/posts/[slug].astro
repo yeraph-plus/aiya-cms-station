@@ -6,12 +6,12 @@ import { articleJsonLd, breadcrumbJsonLd } from '@/lib/seo';
 import { t } from '@/lib/i18n';
 import { loadPage } from '@/lib/page.server';
 import { setCrumbs } from '@/lib/breadcrumbs';
-import { cloakPostDetail, detailSlug } from '@/lib/detail';
+import { cloakPostDetail, detailSlug, termIconMap } from '@/lib/detail';
 import { cloakDiscussion } from '@/lib/community';
 
 const slug = detailSlug(Astro.params.slug);
 if (slug === '') {
-  return Astro.redirect('/posts/');
+  return Astro.redirect(`/posts/${Astro.url.search}`, 308);
 }
 const page = await loadPage(
   async (client, site) => {
@@ -38,6 +38,7 @@ const page = await loadPage(
       // Cloak before the island sees it: media URLs and body HTML cross the
       // single-origin boundary here (lib/detail.ts), not in the browser.
       post: cloakPostDetail(detail.data),
+      termIcons: termIconMap(detail.data),
       comments: comments?.data ?? [],
       commentsPagination: comments?.meta.pagination ?? null,
       related: related.data.map(cloakPostSummaryMedia),
@@ -89,6 +90,7 @@ const noindex = !page.ok || Boolean(post?.seo.noindex);
       <PostDetail
         client:load
         post={post}
+        termIcons={page.value.termIcons}
         comments={page.value.comments}
         commentsPagination={
           page.value.commentsPagination ?? { page: 1, totalPages: 0, hasNext: false }

@@ -1,10 +1,11 @@
 import type { APIRoute } from 'astro';
 import {
   errorCode,
+  errorRequestId,
   errorStatus,
   jsonResponse,
-  visitorIp,
   uploadLengthStatus,
+  visitorIp,
 } from '@/lib/api-auth';
 import { authClient } from '@/lib/core/server';
 import { readSessionToken } from '@/lib/core/session';
@@ -56,7 +57,10 @@ export const POST: APIRoute = async (Astro) => {
     // island renders them directly, so they must arrive already cloaked.
     return jsonResponse({ ok: true, user: cloakProfileMedia(result.data) });
   } catch (error) {
-    return jsonResponse({ ok: false, code: errorCode(error) }, errorStatus(error));
+    return jsonResponse(
+      { ok: false, code: errorCode(error), requestId: errorRequestId(error) },
+      errorStatus(error),
+    );
   }
 };
 
@@ -68,6 +72,9 @@ export const DELETE: APIRoute = async (Astro) => {
     const result = await authClient(token, ip).removeAvatar();
     return jsonResponse({ ok: true, user: cloakProfileMedia(result.data) });
   } catch (error) {
-    return jsonResponse({ ok: false, code: errorCode(error) }, errorStatus(error));
+    return jsonResponse(
+      { ok: false, code: errorCode(error), requestId: errorRequestId(error) },
+      errorStatus(error),
+    );
   }
 };

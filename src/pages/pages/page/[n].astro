@@ -11,7 +11,7 @@ import { setCrumbs } from '@/lib/breadcrumbs';
 const n = Number(Astro.params.n);
 // Page 1 lives at /pages/; anything non-numeric 404s via the loader below.
 if (!Number.isInteger(n) || n < 2) {
-  return Astro.redirect('/pages/');
+  return Astro.redirect(`/pages/${Astro.url.search}`, 308);
 }
 
 const page = await loadPage(

@@ -31,15 +31,16 @@ let cachedLanguage: { value: string | null } | null = null;
  */
 export async function requesterLocale(): Promise<Locale> {
   if (!cachedLanguage) {
-    let language: string | null = null;
+    // Cache successes only: pinning a failed read as null would freeze the
+    // pre-login error-copy locale at the fallback until restart. A failure
+    // leaves the slot open so the next request retries the read.
     try {
-      language = (await serverClient().site()).data.language;
+      cachedLanguage = { value: (await serverClient().site()).data.language };
     } catch {
-      /* default locale below */
+      /* default locale below; retried on the next request */
     }
-    cachedLanguage = { value: language };
   }
-  return resolveLocale({ site: cachedLanguage.value });
+  return resolveLocale({ site: cachedLanguage?.value ?? null });
 }
 
 /** Only our own backend statuses pass through; anything else is a 502. */
@@ -58,6 +59,10 @@ export function errorStatus(error: unknown): number {
  * front-end copy via the error dictionary. Undefined for non-envelope
  * failures (network/timeout/contract drift).
  */
+export function errorRequestId(error: unknown): string | undefined {
+  return error instanceof AiyaApiError ? error.requestId : undefined;
+}
+
 export function errorCode(error: unknown): string | undefined {
   return error instanceof AiyaApiError ? error.code : undefined;
 }

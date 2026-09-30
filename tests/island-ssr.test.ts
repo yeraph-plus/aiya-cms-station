@@ -166,6 +166,16 @@ describe('islands keep browser state out of the render path', () => {
     expect(hits).toEqual([]);
   });
 
+  it('never reads navigator in an island (SSR throws; locales ride props)', () => {
+    // The 2026-09-28 outage shape: `localeTag || navigator.language` is a
+    // hydration/SSR crash the moment one caller passes an empty string.
+    // Locales are props; the guard keeps the fallback out of the tree.
+    const hits = islandSources()
+      .filter(([, text]) => /navigator\s*\./.test(text))
+      .map(([file]) => file);
+    expect(hits).toEqual([]);
+  });
+
   it('never reaches a browser global from a useState lazy initializer', () => {
     const hits = islandSources()
       .filter(([, text]) => LAZY_INITIALIZER_WITH_BROWSER_GLOBAL.test(text))

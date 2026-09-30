@@ -250,10 +250,22 @@ function CommunityFeedInner({
   /** Monotonic guard for feed mutations — responses of superseded requests
    *  (page fetch or auto-append) are dropped instead of applied. */
   const feedSeq = useRef(0);
+  /** Single-flight slot the fresh fetch and the auto-append share. The
+   *  append bumps the sequence once it starts, so an unsupervised refresh
+   *  racing it would have its response dropped and the stale page-2 shape
+   *  would win (sort/search clicks visibly ignored). While one runs, the
+   *  other queues here — newest click wins the slot. */
+  const busyRef = useRef(false);
+  const queuedFetch = useRef<{ board: string; sort: Sort; q: string } | null>(null);
   const stateRef = useRef({ threads, pagination, board, sort, search });
   stateRef.current = { threads, pagination, board, sort, search };
 
   const fetchFeed = useCallback(async (board: string, sort: Sort, q: string) => {
+    if (busyRef.current) {
+      queuedFetch.current = { board, sort, q };
+      return;
+    }
+    busyRef.current = true;
     // Sequence guard: a slower older response (board/sort/search/append race)
     // must never overwrite the newest feed state.
     const seq = ++feedSeq.current;
@@ -275,7 +287,15 @@ function CommunityFeedInner({
         setPagination(json.pagination);
       }
     } finally {
-      if (seq === feedSeq.current) setLoading(false);
+      busyRef.current = false;
+      const queued = queuedFetch.current;
+      queuedFetch.current = null;
+      if (queued) {
+        // The click outranks the append that just finished: reload fresh.
+        void fetchFeed(queued.board, queued.sort, queued.q);
+      } else if (seq === feedSeq.current) {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -309,8 +329,10 @@ function CommunityFeedInner({
    * re-checked once, so short boards fill the viewport and reach their end
    * marker without extra scrolling.
    */
-  const busyRef = useRef(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  // The re-arm timeout outlives the append that scheduled it; unmount must
+  // cancel it or it fires one append (and a setState) into a dead island.
+  const rearmRef = useRef<number | null>(null);
   const appendNext = useCallback(() => {
     if (busyRef.current) return;
     const s = stateRef.current;
@@ -340,7 +362,7 @@ function CommunityFeedInner({
         busyRef.current = false;
         if (seq === feedSeq.current) setLoading(false);
         // Re-arm while the sentinel is still on screen (short boards).
-        setTimeout(() => {
+        rearmRef.current = window.setTimeout(() => {
           const el = sentinelRef.current;
           if (el && el.getBoundingClientRect().top < window.innerHeight + 600) appendNext();
         }, 200);
@@ -372,6 +394,7 @@ function CommunityFeedInner({
       io.disconnect();
       window.clearInterval(poll);
       window.removeEventListener('scroll', onScroll);
+      if (rearmRef.current !== null) window.clearTimeout(rearmRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -443,22 +466,38 @@ function CommunityFeedInner({
       [thread.id]: { items: [], page: 0, hasNext: false, loading: true, loaded: false },
     }));
     void (async () => {
-      const response = await fetch(`/api/discussions/${thread.id}/replies/?page=1`);
-      const json = (await response.json().catch(() => null)) as {
-        ok?: boolean;
-        items?: FeedReply[];
-        pagination?: PageMeta;
-      } | null;
-      setReplies((prev) => ({
-        ...prev,
-        [thread.id]: {
-          items: json?.items ?? [],
-          page: 1,
-          hasNext: json?.pagination?.hasNext ?? false,
-          loading: false,
-          loaded: true,
-        },
-      }));
+      try {
+        const response = await fetch(`/api/discussions/${thread.id}/replies/?page=1`);
+        const json = (await response.json().catch(() => null)) as {
+          ok?: boolean;
+          items?: FeedReply[];
+          pagination?: PageMeta;
+        } | null;
+        setReplies((prev) => ({
+          ...prev,
+          [thread.id]: {
+            items: json?.items ?? [],
+            page: 1,
+            hasNext: json?.pagination?.hasNext ?? false,
+            loading: false,
+            loaded: true,
+          },
+        }));
+      } catch {
+        // A dead network must not park the row spinner; the shape matches
+        // the failed-response path and the toast carries the reason.
+        setReplies((prev) => ({
+          ...prev,
+          [thread.id]: {
+            items: [],
+            page: 1,
+            hasNext: false,
+            loading: false,
+            loaded: true,
+          },
+        }));
+        toastApiError(null, locale);
+      }
     })();
   };
 
@@ -470,22 +509,33 @@ function CommunityFeedInner({
     if (!cache || !cache.hasNext || cache.loading) return;
     setReplies((prev) => ({ ...prev, [threadId]: { ...cache, loading: true } }));
     void (async () => {
-      const response = await fetch(`/api/discussions/${threadId}/replies/?page=${cache.page + 1}`);
-      const json = (await response.json().catch(() => null)) as {
-        ok?: boolean;
-        items?: FeedReply[];
-        pagination?: PageMeta;
-      } | null;
-      setReplies((prev) => ({
-        ...prev,
-        [threadId]: {
-          items: [...cache.items, ...(json?.items ?? [])],
-          page: cache.page + 1,
-          hasNext: json?.pagination?.hasNext ?? false,
-          loading: false,
-          loaded: true,
-        },
-      }));
+      try {
+        const response = await fetch(
+          `/api/discussions/${threadId}/replies/?page=${cache.page + 1}`,
+        );
+        const json = (await response.json().catch(() => null)) as {
+          ok?: boolean;
+          items?: FeedReply[];
+          pagination?: PageMeta;
+        } | null;
+        setReplies((prev) => ({
+          ...prev,
+          [threadId]: {
+            items: [...cache.items, ...(json?.items ?? [])],
+            page: cache.page + 1,
+            hasNext: json?.pagination?.hasNext ?? false,
+            loading: false,
+            loaded: true,
+          },
+        }));
+      } catch {
+        // Keep the already-loaded page and the button alive for a retry.
+        setReplies((prev) => ({
+          ...prev,
+          [threadId]: { ...cache, loading: false },
+        }));
+        toastApiError(null, locale);
+      }
     })();
   };
 
@@ -560,12 +610,20 @@ function CommunityFeedInner({
   };
 
   const deleteReply = async (threadId: number, replyId: number): Promise<boolean> => {
-    const response = await fetch(`/api/discussions/${threadId}/replies/${replyId}/`, {
-      method: 'DELETE',
-    });
-    if (!response.ok) {
-      const json = (await response.json().catch(() => null)) as { code?: string } | null;
-      toastApiError(json?.code ?? null, locale);
+    try {
+      const response = await fetch(`/api/discussions/${threadId}/replies/${replyId}/`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        const json = (await response.json().catch(() => null)) as { code?: string } | null;
+        toastApiError(json?.code ?? null, locale);
+        return false;
+      }
+    } catch {
+      // Network-level failure: same feedback as a refused delete, and the
+      // confirm popover stays open for a retry instead of an unhandled
+      // rejection.
+      toastApiError(null, locale);
       return false;
     }
     setReplies((prev) => ({
@@ -582,10 +640,15 @@ function CommunityFeedInner({
   };
 
   const deleteThread = async (thread: FeedThread): Promise<boolean> => {
-    const response = await fetch(`/api/discussions/${thread.id}/`, { method: 'DELETE' });
-    if (!response.ok) {
-      const json = (await response.json().catch(() => null)) as { code?: string } | null;
-      toastApiError(json?.code ?? null, locale);
+    try {
+      const response = await fetch(`/api/discussions/${thread.id}/`, { method: 'DELETE' });
+      if (!response.ok) {
+        const json = (await response.json().catch(() => null)) as { code?: string } | null;
+        toastApiError(json?.code ?? null, locale);
+        return false;
+      }
+    } catch {
+      toastApiError(null, locale);
       return false;
     }
     setThreads((prev) => prev.filter((t) => t.id !== thread.id));

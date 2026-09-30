@@ -79,8 +79,14 @@ export async function loadCommunityBoard(
 
   const copy = t(page.locale);
   const noindex = overRange || sort !== 'last_activity';
+  // A board read that failed mid-flight must not render an empty title:
+  // the error branch falls back to the not-found copy like the archive does.
   const boardTitle =
-    page.ok && boardSlug !== '' ? copy.community.boardTitle(page.value.boardName) : '';
+    boardSlug !== ''
+      ? page.ok
+        ? copy.community.boardTitle(page.value.boardName)
+        : copy.state.notFoundTitle
+      : '';
   const title =
     boardSlug === ''
       ? pageNumber === 1

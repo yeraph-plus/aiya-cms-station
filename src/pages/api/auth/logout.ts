@@ -10,7 +10,9 @@ export const POST: APIRoute = async (Astro) => {
   try {
     if (token) await authClient(token, ip).logout();
   } catch {
-    /* already down or already revoked */
+    // The cookie removal still logs the visitor out locally; the warn is
+    // the only trace that the bearer lives on upstream until it expires.
+    console.warn('[aiya] logout: upstream token revocation failed');
   }
   clearSessionCookie(Astro.cookies);
   return jsonResponse({ ok: true });

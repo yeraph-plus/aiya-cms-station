@@ -16,7 +16,7 @@ if (!readSessionToken(Astro.cookies)) {
 }
 // A revoked/expired cookie must degrade to guest (home), not masquerade as
 // a backend outage: currentUser swallows every failure into null.
-if (!(await currentUser(Astro.cookies))) {
+if (!(await currentUser(Astro.cookies, Astro.locals.visitorIp))) {
   return Astro.redirect('/');
 }
 

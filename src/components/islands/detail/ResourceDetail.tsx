@@ -47,6 +47,7 @@ export default function ResourceDetail({
   isSelf,
   locale,
   timezone,
+  termIcons,
   window,
 }: DetailShellProps & {
   related: PostSummary[];
@@ -68,6 +69,7 @@ export default function ResourceDetail({
             locale={locale}
             basePath="/resources/"
             tagVocabLabels={TAG_VOCAB_LABELS(locale)}
+            termIcons={termIcons}
             actions={
               <ActionRow post={post} locale={locale} variant="resource" loggedIn={loggedIn} />
             }
