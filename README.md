@@ -143,7 +143,9 @@ server {
 ### 媒体单源与 origin 一致性（必读）
 
 浏览器只与前端域名通信：页面、`/api/*`（同源 JSON 代理）与 `/media/*`（媒体
-代理，把 WP 的 `wp-content/` 流式转发出来）都挂在前端 origin 下。所有 WP 媒体
+代理，`/media/x` ≙ WP 的 `wp-content/x`——`wp-content` 段由代理在服务端补回，
+公开 URL 不带 WP 指纹；旧形态 `/media/wp-content/x` 仍解析到同一文件）都挂在
+前端 origin 下。所有 WP 媒体
 URL 的改写都发生在**服务端**——浏览器 bundle 不持有 WP origin（`AIYA_WP_API_URL`
 是非公开环境变量，Vite 不进客户端产物，客户端即便调用改写也是空转）。因此每条
 进入浏览器的数据路径（feed / 评论 / 社区 / 表情包 / 登录与头像投影）都在 `/api/*`

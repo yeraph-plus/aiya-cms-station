@@ -10,12 +10,12 @@ beforeAll(() => {
 });
 
 describe('rewriteMediaUrl', () => {
-  it('rewrites only wp-content URLs onto the /media proxy', () => {
+  it('rewrites only wp-content URLs onto the /media proxy, dropping the wp-content segment', () => {
     expect(rewriteMediaUrl('http://localhost:8000/wp-content/uploads/2024/01/a.webp')).toBe(
-      '/media/wp-content/uploads/2024/01/a.webp',
+      '/media/uploads/2024/01/a.webp',
     );
     expect(rewriteMediaUrl('http://localhost:8000/wp-content/avatars/7/128.jpg?v=3')).toBe(
-      '/media/wp-content/avatars/7/128.jpg?v=3',
+      '/media/avatars/7/128.jpg?v=3',
     );
   });
 
@@ -38,36 +38,47 @@ describe('rewriteSrcset', () => {
       rewriteSrcset(
         'http://localhost:8000/wp-content/uploads/a-300x200.webp 300w, http://localhost:8000/wp-content/uploads/a.webp 1024w',
       ),
-    ).toBe('/media/wp-content/uploads/a-300x200.webp 300w, /media/wp-content/uploads/a.webp 1024w');
+    ).toBe('/media/uploads/a-300x200.webp 300w, /media/uploads/a.webp 1024w');
   });
 });
 
 describe('media proxy target resolution', () => {
-  it('accepts wp-content paths with or without trailing slash', () => {
-    expect(resolveMediaTarget('/media/wp-content/uploads/2024/01/a.webp')).toBe(
+  it('maps /media/<path> onto wp-content/<path> with or without trailing slash', () => {
+    expect(resolveMediaTarget('/media/uploads/2024/01/a.webp')).toBe(
       'http://localhost:8000/wp-content/uploads/2024/01/a.webp',
     );
-    expect(resolveMediaTarget('/media/wp-content/uploads/2024/01/a.webp/')).toBe(
+    expect(resolveMediaTarget('/media/uploads/2024/01/a.webp/')).toBe(
       'http://localhost:8000/wp-content/uploads/2024/01/a.webp',
     );
   });
 
-  it('rejects traversal, wp-json, double-encoding, and foreign prefixes', () => {
-    expect(resolveMediaTarget('/media/wp-content/uploads/../wp-config.php')).toBeNull();
-    expect(resolveMediaTarget('/media/wp-content/uploads/%2e%2e/x')).toBeNull();
+  it('still serves the legacy /media/wp-content/… shape (old feed-reader caches)', () => {
+    expect(resolveMediaTarget('/media/wp-content/uploads/2024/01/a.webp')).toBe(
+      'http://localhost:8000/wp-content/uploads/2024/01/a.webp',
+    );
+  });
+
+  it('rejects traversal, double-encoding, and empty targets', () => {
+    expect(resolveMediaTarget('/media/uploads/../wp-config.php')).toBeNull();
+    expect(resolveMediaTarget('/media/uploads/%2e%2e/x')).toBeNull();
     expect(resolveMediaTarget('/media/%252e%252e/wp-config.php')).toBeNull();
-    expect(resolveMediaTarget('/media/wp-json/aiya/core/v1/site')).toBeNull();
-    expect(resolveMediaTarget('/media/themes/index.php')).toBeNull();
+    expect(resolveMediaTarget('/media/')).toBeNull();
     expect(resolveMediaTarget('/media/wp-content/')).toBeNull();
+  });
+
+  it('traps smuggled REST paths inside the inert wp-content namespace', () => {
+    // The wp-content prefix is added server-side, so a wp-json path resolves
+    // to a file path that does not exist instead of the REST router.
+    expect(resolveMediaTarget('/media/wp-json/aiya/core/v1/site')).toBe(
+      'http://localhost:8000/wp-content/wp-json/aiya/core/v1/site',
+    );
   });
 
   it('serves single-encoded non-ASCII filenames after decoding', () => {
     // Chinese uploads arrive percent-encoded from the browser; validation
     // runs on the decoded path, which is exactly what is forwarded upstream.
     expect(
-      resolveMediaTarget(
-        '/media/wp-content/uploads/2026/09/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE-scaled.jpg',
-      ),
+      resolveMediaTarget('/media/uploads/2026/09/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE-scaled.jpg'),
     ).toBe('http://localhost:8000/wp-content/uploads/2026/09/屏幕截图-scaled.jpg');
   });
 });
@@ -84,8 +95,8 @@ describe('proxyMedia', () => {
     );
     try {
       const response = await proxyMedia(
-        '/media/wp-content/uploads/a.jpg',
-        new Request('http://x/media/wp-content/uploads/a.jpg'),
+        '/media/uploads/a.jpg',
+        new Request('http://x/media/uploads/a.jpg'),
       );
       expect(response.status).toBe(200);
       expect(response.headers.get('content-type')).toBe('image/jpeg');
@@ -109,15 +120,15 @@ describe('proxyMedia', () => {
       }),
     );
     try {
-      const request = new Request('http://x/media/wp-content/uploads/a.jpg', {
+      const request = new Request('http://x/media/uploads/a.jpg', {
         headers: { Range: 'bytes=0-99' },
       });
-      const response = await proxyMedia('/media/wp-content/uploads/a.jpg', request);
+      const response = await proxyMedia('/media/uploads/a.jpg', request);
       expect(seenRange).toBe('bytes=0-99');
       expect(response.status).toBe(206);
 
-      const post = new Request('http://x/media/wp-content/uploads/a.jpg', { method: 'POST' });
-      const rejected = await proxyMedia('/media/wp-content/uploads/a.jpg', post);
+      const post = new Request('http://x/media/uploads/a.jpg', { method: 'POST' });
+      const rejected = await proxyMedia('/media/uploads/a.jpg', post);
       expect(rejected.status).toBe(405);
     } finally {
       vi.unstubAllGlobals();
@@ -132,12 +143,13 @@ describe('safeContent media rewriting', () => {
       '<a href="http://localhost:8000/wp-content/uploads/2024/01/file.pdf">下载</a>' +
       '<img src="https://cdn.example.com/foreign.png">';
     const cleaned = safeContent(html);
-    expect(cleaned).toContain('src="/media/wp-content/uploads/2024/01/a.webp"');
-    expect(cleaned).toContain('srcset="/media/wp-content/uploads/a-300.webp 300w"');
-    expect(cleaned).toContain('href="/media/wp-content/uploads/2024/01/file.pdf"');
+    expect(cleaned).toContain('src="/media/uploads/2024/01/a.webp"');
+    expect(cleaned).toContain('srcset="/media/uploads/a-300.webp 300w"');
+    expect(cleaned).toContain('href="/media/uploads/2024/01/file.pdf"');
     expect(cleaned).toContain('loading="lazy"');
     expect(cleaned).toContain('https://cdn.example.com/foreign.png');
     expect(cleaned).not.toContain('localhost:8000');
+    expect(cleaned).not.toContain('wp-content');
   });
 });
 
@@ -156,8 +168,8 @@ describe('cloakProfileMedia', () => {
       id: 7,
       nickname: 'tester',
       avatar: {
-        url: '/media/wp-content/aiya_thumbnail/avatars/7/128.jpg',
-        thumbUrl: '/media/wp-content/aiya_thumbnail/avatars/7/64.jpg',
+        url: '/media/aiya_thumbnail/avatars/7/128.jpg',
+        thumbUrl: '/media/aiya_thumbnail/avatars/7/64.jpg',
       },
     });
   });

@@ -14,7 +14,7 @@ describe('sanitizeCommentHtml', () => {
   it('keeps smilies imgs, proxies their src and drops foreign images', () => {
     const out = sanitizeCommentHtml(`hi ${EMOJI} ${FOREIGN}`);
     expect(out).toContain('aiya-smilie');
-    expect(out).toContain('/media/wp-content/aiya_smilies/aru/01.png');
+    expect(out).toContain('/media/aiya_smilies/aru/01.png');
     expect(out).not.toContain('evil.test');
   });
 
@@ -40,7 +40,7 @@ describe('sanitizeDiscussionHtml smilies exemption', () => {
   it('keeps smilies imgs inline but still strips content images', () => {
     const out = sanitizeDiscussionHtml(`<p>x ${EMOJI} ${FOREIGN}</p>`);
     expect(out).toContain('aiya-smilie');
-    expect(out).toContain('/media/wp-content/aiya_smilies/aru/01.png');
+    expect(out).toContain('/media/aiya_smilies/aru/01.png');
     expect(out).not.toContain('evil.test');
   });
 
@@ -68,7 +68,7 @@ describe('safeContent smilies support', () => {
   it('preserves the smilies class and proxies the src', () => {
     const out = safeContent(`<p>${EMOJI}</p>`);
     expect(out).toContain('class="aiya-smilie"');
-    expect(out).toContain('/media/wp-content/aiya_smilies/aru/01.png');
+    expect(out).toContain('/media/aiya_smilies/aru/01.png');
   });
 });
 

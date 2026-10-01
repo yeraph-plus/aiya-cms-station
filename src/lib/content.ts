@@ -171,12 +171,12 @@ export function sanitizeDiscussionHtml(html: string): string {
     // content images included) to /media/, so a prefix check alone would
     // keep exactly the images this pass exists to strip. Smilies are the
     // sole legitimate occupant of `wp-content/aiya_smilies/`, whose URL the
-    // transform turns into `/media/wp-content/aiya_smilies/…`. The
+    // transform turns into `/media/aiya_smilies/…` (the wp-content segment
+    // is dropped by the cloak, re-added server-side by the proxy). The
     // `aiya-smilie` class alone is not trusted: a crafted
     // `class="aiya-smilie"` must not smuggle a remote pixel through.
     exclusiveFilter: (frame) =>
-      frame.tag === 'img' &&
-      !(frame.attribs.src ?? '').startsWith('/media/wp-content/aiya_smilies/'),
+      frame.tag === 'img' && !(frame.attribs.src ?? '').startsWith('/media/aiya_smilies/'),
   });
 }
 

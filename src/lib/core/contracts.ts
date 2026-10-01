@@ -298,7 +298,7 @@ export const homeSectionSchema = z.object({
   // post loop instead of taking the whole /site payload (and site) down.
   type: z.enum(['post', 'resource']).catch('post'),
   categories: z.array(z.string()),
-  count: z.number().int().min(1).max(20),
+  count: z.number().int().min(1).max(100),
   icon: z.string().nullable(),
   /** Empty means "derive the type's archive path" — not a link target. */
   moreUrl: z.union([linkTargetSchema, z.literal('')]),

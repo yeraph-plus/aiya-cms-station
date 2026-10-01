@@ -1,12 +1,16 @@
 /**
- * Media proxy core (`/media/wp-content/<path>`): streams uploads from WP so
- * the browser never touches the WP host (single-origin contract). Invoked
- * from the middleware — deliberately not a route, because
- * `trailingSlash: 'always'` would 404 file-like paths before routing ever
- * sees them. Range requests pass through for media seeking; long shared-
- * cache headers since uploads are effectively immutable (200 only — error
- * responses must not poison shared caches). `wp-json` can never be
- * reached — the wp-content prefix is part of the whitelist, not a filter.
+ * Media proxy core (`/media/<path>` ⇔ WP `wp-content/<path>`): streams
+ * uploads from WP so the browser never touches the WP host — nor the
+ * `wp-content` segment, which is added HERE, server-side (single-origin
+ * contract). Invoked from the middleware — deliberately not a route,
+ * because `trailingSlash: 'always'` would 404 file-like paths before
+ * routing ever sees them. Range requests pass through for media seeking;
+ * long shared-cache headers since uploads are effectively immutable
+ * (200 only — error responses must not poison shared caches). Because the
+ * upstream prefix is fixed, a smuggled `/media/wp-json/…` resolves to the
+ * nonexistent file path `wp-content/wp-json/…`, so the REST surface can
+ * never be reached. The legacy request shape `/media/wp-content/…` (still
+ * baked into old feed-reader caches) is unwrapped to the same file.
  */
 
 import { wpOrigin } from '@/lib/wp-env';
@@ -30,15 +34,18 @@ export function resolveMediaTarget(pathname: string): string | null {
         return seq;
       }
     });
-  if (!decoded.startsWith('wp-content/') || decoded === 'wp-content/') return null;
+  // Legacy inbound form: `/media/wp-content/x` and `/media/x` are the same
+  // file (the bare word after trailing-slash strip lands on the `$` branch).
+  const unwrapped = decoded.replace(/^wp-content(?:\/|$)/, '');
+  if (unwrapped === '') return null;
   // `..`/`\` block traversal. A `%` followed by two hex digits AFTER decoding
   // means double-encoding — block it. A literal percent that is not a valid
   // escape (AC smilies pack filenames like `%3Q@…`) is legitimate but must be
   // re-encoded upstream (`%25`), or the server rejects the invalid escape.
-  if (decoded.includes('..') || decoded.includes('\\') || /%[0-9a-fA-F]{2}/.test(decoded)) {
+  if (unwrapped.includes('..') || unwrapped.includes('\\') || /%[0-9a-fA-F]{2}/.test(unwrapped)) {
     return null;
   }
-  return `${origin}/${decoded.replace(/%/g, '%25')}`;
+  return `${origin}/wp-content/${unwrapped.replace(/%/g, '%25')}`;
 }
 
 const PASSTHROUGH_HEADERS = [

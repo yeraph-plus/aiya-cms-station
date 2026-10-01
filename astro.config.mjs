@@ -33,6 +33,19 @@ export default defineConfig({
   output: 'server',
   adapter: node({ mode: 'standalone' }),
   trailingSlash: 'ignore',
+  // The node adapter rebuilds each request URL from the socket, so behind a
+  // TLS-terminating edge (browser https → plain http to this container) the
+  // built-in CSRF origin check sees Origin https://site vs URL origin
+  // http://site and 403s every non-JSON POST (logout, like, multipart
+  // uploads, …). allowedDomains is the switch that makes the adapter trust
+  // X-Forwarded-Proto/Host when rebuilding that URL; `{}` trusts any edge
+  // host because the domain is runtime config and the image builds without
+  // it. The check itself stays on: genuinely cross-site posts still 403,
+  // and a browser cannot set X-Forwarded-* cross-site without a CORS
+  // preflight this server never answers.
+  security: {
+    allowedDomains: [{}],
+  },
   integrations: [react(), bundleSsrDepsForStandalone],
   vite: {
     plugins: [tailwindcss()],

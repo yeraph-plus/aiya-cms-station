@@ -2,7 +2,8 @@
  * Media URL cloaking (single-origin contract): WP-origin `wp-content` URLs
  * are rewritten to `/media/...` and served by the local media proxy
  * (`lib/media-proxy.ts`, invoked from middleware), so the browser never
- * sees the WP host. Foreign URLs (gravatar, OpenList, payment platforms)
+ * sees the WP host — nor the `wp-content` segment, which the proxy
+ * re-adds server-side. Foreign URLs (gravatar, OpenList, payment platforms)
  * pass through untouched by design.
  *
  * Server-side only: the WP origin comes from `lib/wp-env.ts`, which reads
@@ -16,7 +17,9 @@ import { wpOrigin } from '@/lib/wp-env';
 const normalizeHost = (origin: string): string =>
   origin.replace('://127.0.0.1', '://localhost').replace('://[::1]', '://localhost');
 
-/** Rewrites WP `wp-content` URLs to local `/media/...` paths; everything else passes through. */
+/** Rewrites WP `wp-content` URLs to local `/media/...` paths, dropping the
+    `wp-content` segment (the proxy re-adds it upstream); everything else
+    passes through. */
 export function rewriteMediaUrl(url: string): string {
   const origin = normalizeHost(wpOrigin());
   if (origin === '') return url;
@@ -28,7 +31,7 @@ export function rewriteMediaUrl(url: string): string {
   }
   if (normalizeHost(parsed.origin) !== origin) return url;
   if (!parsed.pathname.startsWith('/wp-content/')) return url;
-  return `/media${parsed.pathname}${parsed.search}`;
+  return `/media${parsed.pathname.slice('/wp-content'.length)}${parsed.search}`;
 }
 
 /** Rewrites every URL inside a `srcset` value ("url 300w, url 1024w"). */
