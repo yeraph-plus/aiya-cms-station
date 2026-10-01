@@ -197,6 +197,13 @@ export const postDetailSchema = postSummarySchema.extend({
   breadcrumbs: z.array(breadcrumbSchema),
   previous: postSummarySchema.nullable(),
   next: postSummarySchema.nullable(),
+  /** The logged-in viewer's own interaction state; guests read constant
+      false/false/null (logged-in detail reads are never shared-cached). */
+  viewerLiked: z.boolean(),
+  viewerFavorited: z.boolean(),
+  /** The viewer's own 1-10 rating vote within the dedupe window; null when
+      unrated. */
+  viewerRating: z.number().int().min(1).max(10).nullable(),
 });
 
 /** Brand color from the Frontend settings page; drives the whole palette. */

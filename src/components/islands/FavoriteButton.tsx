@@ -9,6 +9,9 @@ import type { Locale } from '@/lib/i18n';
 
 export interface FavoriteButtonProps {
   postId: number;
+  /** The viewer's own favorite from the detail payload; the toggle starts
+      in the true state instead of re-adding on the first click. */
+  initialFavorited?: boolean;
   /** Localized action labels (common.favorite / favorited family). */
   labels: {
     favorite: string;
@@ -34,12 +37,13 @@ export interface FavoriteButtonProps {
  */
 export default function FavoriteButton({
   postId,
+  initialFavorited = false,
   labels,
   loggedIn = true,
   hint,
   locale,
 }: FavoriteButtonProps) {
-  const [favorited, setFavorited] = useState(false);
+  const [favorited, setFavorited] = useState(initialFavorited);
   const [busy, setBusy] = useState(false);
 
   const toggle = async () => {

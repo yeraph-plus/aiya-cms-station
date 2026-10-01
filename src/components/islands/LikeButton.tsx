@@ -10,6 +10,9 @@ import type { Locale } from '@/lib/i18n';
 export interface LikeButtonProps {
   postId: number;
   initialLikes: number;
+  /** The viewer's own like from the detail payload; false after a refresh
+      only when the viewer has not liked (or the window has expired). */
+  initialLiked?: boolean;
   labels: {
     /** Visible-name base for screen readers ("点赞"). */
     sr: string;
@@ -35,13 +38,14 @@ export interface LikeButtonProps {
 export default function LikeButton({
   postId,
   initialLikes,
+  initialLiked = false,
   labels,
   loggedIn = true,
   hint,
   locale,
 }: LikeButtonProps) {
   const [likes, setLikes] = useState(initialLikes);
-  const [liked, setLiked] = useState(false);
+  const [liked, setLiked] = useState(initialLiked);
   const [busy, setBusy] = useState(false);
 
   const like = async () => {

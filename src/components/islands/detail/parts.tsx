@@ -594,6 +594,7 @@ export function ActionRow({
     <div className="flex items-center gap-2">
       <FavoriteButton
         postId={post.id}
+        initialFavorited={post.viewerFavorited}
         labels={{
           favorite: copy.common.favorite,
           favorited: copy.common.favorited,
@@ -608,6 +609,7 @@ export function ActionRow({
           postId={post.id}
           initialScore={post.metrics.ratingScore}
           initialCount={post.metrics.ratingCount}
+          initialRating={post.viewerRating}
           labels={{
             rating: copy.posts.rating,
             // The formatter rides along so a successful rating re-renders
@@ -623,6 +625,7 @@ export function ActionRow({
         <LikeButton
           postId={post.id}
           initialLikes={post.metrics.likes}
+          initialLiked={post.viewerLiked}
           labels={{
             sr: copy.posts.likes,
             success: copy.posts.likeSuccess,

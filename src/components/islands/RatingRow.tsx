@@ -10,6 +10,9 @@ export interface RatingRowProps {
   postId: number;
   initialScore: number | null;
   initialCount: number | null;
+  /** The viewer's own rating vote from the detail payload; non-null freezes
+      the track from the first render (the backend dedupes per visitor). */
+  initialRating?: number | null;
   /** Localized labels: sr-only verb, the "n raters" formatter, thanks copy. */
   labels: { rating: string; countText: (n: number) => string; thanks: string };
   /** Guests cannot write interactions — clicks are intercepted with a toast. */
@@ -27,9 +30,9 @@ const STARS = [1, 2, 3, 4, 5];
  * five-star track on the contract's 1-10 scale (star × 2). Fully
  * state-driven — every star renders filled or hollow from the current
  * value, so there is no second render layer to drift out of place during
- * hydration. Hover previews, click commits; after the first submission
- * the track freezes (the backend dedupes per visitor and answers the
- * folded score + count). Guests keep the control enabled — their click
+ * hydration. Hover previews, click commits; the track freezes when the
+ * viewer has already rated (the own vote rides the detail payload's
+ * `viewerRating`, so a refresh keeps it frozen). Guests keep the control enabled — their click
  * is intercepted with a toast (the backend's 401 stays as the hard wall).
  * Success/failure surface as toasts; a spinner rides while the write is
  * in flight. The outline shell mirrors the sibling buttons so the whole
@@ -39,6 +42,7 @@ export default function RatingRow({
   postId,
   initialScore,
   initialCount,
+  initialRating = null,
   labels,
   loggedIn = true,
   hint,
@@ -46,7 +50,7 @@ export default function RatingRow({
 }: RatingRowProps) {
   const [score, setScore] = useState(initialScore);
   const [count, setCount] = useState(initialCount ?? 0);
-  const [rated, setRated] = useState(false);
+  const [rated, setRated] = useState(initialRating !== null);
   const [busy, setBusy] = useState(false);
   const [hover, setHover] = useState<number | null>(null);
 

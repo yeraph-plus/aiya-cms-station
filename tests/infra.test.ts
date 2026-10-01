@@ -69,6 +69,9 @@ const detail = {
   breadcrumbs: [{ label: '你好世界', url: null }],
   previous: null,
   next: null,
+  viewerLiked: false,
+  viewerFavorited: false,
+  viewerRating: null,
 };
 
 describe('JSON-LD builders', () => {

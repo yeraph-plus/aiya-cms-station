@@ -939,6 +939,21 @@
         "name": "next",
         "type": "PostSummary",
         "nullable": true
+      },
+      {
+        "name": "viewerLiked",
+        "type": "bool",
+        "nullable": false
+      },
+      {
+        "name": "viewerFavorited",
+        "type": "bool",
+        "nullable": false
+      },
+      {
+        "name": "viewerRating",
+        "type": "int",
+        "nullable": true
       }
     ],
     "PostMetrics": [
