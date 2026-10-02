@@ -63,6 +63,7 @@ const profile = page.ok ? page.value.profile : null;
             <FollowButton
               client:load
               userId={profile.id}
+              self={Boolean(page.user && page.user.id === profile.id)}
               copy={{
                 follow: copy.profile.follow,
                 unfollow: copy.profile.unfollow,
