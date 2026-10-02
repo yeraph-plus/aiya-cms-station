@@ -243,7 +243,9 @@ export default function SettingsPanel({ user, locale, localeOptions, copy }: Pro
             </Field>
             <Field>
               <FieldLabel htmlFor="st-locale">{copy.localeLabel}</FieldLabel>
-              <Select name="locale" defaultValue={user.locale}>
+              {/* Members without an explicit choice carry locale:"" — show
+                  the language they are actually served (the page locale). */}
+              <Select name="locale" defaultValue={user.locale || locale}>
                 <SelectTrigger id="st-locale" className="w-full bg-surface">
                   <SelectValue />
                 </SelectTrigger>

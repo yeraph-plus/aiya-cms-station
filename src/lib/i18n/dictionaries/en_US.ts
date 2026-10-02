@@ -27,6 +27,7 @@ const en_US: Dictionary = {
     passwordLabel: 'Password',
     passwordConfirmLabel: 'Confirm password',
     nicknameLabel: 'Nickname',
+    localeLabel: 'Interface language',
     authFailed: 'The action failed, please try again later.',
     loginSuccess: 'Signed in.',
     registerSuccess: 'Account created.',

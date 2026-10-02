@@ -14,7 +14,16 @@ import {
 } from '@/components/ui/dialog';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { flashToast } from '@/lib/feedback';
+import { LOCALE_OPTIONS } from '@/lib/i18n';
+import type { Locale } from '@/lib/i18n/locale';
 import type { AuthMode, AuthResponse, UserCenterCopy } from './types';
 
 /**
@@ -22,7 +31,8 @@ import type { AuthMode, AuthResponse, UserCenterCopy } from './types';
  * login-01 / signup-01 blocks (Field + Input + Button) minus the page card.
  * The form posts to the same-origin auth proxies and answers with
  * front-end-owned copy only; success reloads so the SSR shell picks up the
- * fresh session cookie.
+ * fresh session cookie. Sign-up carries the interface language so the
+ * viewer's first render resolves to their own locale.
  */
 export function AuthDialog({
   mode,
@@ -30,12 +40,14 @@ export function AuthDialog({
   onOpenChange,
   copy,
   registrationOpen,
+  locale,
 }: {
   mode: AuthMode | null;
   onModeChange: (mode: AuthMode) => void;
   onOpenChange: (open: boolean) => void;
   copy: UserCenterCopy;
   registrationOpen: boolean;
+  locale: Locale;
 }) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -62,6 +74,7 @@ export function AuthDialog({
             email: String(data.get('email') ?? ''),
             password: String(data.get('password') ?? ''),
             passwordConfirm: String(data.get('passwordConfirm') ?? ''),
+            locale: String(data.get('locale') ?? '') || undefined,
           };
     setError(null);
     setBusy(true);
@@ -127,6 +140,23 @@ export function AuthDialog({
                   maxLength={50}
                   autoComplete="nickname"
                 />
+              </Field>
+            )}
+            {mode === 'register' && (
+              <Field>
+                <FieldLabel htmlFor="uc-locale">{copy.localeLabel}</FieldLabel>
+                <Select name="locale" defaultValue={locale}>
+                  <SelectTrigger id="uc-locale" className="w-full bg-surface">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LOCALE_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </Field>
             )}
             <Field>

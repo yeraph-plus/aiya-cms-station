@@ -30,6 +30,7 @@ const zh_CN = {
     passwordLabel: '密码',
     passwordConfirmLabel: '确认密码',
     nicknameLabel: '昵称',
+    localeLabel: '界面语言',
     authFailed: '操作失败，请稍后重试。',
     loginSuccess: '登录成功。',
     registerSuccess: '注册成功。',

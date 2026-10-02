@@ -508,14 +508,7 @@ export const notificationSchema = z.object({
   body: wpText(z.string()),
   createdAt: isoOrEmptySchema,
 });
-/**
- * This route answers `{items, meta}` at the top level — no `data` wrapper —
- * with the standard pagination block inside meta (NotificationController).
- */
-export const notificationsResponseSchema = z.object({
-  items: z.array(notificationSchema),
-  meta: envelopeMetaSchema.extend({ pagination: paginationSchema }),
-});
+export const notificationsResponseSchema = listEnvelope(notificationSchema);
 
 // ---------------------------------------------------------------------------
 // Comments (Api/Rest/CommentsController; classic wp_new_comment pipeline)
@@ -911,6 +904,8 @@ export const registerRequestSchema = z
     email: z.email(),
     password: z.string().min(8).max(200),
     passwordConfirm: z.string(),
+    /** Interface language, chosen on the form; lands on WP's per-user locale. */
+    locale: z.enum(['zh_CN', 'zh_TW', 'zh_HK', 'en_US']).optional(),
   })
   .refine((input) => input.password === input.passwordConfirm, 'Passwords must match');
 export const passwordResetRequestSchema = z.object({

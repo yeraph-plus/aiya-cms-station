@@ -245,7 +245,7 @@ describe('user and notification contracts', () => {
     expect(userSchema.safeParse({ ...user, role: 'editor' }).success).toBe(false);
   });
 
-  it('parses the notifications feed shape (top-level items + paginated meta)', () => {
+  it('parses the notifications feed shape (standard data envelope + paginated meta)', () => {
     const notification = {
       id: 3,
       type: 'announcement',
@@ -255,7 +255,7 @@ describe('user and notification contracts', () => {
     };
     expect(
       notificationsResponseSchema.safeParse({
-        items: [notification],
+        data: [notification],
         meta: { ...meta, pagination },
       }).success,
     ).toBe(true);
@@ -263,7 +263,7 @@ describe('user and notification contracts', () => {
     // on them, so any string parses.
     expect(
       notificationsResponseSchema.safeParse({
-        items: [{ ...notification, type: 'comment_replied' }],
+        data: [{ ...notification, type: 'comment_replied' }],
         meta: { ...meta, pagination },
       }).success,
     ).toBe(true);

@@ -41,6 +41,7 @@ function copyFixture(): UserCenterCopy {
     passwordLabel: shell.passwordLabel,
     passwordConfirmLabel: shell.passwordConfirmLabel,
     nicknameLabel: shell.nicknameLabel,
+    localeLabel: shell.localeLabel,
     authFailed: shell.authFailed,
     loginSuccess: shell.loginSuccess,
     registerSuccess: shell.registerSuccess,

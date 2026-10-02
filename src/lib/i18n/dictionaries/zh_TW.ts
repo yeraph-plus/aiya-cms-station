@@ -27,6 +27,7 @@ const zh_TW: Dictionary = {
     passwordLabel: '密碼',
     passwordConfirmLabel: '確認密碼',
     nicknameLabel: '暱稱',
+    localeLabel: '介面語言',
     authFailed: '操作失敗，請稍後重試。',
     loginSuccess: '登入成功。',
     registerSuccess: '註冊成功。',

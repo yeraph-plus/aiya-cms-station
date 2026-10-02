@@ -87,6 +87,7 @@ export default function UserCenter({
         onOpenChange={() => setDialogMode(null)}
         copy={copy}
         registrationOpen={registrationOpen}
+        locale={locale}
       />
     </div>
   );

@@ -27,7 +27,7 @@ export const GET: APIRoute = async ({ request, cookies, clientAddress }) => {
     const feed = await client.notifications({ page, ...(perPage ? { perPage } : {}) });
     return jsonResponse({
       ok: true,
-      items: feed.items,
+      items: feed.data,
       pagination: {
         page: feed.meta.pagination.page,
         totalPages: feed.meta.pagination.totalPages,
@@ -45,7 +45,7 @@ export const GET: APIRoute = async ({ request, cookies, clientAddress }) => {
         });
         return jsonResponse({
           ok: true,
-          items: feed.items,
+          items: feed.data,
           pagination: {
             page: feed.meta.pagination.page,
             totalPages: feed.meta.pagination.totalPages,
