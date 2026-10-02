@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createAiyaClient } from '@/lib/core/client';
 import { AiyaApiError } from '@/lib/core/errors';
+import { wpApiBaseUrl } from '@/lib/wp-env';
 
 const BASE = 'https://wp.example.com/wp-json/aiya/core/v1/';
 const META = { apiVersion: '1', requestId: 'abcd1234' };
@@ -95,6 +96,20 @@ describe('transport security', () => {
     expect(() =>
       createAiyaClient({ baseUrl: 'https://user:pw@wp.example.com/wp-json/aiya/core/v1/' }),
     ).toThrow(AiyaApiError);
+  });
+
+  it('accepts the bare-origin base once normalized the way server.ts wires it', async () => {
+    const requests: string[] = [];
+    const client = createAiyaClient({
+      baseUrl: wpApiBaseUrl('https://wp.example.com'),
+      fetcher: async (input, init) => {
+        requests.push(new Request(input, init).url);
+        return okSite();
+      },
+      allowLocalHttp: false,
+    });
+    await client.site();
+    expect(new URL(requests[0]).pathname).toBe('/wp-json/aiya/core/v1/site');
   });
 });
 

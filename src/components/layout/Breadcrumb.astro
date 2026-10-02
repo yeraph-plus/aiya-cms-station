@@ -22,7 +22,10 @@ const navLabel = (Astro.locals.breadcrumbsLabel as string | undefined) ?? 'Bread
           <li class="inline-flex items-center gap-1.5">
             {index > 0 && <Icon name="chevronRight" size={14} class="text-body-muted/60" />}
             {index < items.length - 1 && item.href ? (
-              <a href={item.href} class="transition-colors hover:text-foreground">
+              <a
+                href={item.href}
+                class="rounded-sm transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-focus-blue"
+              >
                 {item.label}
               </a>
             ) : index === items.length - 1 ? (

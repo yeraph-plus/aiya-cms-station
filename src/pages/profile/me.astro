@@ -5,6 +5,7 @@
  * user-interactive surfaces. Guests are redirected home.
  */
 import AppShell from '@/components/layout/AppShell.astro';
+import { postRoute } from '@/lib/content';
 import Icon from '@/components/layout/Icon.astro';
 import ProfileCard from '@/components/content/ProfileCard.astro';
 import UserHub from '@/components/islands/user-center/UserHub';
@@ -55,7 +56,7 @@ const hubFavorites = page.ok
   ? page.value.favorites.map((f) => ({
       id: f.id,
       title: f.title,
-      url: f.url,
+      route: postRoute(f.type, f.slug),
       date: f.publishedAt ? displayDate(f.publishedAt, page.locale, page.site.timezone) : '',
       thumbUrl: f.thumbnail ? rewriteMediaUrl(f.thumbnail.url) : null,
     }))
@@ -88,8 +89,9 @@ const settingsCopy = {
   emailLabel: copy.shell.emailLabel,
   currentPasswordLabel: copy.settings.currentPasswordLabel,
   currentPasswordHint: copy.settings.currentPasswordHint,
-  passwordTitle: copy.settings.passwordTitle,
+  accountTitle: copy.settings.accountTitle,
   newPasswordLabel: copy.settings.newPasswordLabel,
+  newPasswordHint: copy.settings.newPasswordHint,
   alwaysShowNsfw: copy.settings.alwaysShowNsfw,
   alwaysShowNsfwHint: copy.settings.alwaysShowNsfwHint,
   passwordConfirmLabel: copy.shell.passwordConfirmLabel,

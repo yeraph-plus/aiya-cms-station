@@ -96,11 +96,6 @@
         "name": "label",
         "type": "string",
         "nullable": false
-      },
-      {
-        "name": "url",
-        "type": "string",
-        "nullable": true
       }
     ],
     "CheckinPolicy": [
@@ -242,11 +237,6 @@
         "nullable": false
       },
       {
-        "name": "url",
-        "type": "string",
-        "nullable": false
-      },
-      {
         "name": "title",
         "type": "string",
         "nullable": false
@@ -343,11 +333,6 @@
       {
         "name": "id",
         "type": "int",
-        "nullable": false
-      },
-      {
-        "name": "url",
-        "type": "string",
         "nullable": false
       },
       {
@@ -821,11 +806,6 @@
         "nullable": false
       },
       {
-        "name": "url",
-        "type": "string",
-        "nullable": false
-      },
-      {
         "name": "type",
         "type": "string",
         "nullable": false
@@ -991,11 +971,6 @@
       },
       {
         "name": "slug",
-        "type": "string",
-        "nullable": false
-      },
-      {
-        "name": "url",
         "type": "string",
         "nullable": false
       },

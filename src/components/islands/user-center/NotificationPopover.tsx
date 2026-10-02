@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import Spinner from '@/components/islands/Spinner';
 import { notificationTime } from '@/lib/format';
+import { sanitizeNotificationHtml } from '@/lib/content';
 import { fetchFeed, markSeen, SEEN_KEY, type NotificationFeedItem } from '@/lib/notifications';
 import type { UserCenterCopy } from './types';
 
@@ -137,7 +138,10 @@ export function NotificationPopover({
 }
 
 /** One notification row (title / date / excerpt) — shared shape with the
-    full-feed page island. */
+    full-feed page island. The title ships as notification HTML (the
+    backend's soft reference anchor, zero-routing): the sanitizer resolves
+    it into a routed href and strips the transport data attributes, so a
+    resolvable row reads as a plain link into the content. */
 export function FeedRow({
   item,
   localeTag,
@@ -151,7 +155,10 @@ export function FeedRow({
   const valid = created !== null && !Number.isNaN(created.getTime());
   return (
     <article className="border-b border-border px-4 py-3 last:border-b-0">
-      <p className="truncate text-sm font-medium">{item.title}</p>
+      <p
+        className="truncate text-sm font-medium [&_a]:text-foreground [&_a]:transition-colors hover:[&_a]:text-primary"
+        dangerouslySetInnerHTML={{ __html: sanitizeNotificationHtml(item.title) }}
+      />
       {valid && (
         <time dateTime={item.createdAt} className="mt-0.5 block text-[11px] text-body-muted">
           {/* localeTag is the BCP 47 tag the shells convert from page.locale;

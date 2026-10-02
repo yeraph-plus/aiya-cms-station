@@ -3,6 +3,7 @@ import { getSecret } from 'astro:env/server';
 import { getDomain } from 'tldts';
 import { createAiyaClient } from './client';
 import { AiyaApiError } from './errors';
+import { wpApiBaseUrl } from '../wp-env';
 
 export function siteOrigin(): string {
   try {
@@ -32,13 +33,15 @@ export function siteOrigin(): string {
  * both target the same WordPress install. A missing or malformed
  * AIYA_WP_API_URL is a configuration error, and plain HTTP is accepted only
  * on loopback or with AIYA_ALLOW_LOCAL_HTTP — the client enforces both.
+ * The value carries the WP host only (origin); the frozen contract root is
+ * appended by wpApiBaseUrl, with a full-path value still accepted as-is.
  * When AIYA_PROXY_SECRET is set it authenticates the proxy bridge (the
  * secret header + X-Forwarded-For visitor address; the backend ignores the
  * pair unless they match its AIYA_PROXY_SECRET constant).
  */
 function liveOptions(clientIp?: string | null) {
   return {
-    baseUrl: getSecret('AIYA_WP_API_URL') ?? '',
+    baseUrl: wpApiBaseUrl(getSecret('AIYA_WP_API_URL') ?? ''),
     timeoutMs: Number(getSecret('AIYA_API_TIMEOUT_MS') ?? 8000),
     allowLocalHttp: getSecret('AIYA_ALLOW_LOCAL_HTTP') === 'true',
     proxySecret: getSecret('AIYA_PROXY_SECRET') ?? '',

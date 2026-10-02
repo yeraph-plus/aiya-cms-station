@@ -68,7 +68,7 @@ export function setSessionCookie(
   token: string,
   expiresAt: number,
   requestHost?: string,
-): void {
+): string | undefined {
   let secure = false;
   try {
     secure = siteOrigin().startsWith('https:');
@@ -78,24 +78,30 @@ export function setSessionCookie(
   // Domain is derived from AIYA_SITE_URL's registrable root (sibling
   // subdomain apps share the session); localhost/IP answers undefined and
   // keeps the cookie host-only. Never throws — see sessionCookieDomain.
+  // The applied scope is returned: the auth proxies append the legacy
+  // host-only delete header ONLY when this is a domain scope — on a
+  // host-only deployment the delete targets the same cookie and would
+  // erase the session just set (success toast, reload, still a guest).
+  const scope = resolveScope(requestHost);
   cookies.set(SESSION_COOKIE, token, {
     path: '/',
     httpOnly: true,
     sameSite: 'lax',
     secure,
     expires: new Date(expiresAt * 1000),
-    domain: resolveScope(requestHost),
+    domain: scope,
   });
+  return scope;
 }
 
 /**
- * Header clearing the LEGACY host-only session shape. Login/register/
- * logout append it beside the AstroCookies Set-Cookie (which can only
- * carry one entry per name): browsers order same-path cookies oldest
- * first and the SSR parser keeps the first, so a leftover pre-0.5.2
- * host-only cookie would shadow the fresh domain-scoped one on the very
- * next read — success toast, reload, still a guest. No Domain attribute:
- * this targets the host-only shape only, never the scoped cookie.
+ * Header clearing the LEGACY host-only session shape. Login/register append
+ * it beside the AstroCookies Set-Cookie (which can only carry one entry per
+ * name) — but ONLY while the fresh cookie is domain-scoped: browsers apply
+ * same-name same-path Set-Cookies in order, so on a host-only deployment
+ * (localhost, LAN host — no Domain on the fresh cookie either) this header
+ * would delete the session it accompanies. The proxies gate on the scope
+ * returned by setSessionCookie.
  */
 export function legacySessionDeleteHeader(): string {
   return `${SESSION_COOKIE}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Lax`;

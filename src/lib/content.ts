@@ -2,6 +2,73 @@ import sanitizeHtml from 'sanitize-html';
 import { rewriteMediaUrl, rewriteSrcset } from '@/lib/media';
 
 /**
+ * The backend's reference markers (ARCHITECTURE "Zero-routing rule and
+ * reference markers"): anchors carry kind + handle as data attributes and
+ * never an href — the route templates are ours. The first matching route
+ * wins; a marker with unusable handles resolves to no href at all (the
+ * anchor degrades to inert text rather than a wrong link).
+ */
+const REF_ROUTE_PREFIX: Record<string, string> = {
+  post: 'posts',
+  page: 'pages',
+  resource: 'resources',
+};
+
+/** Front-end route for one content reference — the same table the
+    backend's marker resolver uses, exported for payloads that still
+    carry bare type+slug. */
+export function postRoute(type: string, slug: string): string {
+  return `/${REF_ROUTE_PREFIX[type] ?? 'posts'}/${slug}/`;
+}
+
+function refHref(attribs: Record<string, string>): string | undefined {
+  switch (attribs['data-aiya-ref']) {
+    case 'post':
+      return attribs['data-aiya-type'] !== undefined && attribs['data-aiya-slug'] !== ''
+        ? postRoute(attribs['data-aiya-type'], attribs['data-aiya-slug'])
+        : undefined;
+    case 'user':
+      return attribs['data-aiya-nicename'] !== ''
+        ? `/profile/${encodeURIComponent(attribs['data-aiya-nicename'])}/`
+        : undefined;
+    case 'term':
+      return attribs['data-aiya-slug'] !== ''
+        ? `/categories/${encodeURIComponent(attribs['data-aiya-slug'])}/`
+        : undefined;
+    case 'search':
+      return attribs['data-aiya-q'] !== ''
+        ? `/search/${encodeURIComponent(attribs['data-aiya-q'])}/`
+        : undefined;
+    case 'comment':
+      return attribs['data-aiya-type'] !== undefined &&
+        attribs['data-aiya-slug'] !== '' &&
+        attribs['data-aiya-comment'] !== ''
+        ? `${postRoute(attribs['data-aiya-type'], attribs['data-aiya-slug'])}#comment-${attribs['data-aiya-comment']}`
+        : undefined;
+    case 'thread':
+      return attribs['data-aiya-board'] !== ''
+        ? `/community/board/${encodeURIComponent(attribs['data-aiya-board'])}/`
+        : undefined;
+    default:
+      return undefined;
+  }
+}
+
+/** The shared `a` transform: reference markers become routed anchors;
+    every other anchor keeps the media-rewrite path. */
+function anchorTransform(
+  _tagName: string,
+  attribs: Record<string, string>,
+): { tagName: string; attribs: Record<string, string> } {
+  const ref = refHref(attribs);
+  if (ref !== undefined) {
+    return { tagName: 'a', attribs: { ...attribs, href: ref } };
+  }
+
+  return { tagName: 'a', attribs: { ...attribs, href: rewriteMediaUrl(attribs.href ?? '') } };
+}
+
+/**
  * The single sanitization boundary for backend HTML (post and discussion
  * bodies). WP content is data, not trusted markup: widgets, scripts,
  * shortcode output and arbitrary embeds do not pass. The same pass rewrites
@@ -89,10 +156,7 @@ export function safeContent(html: string): string {
           decoding: 'async',
         },
       }),
-      a: (_tagName, attribs) => ({
-        tagName: 'a',
-        attribs: { ...attribs, href: rewriteMediaUrl(attribs.href ?? '') },
-      }),
+      a: anchorTransform,
     },
   });
 }
@@ -151,10 +215,7 @@ export function sanitizeDiscussionHtml(html: string): string {
     allowedSchemesByTag: { img: ['https', 'http'] },
     allowProtocolRelative: false,
     transformTags: {
-      a: (_tagName, attribs) => ({
-        tagName: 'a',
-        attribs: { ...attribs, href: rewriteMediaUrl(attribs.href ?? '') },
-      }),
+      a: anchorTransform,
       img: (_tagName, attribs) => ({
         tagName: 'img',
         attribs: {
@@ -202,17 +263,24 @@ export function sanitizeCommentHtml(html: string): string {
       'blockquote',
       'code',
       'span',
+      'a',
       'img',
     ],
     allowedAttributes: {
       span: ['data-spoiler'],
       code: ['class'],
       img: ['src', 'alt', 'class', 'loading'],
+      // The mention anchor is renderer-injected by the backend (never
+      // stored): the route href is added by the shared a-transform below,
+      // and raw hrefs from source content stay stripped (kses removed them
+      // long before this pass).
+      a: ['data-aiya-ref', 'data-aiya-nicename', 'class', 'href'],
     },
     allowedSchemes: ['https', 'http'],
     allowedSchemesByTag: { img: ['https', 'http'] },
     allowProtocolRelative: false,
     transformTags: {
+      a: anchorTransform,
       img: (_tagName, attribs) => ({
         tagName: 'img',
         attribs: {
@@ -232,5 +300,22 @@ export function sanitizeCommentHtml(html: string): string {
       // tracking pixel through.
       return !(frame.attribs.src ?? '').startsWith('/media/');
     },
+  });
+}
+
+/**
+ * Notification titles: the backend ships the escaped message wrapped in at
+ * most one soft reference anchor (data-aiya-ref, zero-routing). The pass
+ * resolves that anchor into the routed href through the shared transform,
+ * strips the transport data attributes, and unwraps everything else — a
+ * notification title is a link, never rich markup.
+ */
+export function sanitizeNotificationHtml(html: string): string {
+  return sanitizeHtml(html, {
+    allowedTags: ['a'],
+    allowedAttributes: { a: ['href', 'title'] },
+    allowedSchemes: ['https', 'http', 'mailto'],
+    allowProtocolRelative: false,
+    transformTags: { a: anchorTransform },
   });
 }

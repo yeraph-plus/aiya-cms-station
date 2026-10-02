@@ -30,7 +30,15 @@ export const POST: APIRoute = async (Astro) => {
 
   try {
     const session = (await authClient(null, ip).login(parsed.data)).data;
-    setSessionCookie(Astro.cookies, session.token, session.expiresAt, requestHost(Astro.request));
+    // The legacy delete only targets the host-only session shape; when the
+    // fresh cookie is itself host-only (localhost / LAN host), appending it
+    // would erase the session just set — toast fires, reload lands a guest.
+    const scope = setSessionCookie(
+      Astro.cookies,
+      session.token,
+      session.expiresAt,
+      requestHost(Astro.request),
+    );
     const response = jsonResponse({
       ok: true,
       // Cloak server-side: the browser bundle has no WP origin (non-public
@@ -40,9 +48,9 @@ export const POST: APIRoute = async (Astro) => {
         avatarUrl: session.user.avatar.url ? rewriteMediaUrl(session.user.avatar.url) : null,
       },
     });
-    // Clear any legacy host-only session shape in the same response, or it
-    // shadows the fresh domain-scoped cookie on the reload's SSR read.
-    response.headers.append('set-cookie', legacySessionDeleteHeader());
+    if (scope !== undefined) {
+      response.headers.append('set-cookie', legacySessionDeleteHeader());
+    }
     return response;
   } catch (error) {
     return jsonResponse(

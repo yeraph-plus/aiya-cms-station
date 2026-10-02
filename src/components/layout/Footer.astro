@@ -48,7 +48,7 @@ const sentence = hitokotoEnabled
                   href={safeHref(link.url) ?? undefined}
                   target="_blank"
                   rel="noreferrer"
-                  class="inline-flex items-center gap-1.5 text-sm text-body-muted hover:text-foreground"
+                  class="inline-flex items-center gap-1.5 text-sm text-body-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-focus-blue"
                 >
                   {link.icon === 'shield' && <Icon name="shield" size={16} />}
                   {link.icon === 'police' && (
@@ -89,7 +89,7 @@ const sentence = hitokotoEnabled
                 href={safeHref(item.url) ?? undefined}
                 target={item.target === 'blank' ? '_blank' : undefined}
                 rel={item.target === 'blank' ? 'noreferrer' : undefined}
-                class="text-sm text-foreground hover:text-primary"
+                class="text-sm text-foreground hover:text-primary focus-visible:outline-2 focus-visible:outline-focus-blue"
               >
                 {item.label}
               </a>

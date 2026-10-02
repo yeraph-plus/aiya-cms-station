@@ -65,7 +65,7 @@ if (page.ok && post) {
 const origin = page.origin;
 const jsonLd =
   page.ok && post
-    ? [articleJsonLd(post, page.site, origin), breadcrumbJsonLd(post.breadcrumbs, origin)]
+    ? [articleJsonLd(post, page.site, origin), breadcrumbJsonLd(post.breadcrumbs)]
     : [];
 const cover = post?.featured ?? post?.thumbnail ?? null;
 const seoTitle = post?.seo.title || post?.title || copy.state.notFoundTitle;
@@ -77,7 +77,7 @@ const noindex = !page.ok || Boolean(post?.seo.noindex);
   page={page}
   title={seoTitle}
   description={seoDescription}
-  canonicalPath={post ? post.url : `/resources/${Astro.params.slug}/`}
+  canonicalPath={`/resources/${Astro.params.slug}/`}
   noindex={noindex}
   image={cover ? rewriteMediaUrl(cover.url) : null}
   ogType="article"

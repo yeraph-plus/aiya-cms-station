@@ -83,6 +83,7 @@ import {
   uploadResultSchema,
 } from './contracts';
 import { AiyaApiError } from './errors';
+import { WP_API_CONTRACT_ROOT } from '../wp-env';
 
 export interface ClientOptions {
   baseUrl: string;
@@ -191,7 +192,7 @@ export function createAiyaClient(options: ClientOptions) {
     base.password ||
     base.search ||
     base.hash ||
-    !base.pathname.endsWith('/wp-json/aiya/core/v1/')
+    !base.pathname.endsWith(WP_API_CONTRACT_ROOT)
   ) {
     throw new AiyaApiError('configuration', 503);
   }

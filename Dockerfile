@@ -8,7 +8,7 @@
 #   docker run -d --name aiya-cms-build \
 #     -p 4321:4321 \
 #     -e AIYA_SITE_URL='https://your-front-domain/' \
-#     -e AIYA_WP_API_URL='https://your-wp-domain/wp-json/aiya/core/v1/' \
+#     -e AIYA_WP_API_URL='https://your-wp-domain' \
 #     -e AIYA_PROXY_SECRET='<same value as wp-config AIYA_PROXY_SECRET>' \
 #     aiya-cms-build
 #

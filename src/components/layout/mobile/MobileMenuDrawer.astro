@@ -22,37 +22,33 @@ const subLinkClass =
   'flex min-h-[44px] items-center rounded-md px-3 py-2 text-sm transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-focus-blue';
 ---
 
-<!-- Mobile menu drawer (UX.md §6): the TabBar "more" button opens the full
-    primary tree here. Non-modal — the overlay click, Escape and route
-    changes all close it. Closed state is inert so nothing inside can be
-    tabbed into; the root's data-open drives both panels through the group
-    variant. Desktop shells never render it visible. -->
+<!-- Mobile menu drawer (UX.md §6): the TabBar "more" button toggles the full
+    primary tree in a left slide-in panel that slides out from UNDER the top
+    bar — its z-order sits below the header (z-20 overlay / z-25 panel vs
+    the bar's z-30), so the bar keeps floating above it and the panel
+    carries no site-name header of its own (content clears the bar with
+    extra top padding). Non-modal — the overlay click, Escape and route
+    changes all close it (the toggle flips it back too). Closed state is
+    inert so nothing inside can be tabbed into; the root's data-open drives
+    both panels through the group variant. Desktop shells never render it
+    visible. -->
 <div id="mobile-menu-drawer-root" class="group min-[992px]:hidden">
   <div
     id="mobile-menu-drawer-overlay"
     data-drawer-overlay
     inert
     aria-hidden="true"
-    class="pointer-events-none fixed inset-0 z-40 bg-foreground/50 opacity-0 transition-opacity duration-200 group-data-[open]:pointer-events-auto group-data-[open]:opacity-100"
+    class="pointer-events-none fixed inset-0 z-20 bg-scrim-modal opacity-0 transition-opacity duration-200 group-data-[open]:pointer-events-auto group-data-[open]:opacity-100"
   >
   </div>
   <aside
     id="mobile-menu-drawer"
     inert
     tabindex="-1"
-    class="fixed inset-y-0 left-0 z-50 flex w-[280px] max-w-[85vw] -translate-x-full flex-col border-r border-border bg-surface transition-transform duration-200 group-data-[open]:translate-x-0"
+    aria-label={siteName}
+    class="fixed inset-y-0 left-0 z-[25] flex w-[280px] max-w-[85vw] -translate-x-full flex-col border-r border-border bg-surface pt-[4.5rem] transition-transform duration-200 group-data-[open]:translate-x-0"
   >
-    <div class="flex h-14 shrink-0 items-center justify-between border-b border-border px-4">
-      <span class="font-display text-lg font-semibold tracking-tight">{siteName}</span>
-      <button
-        type="button"
-        data-drawer-close
-        class="flex size-10 items-center justify-center rounded-md text-foreground hover:bg-secondary focus-visible:outline-2 focus-visible:outline-focus-blue"
-      >
-        <Icon name="x" size={20} strokeWidth={1.8} />
-      </button>
-    </div>
-    <nav aria-label={siteName} class="flex-1 overflow-y-auto px-3 py-4">
+    <nav aria-label={siteName} class="flex-1 overflow-y-auto px-3 pb-4">
       <ul class="flex flex-col">
         {
           menu.map((item) =>
@@ -62,7 +58,7 @@ const subLinkClass =
                   <summary
                     class:list={[
                       linkClass,
-                      'cursor-pointer list-none [&::-webkit-details-marker]:hidden',
+                      'cursor-pointer list-none pr-12 [&::-webkit-details-marker]:hidden',
                     ]}
                   >
                     <Icon name={menuIconName(item)} size={20} strokeWidth={1.8} />
@@ -104,6 +100,7 @@ const subLinkClass =
                   rel={isExternal(item.url) ? 'noreferrer' : undefined}
                   class:list={[
                     linkClass,
+                    'pr-12',
                     isActive(item.url)
                       ? 'bg-secondary font-semibold text-primary'
                       : 'text-foreground',
@@ -123,12 +120,15 @@ const subLinkClass =
 
 <script>
   // Drawer open/close, document-level so it survives ClientRouter swaps.
-  // Opening removes inert from both panels and moves focus into the drawer;
-  // closing restores it to the invoking TabBar button. Route swaps replace
-  // the SSR markup, which renders closed — that is the auto-close path.
+  // The toggle flips: opening removes inert from both panels and moves
+  // focus into the panel; closing restores it to the invoking TabBar
+  // button. Route swaps replace the SSR markup, which renders closed —
+  // that is the auto-close path.
   const root = () => document.getElementById('mobile-menu-drawer-root');
   const panel = () => document.getElementById('mobile-menu-drawer');
   const overlay = () => document.getElementById('mobile-menu-drawer-overlay');
+
+  const isOpen = () => root()?.hasAttribute('data-open') ?? false;
 
   const setOpen = (open: boolean) => {
     root()?.toggleAttribute('data-open', open);
@@ -144,7 +144,7 @@ const subLinkClass =
   document.addEventListener('click', (event) => {
     if (!(event.target instanceof Element)) return;
     if (event.target.closest('[data-drawer-toggle]')) {
-      setOpen(true);
+      setOpen(!isOpen());
       return;
     }
     if (
@@ -157,6 +157,6 @@ const subLinkClass =
     if (event.target.closest('#mobile-menu-drawer a')) setOpen(false);
   });
   document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && root()?.hasAttribute('data-open')) setOpen(false);
+    if (event.key === 'Escape' && isOpen()) setOpen(false);
   });
 </script>

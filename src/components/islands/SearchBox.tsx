@@ -24,6 +24,10 @@ export interface SearchBoxProps {
   value?: string;
   /** Scope of those same results. */
   scope?: SearchScope;
+  /** Placement classes for the root form. The desktop header hides the box
+      below 992px (it owns the header row there); other consumers — the
+      mobile search dialog — pass classes visible at every width. */
+  className?: string;
 }
 
 /**
@@ -36,7 +40,12 @@ export interface SearchBoxProps {
  * committed one: switching scope on a results page is "show me the other
  * types", while editing the text must never fire a search on its own.
  */
-export default function SearchBox({ locale, value = '', scope = 'all' }: SearchBoxProps) {
+export default function SearchBox({
+  locale,
+  value = '',
+  scope = 'all',
+  className,
+}: SearchBoxProps) {
   const copy = t(locale);
   const [key, setKey] = useState(value);
   const [nextScope, setNextScope] = useState<SearchScope>(scope);
@@ -62,7 +71,7 @@ export default function SearchBox({ locale, value = '', scope = 'all' }: SearchB
   return (
     <form
       role="search"
-      className="relative hidden min-w-0 flex-1 min-[992px]:block"
+      className={className ?? 'relative hidden min-w-0 flex-1 min-[992px]:block'}
       onSubmit={(event) => {
         event.preventDefault();
         submit(key, nextScope);
@@ -95,6 +104,9 @@ export default function SearchBox({ locale, value = '', scope = 'all' }: SearchB
           name="q"
           value={key}
           onChange={(event) => setKey(event.target.value)}
+          // text-sm pins the keyword to the scope trigger's size (the Input
+          // part would fall back to text-base below md and outgrow it).
+          className="text-sm"
           // Enter is handled here rather than left to implicit submission:
           // the Select contributes a second form control, which is exactly
           // the case browsers may decline to submit on Enter.

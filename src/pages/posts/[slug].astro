@@ -66,7 +66,7 @@ if (page.ok && post) {
 const origin = page.origin;
 const jsonLd =
   page.ok && post
-    ? [articleJsonLd(post, page.site, origin), breadcrumbJsonLd(post.breadcrumbs, origin)]
+    ? [articleJsonLd(post, page.site, origin), breadcrumbJsonLd(post.breadcrumbs)]
     : [];
 const cover = post?.featured ?? post?.thumbnail ?? null;
 // Backend-managed projection SEO (title + excerpt) overrides the defaults.
@@ -79,7 +79,7 @@ const noindex = !page.ok || Boolean(post?.seo.noindex);
   page={page}
   title={seoTitle}
   description={seoDescription}
-  canonicalPath={post ? post.url : `/posts/${Astro.params.slug}/`}
+  canonicalPath={`/posts/${Astro.params.slug}/`}
   noindex={noindex}
   image={cover ? rewriteMediaUrl(cover.url) : null}
   ogType="article"

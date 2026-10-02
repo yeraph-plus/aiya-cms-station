@@ -720,7 +720,9 @@ function CommunityFeedInner({
           </div>
         </Card>
       ) : (
-        <EmptyNote>{copy.loginToPost}</EmptyNote>
+        <EmptyNote onClick={() => window.dispatchEvent(new CustomEvent('aiya:open-auth'))}>
+          {copy.loginToPost}
+        </EmptyNote>
       )}
 
       {/* Feed toolbar: titled brand mark on the left; sort sits immediately

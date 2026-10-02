@@ -177,7 +177,6 @@ export const postMetricsSchema = z.object({
 export const postSummarySchema = z.object({
   id,
   slug: z.string().min(1),
-  url: sitePathSchema,
   /** Vocabularies whose front-end routes exist; `page` joined with the
       /pages/{slug}/ route (shared projection with posts). */
   type: z.enum(['post', 'resource', 'page']),
@@ -197,7 +196,6 @@ export const postSummarySchema = z.object({
 });
 export const breadcrumbSchema = z.object({
   label: wpText(z.string()),
-  url: sitePathSchema.nullable(),
 });
 export const seoSchema = z.object({
   title: wpText(z.string()),
@@ -405,7 +403,6 @@ export const discussionImageSchema = imageSchema.extend({
 });
 export const discussionSchema = z.object({
   id,
-  url: sitePathSchema,
   /** May be empty for content-only threads; cards fall back to a text excerpt. */
   title: wpText(z.string()),
   board: discussionBoardSchema.nullable(),

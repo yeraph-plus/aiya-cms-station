@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro';
+import { postRoute } from '@/lib/content';
 import { serverClient, siteOrigin } from '@/lib/core/server';
 import { PROFILE_SLUG_PATTERN } from '@/lib/core/contracts';
 
@@ -29,7 +30,7 @@ export const GET: APIRoute = async () => {
     const client = serverClient();
     const collect = async (
       listPage: (page: number) => Promise<{
-        data: { url: string; author: { slug: string } }[];
+        data: { slug: string; type: string; author: { slug: string } }[];
         meta: { pagination: { hasNext: boolean } };
       }>,
     ): Promise<string[]> => {
@@ -37,7 +38,7 @@ export const GET: APIRoute = async () => {
       for (let page = 1; page <= MAX_PAGES; page += 1) {
         const result = await listPage(page);
         for (const item of result.data) {
-          urls.push(new URL(item.url, origin).href);
+          urls.push(new URL(postRoute(item.type, item.slug), origin).href);
           authors.add(item.author.slug);
         }
         if (!result.meta.pagination.hasNext) break;

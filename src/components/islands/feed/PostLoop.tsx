@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
+import { postRoute } from '@/lib/content';
 
 import {
   AlignLeftIcon,
@@ -255,12 +256,6 @@ function CardInfo({
   locale: Locale;
 }) {
   const copy = t(locale);
-  const typeLabel =
-    item.type === 'resource'
-      ? copy.posts.typeResource
-      : item.type === 'page'
-        ? copy.posts.typePage
-        : copy.posts.typePost;
   const badge = (label: string, icon: React.ReactNode, cls: string) => (
     <span
       className={`inline-flex shrink-0 items-center gap-1 rounded border px-1.5 py-px text-xs leading-none ${cls}`}
@@ -291,7 +286,6 @@ function CardInfo({
         )}
     </>
   );
-  const category = item.categories[0]?.name;
   // Counter feature matrix (0.18.0): like covers post/page, rating covers
   // resource — the last meta slot switches with the type.
   const counters =
@@ -321,16 +315,23 @@ function CardInfo({
     );
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-      {/* Row 1: badges + category + title */}
+      {/* Row 1: badges + title. Card view wraps the title at a size one step
+          above the excerpt; list mode stays a single truncated line led by
+          every category name. */}
       <h2
         className={`flex min-w-0 items-center gap-x-1.5 font-display font-semibold text-foreground group-hover:text-primary ${
-          vertical ? 'min-h-10 flex-wrap gap-y-1 text-sm' : 'text-base flex-nowrap overflow-hidden'
+          vertical
+            ? 'min-h-12 flex-wrap gap-y-1 text-base'
+            : 'text-base flex-nowrap overflow-hidden'
         }`}
       >
         {badges}
-        {category && (
-          <span className="shrink-0 text-xs font-normal text-body-muted">{category}</span>
-        )}
+        {!vertical &&
+          item.categories.map((c) => (
+            <span key={c.slug} className="shrink-0 text-xs font-normal text-body-muted">
+              {c.name}
+            </span>
+          ))}
         <span
           className={`min-w-0 ${vertical ? 'line-clamp-2' : 'truncate'} ${
             item.title === '' ? 'text-body-muted font-normal' : ''
@@ -339,18 +340,21 @@ function CardInfo({
           {item.title === '' ? copy.posts.untitled : item.title}
         </span>
       </h2>
-      {/* Row 2: excerpt — one fixed-height line on phones, two lines from
-          sm up (card view reserves both lines so heights stay locked) */}
-      <p
-        className={`text-sm text-body-muted line-clamp-1 sm:line-clamp-2 ${
-          vertical ? 'h-5 sm:h-auto sm:min-h-10' : 'h-5 sm:h-auto'
-        }`}
-      >
-        {item.excerpt}
-      </p>
-      {/* Row 3: type + views + comments + likes/rating (card view skips the
-          author — at two-plus columns per row the name would eat the line;
-          it stays first in list mode) */}
+      {/* Row 1.5 (card view only): every category, on its own line. */}
+      {vertical && item.categories.length > 0 && (
+        <p className="flex flex-wrap gap-x-1.5 text-xs font-normal text-body-muted">
+          {item.categories.map((c) => (
+            <span key={c.slug}>{c.name}</span>
+          ))}
+        </p>
+      )}
+      {/* Row 2: excerpt — a fixed two-line block at every width so list rows
+          and card heights stay locked; the bottom margin keeps the meta row
+          off the text. */}
+      <p className="mb-2 text-sm text-body-muted line-clamp-2 h-10">{item.excerpt}</p>
+      {/* Row 3: views + comments + likes/rating, pinned to the card bottom
+          (card view skips the author — at two-plus columns per row the name
+          would eat the line; it stays first in list mode). */}
       <div
         className={`mt-auto flex flex-nowrap items-center overflow-hidden whitespace-nowrap text-xs text-body-muted ${
           vertical ? 'gap-x-2' : 'gap-x-2 sm:gap-x-3'
@@ -366,7 +370,6 @@ function CardInfo({
             {item.author.name}
           </span>
         )}
-        <span className="shrink-0 rounded bg-secondary px-1.5 py-px text-[11px]">{typeLabel}</span>
         <span className="inline-flex shrink-0 items-center gap-1">
           <EyeIcon className="size-[13px]" aria-hidden="true" />
           {item.metrics.views}
@@ -408,11 +411,13 @@ function FilterPill({
 
 /**
  * Loop card: edge-to-edge first image (no margin against the card border),
- * info beside (list) or below (grid) in three rows. List mode stays a row
- * at every width — phones get a compact 120px thumb slot, sm+ the 200px
- * one — with the card pinned to a fixed height from sm up, so the layout
- * never degenerates into the stacked card look of grid mode. Card view
- * locks its height by reserving the text rows (see CardInfo).
+ * info beside (list) or below (grid) in three rows. Backend covers are
+ * always 16:9 (640×360 pipeline), so both modes size the image as an
+ * uncropped aspect-video box: grid stacks it full-width; list mode walks
+ * four per-breakpoint thumb sizes (120 / 160 / 200 / 240 / 288px) so the
+ * image never overwhelms small screens, and the text column stretches
+ * top-aligned with the meta row pinned to the card bottom. Card view locks
+ * its height by reserving the text rows (see CardInfo).
  */
 function FeedCard({
   item,
@@ -427,17 +432,16 @@ function FeedCard({
   // — the front end adds no fallback of its own.
   const thumbUrl = item.thumbnail?.url ?? null;
   return (
-    <Card
-      className={`group overflow-hidden rounded-md transition-colors hover:border-body-muted ${
-        vertical ? '' : 'sm:h-[132px]'
-      }`}
-    >
+    <Card className="group overflow-hidden rounded-md transition-colors hover:border-body-muted">
       <a
-        href={item.url}
+        href={postRoute(item.type, item.slug)}
         className={
           // Card view stacks (image above info); list mode stays a row at
           // every width — on phones the thumb shrinks to a compact slot
           // instead of stacking, so list never collapses into the card look.
+          // The 16:9 thumb is one of four per-breakpoint sizes; the text
+          // column stretches (top-aligned) and pins its meta row to the
+          // card bottom.
           vertical ? 'flex h-full flex-col' : 'flex h-full flex-row'
         }
       >
@@ -445,12 +449,12 @@ function FeedCard({
           <img
             src={thumbUrl}
             alt={item.thumbnail?.alt ?? item.title}
-            width={vertical ? 320 : 200}
-            height={vertical ? 180 : 132}
+            width={vertical ? 320 : 288}
+            height={vertical ? 180 : 162}
             className={
               vertical
                 ? 'aspect-video w-full shrink-0 object-cover'
-                : 'w-[120px] shrink-0 object-cover sm:w-[200px]'
+                : 'aspect-video w-[120px] shrink-0 self-center object-cover sm:w-[160px] md:w-[200px] lg:w-[240px] 2xl:w-[288px]'
             }
             loading="lazy"
             decoding="async"

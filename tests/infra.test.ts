@@ -45,7 +45,6 @@ const site = {
 const detail = {
   id: 101,
   slug: 'hello',
-  url: '/posts/101/',
   type: 'post' as const,
   title: '你好世界',
   excerpt: '摘要',
@@ -66,7 +65,7 @@ const detail = {
   metrics: { views: 0, likes: 0, comments: 0, ratingScore: null, ratingCount: null },
   content: { format: 'html' as const, html: '<p>正文</p>' },
   seo: { title: '你好世界', description: '摘要', noindex: false },
-  breadcrumbs: [{ label: '你好世界', url: null }],
+  breadcrumbs: [{ label: '你好世界' }],
   previous: null,
   next: null,
   viewerLiked: false,
@@ -88,23 +87,17 @@ describe('JSON-LD builders', () => {
     expect(data.image).toBe('https://cdn.example.com/cover.jpg');
     expect(data.inLanguage).toBe('zh-CN');
     expect((data.mainEntityOfPage as Record<string, unknown>)['@id']).toBe(
-      'https://aiya.example.com/posts/101/',
+      'https://aiya.example.com/posts/hello/',
     );
   });
 
-  it('omits item refs for null breadcrumbs but keeps positions', () => {
-    const data = breadcrumbJsonLd(
-      [
-        { label: '首页', url: '/' },
-        { label: '当前', url: null },
-      ],
-      'https://aiya.example.com',
-    );
+  it('emits label-and-position list items (crumbs carry no routes)', () => {
+    const data = breadcrumbJsonLd([{ label: '首页' }, { label: '当前' }]);
     const items = data.itemListElement as Array<Record<string, unknown>>;
     expect(items).toHaveLength(2);
-    expect(items[0].item).toBe('https://aiya.example.com/');
-    expect(items[1]).not.toHaveProperty('item');
-    expect(items[1].position).toBe(2);
+    expect(items[0]).toEqual({ '@type': 'ListItem', position: 1, name: '首页' });
+    expect(items[1]).toEqual({ '@type': 'ListItem', position: 2, name: '当前' });
+    expect(items.some((item) => 'item' in item)).toBe(false);
   });
 });
 

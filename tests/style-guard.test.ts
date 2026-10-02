@@ -64,7 +64,7 @@ const HEX_ALLOWLIST = new Set([
 const COLOR_LITERAL_ALLOWLIST = new Set(['src/components/islands/user-center/RichEditor.tsx']);
 
 describe('style guard', () => {
-  it('rounded-xl stays inside ui/ (the 6px scale rule, DESIGN.md §6#24)', () => {
+  it('rounded-xl stays inside ui/ (the 6px scale rule, HISTORY.md §二#6#24)', () => {
     const files = new Map(
       [...scan(SRC, TS_ASTRO)].filter(([f]) => !f.startsWith('src/components/ui/')),
     );

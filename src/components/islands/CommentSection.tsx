@@ -251,7 +251,11 @@ export default function CommentSection({
   const renderNodes = (nodes: CommentNode[], level: number) => {
     const depth = Math.min(level, Math.max(0, settings.threadCommentsDepth - 1));
     return nodes.map((node) => (
-      <div key={node.comment.id} className={depth > 0 ? 'ml-4 border-l border-border pl-4' : ''}>
+      <div
+        key={node.comment.id}
+        id={`comment-${node.comment.id}`}
+        className={depth > 0 ? 'ml-4 border-l border-border pl-4' : ''}
+      >
         <CommentCard
           comment={node.comment}
           locale={locale}

@@ -167,7 +167,25 @@ img.aiya-smilie {
   vertical-align: text-bottom;
 }
 
-/* Related-post card: rendered by the backend `post_id` part and embedded in
+/* Reference markers (backend `[ref]` part, zero-routing): the back end
+   ships kind + handle data attributes and never an href — the content
+   sanitizers resolve them into routed anchors. Inline user references
+   carry a small avatar that must sit inside the text line. */
+a[data-aiya-ref] {
+  text-decoration: none;
+}
+
+a[data-aiya-ref] .aiya-ref-avatar {
+  display: inline-block;
+  width: 1.25em;
+  height: 1.25em;
+  border-radius: 9999px;
+  object-fit: cover;
+  vertical-align: -0.25em;
+  margin-right: 0.25em;
+}
+
+/* Related-post card: rendered by the backend `[ref]` part and embedded in
    post bodies, thread bodies and replies alike (one rule set, the smilie
    precedent). Content HTML never carries classes, so the card's own data
    attributes are the only hooks; `data-badges` (member/login/password) is

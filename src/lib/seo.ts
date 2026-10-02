@@ -1,4 +1,5 @@
 import type { Breadcrumb, PostDetail, Site } from '@/lib/core/contracts';
+import { postRoute } from '@/lib/content';
 import { resolveLocale, toBcp47 } from '@/lib/i18n/locale';
 import { rewriteMediaUrl } from '@/lib/media';
 
@@ -53,20 +54,25 @@ export function articleJsonLd(
     // the WP host, which the JSON-LD must not leak.
     ...(post.thumbnail ? { image: absoluteUrl(origin, rewriteMediaUrl(post.thumbnail.url)) } : {}),
     author: { '@type': 'Person', name: post.author.name },
-    mainEntityOfPage: { '@type': 'WebPage', '@id': absoluteUrl(origin, post.url) },
+    mainEntityOfPage: {
+      '@type': 'WebPage',
+      '@id': absoluteUrl(origin, postRoute(post.type, post.slug)),
+    },
   };
 }
 
-export function breadcrumbJsonLd(crumbs: Breadcrumb[], origin: string): Record<string, unknown> {
+export function breadcrumbJsonLd(crumbs: Breadcrumb[]): Record<string, unknown> {
   return {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
+    // Crumbs are labels only (zero-routing rule: the back end ships no
+    // paths), so the list carries names and positions — the trailing crumb
+    // would omit `item` anyway, and the shell crumbs are front-end
+    // composition that never rides this payload.
     itemListElement: crumbs.map((crumb, index) => ({
       '@type': 'ListItem',
       position: index + 1,
       name: crumb.label,
-      // A null crumb URL means "this page"; the item reference is then omitted.
-      ...(crumb.url ? { item: absoluteUrl(origin, crumb.url) } : {}),
     })),
   };
 }

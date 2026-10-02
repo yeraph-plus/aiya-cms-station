@@ -55,13 +55,12 @@ describe('post summary contract', () => {
     expect(postSummarySchema.safeParse({ ...summary, type: 'issue' }).success).toBe(false);
   });
 
-  it('rejects non-ISO dates and unsafe paths', () => {
+  it('rejects non-ISO dates and unknown route types', () => {
     expect(postSummarySchema.safeParse({ ...summary, publishedAt: '2026/09/09' }).success).toBe(
       false,
     );
-    expect(postSummarySchema.safeParse({ ...summary, url: '/posts/../wp-admin/' }).success).toBe(
-      false,
-    );
+    expect(postSummarySchema.safeParse({ ...summary, type: 'widget' }).success).toBe(false);
+    expect(postSummarySchema.safeParse({ ...summary, slug: '' }).success).toBe(false);
   });
 });
 

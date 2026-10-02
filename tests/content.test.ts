@@ -1,5 +1,10 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import { safeContent, sanitizeCommentHtml, sanitizeDiscussionHtml } from '@/lib/content';
+import {
+  safeContent,
+  sanitizeCommentHtml,
+  sanitizeDiscussionHtml,
+  sanitizeNotificationHtml,
+} from '@/lib/content';
 import { cloakDiscussion } from '@/lib/community';
 
 beforeAll(() => {
@@ -122,5 +127,96 @@ describe('cssUrl', () => {
     expect(cssUrl('https://x/a"b.jpg')).toBe(`https://x/a${BS}"b.jpg`);
     expect(cssUrl(`https://x/a${BS}b.jpg`)).toBe(`https://x/a${BS}${BS}b.jpg`);
     expect(cssUrl('https://x/plain.jpg')).toBe('https://x/plain.jpg');
+  });
+});
+
+describe('reference markers (zero-routing)', () => {
+  it('routes post markers by type and slug', () => {
+    const html = safeContent(
+      '<a data-aiya-ref="post" data-aiya-type="resource" data-aiya-slug="wallpaper">壁纸包</a>',
+    );
+    expect(html).toContain('href="/resources/wallpaper/"');
+    expect(html).not.toContain('data-aiya-ref');
+  });
+
+  it('routes post markers of every public type', () => {
+    for (const [type, prefix] of [
+      ['post', 'posts'],
+      ['page', 'pages'],
+      ['resource', 'resources'],
+    ] as const) {
+      const html = safeContent(
+        `<a data-aiya-ref="post" data-aiya-type="${type}" data-aiya-slug="s">x</a>`,
+      );
+      expect(html).toContain(`href="/${prefix}/s/"`);
+    }
+  });
+
+  it('routes user markers to profiles', () => {
+    const html = sanitizeDiscussionHtml(
+      '<a data-aiya-ref="user" data-aiya-nicename="hub-tester">@hub-tester</a>',
+    );
+    expect(html).toContain('href="/profile/hub-tester/"');
+  });
+
+  it('routes term and search markers', () => {
+    const term = sanitizeDiscussionHtml(
+      '<a data-aiya-ref="term" data-aiya-taxonomy="category" data-aiya-slug="壁纸">壁纸</a>',
+    );
+    expect(term).toContain('href="/categories/%E5%A3%81%E7%BA%B8/"');
+
+    const search = safeContent('<a data-aiya-ref="search" data-aiya-q="测试关键词">测试关键词</a>');
+    expect(search).toContain('/search/');
+    expect(search).toContain(encodeURIComponent('测试关键词'));
+  });
+
+  it('routes comment markers to the parent post anchored at the comment', () => {
+    // The backend's comment handles are post+comment+type+slug (the same
+    // four the [ref] part emits) — the parent slug rides data-aiya-slug.
+    const html = sanitizeDiscussionHtml(
+      '<a data-aiya-ref="comment" data-aiya-post="9" data-aiya-comment="12" data-aiya-type="post" data-aiya-slug="slug-9">评论摘录</a>',
+    );
+    expect(html).toContain('href="/posts/slug-9/#comment-12"');
+  });
+
+  it('routes thread markers to the community board', () => {
+    const html = sanitizeDiscussionHtml(
+      '<a data-aiya-ref="thread" data-aiya-board="question">问个问题</a>',
+    );
+    expect(html).toContain('href="/community/board/question/"');
+  });
+
+  it('strips the transport attributes from the output', () => {
+    const html = safeContent(
+      '<a data-aiya-ref="user" data-aiya-nicename="u" data-aiya-avatar="https://aiya.test/a.jpg">名</a>',
+    );
+    expect(html).not.toContain('data-aiya');
+  });
+
+  it('degrades markers without usable handles to inert text', () => {
+    const html = safeContent('<a data-aiya-ref="user" data-aiya-nicename="">无名</a>');
+    expect(html).not.toContain('href=');
+    expect(html).toContain('无名');
+  });
+});
+
+describe('sanitizeNotificationHtml', () => {
+  it('resolves the backend soft anchor into a routed href and strips the handles', () => {
+    const out = sanitizeNotificationHtml(
+      '<a data-aiya-ref="comment" data-aiya-post="9" data-aiya-comment="12" data-aiya-type="post" data-aiya-slug="slug-9">评论了你的文章</a>',
+    );
+    expect(out).toBe('<a href="/posts/slug-9/#comment-12">评论了你的文章</a>');
+  });
+
+  it('leaves an anchor-free title as the escaped plain text it shipped as', () => {
+    expect(sanitizeNotificationHtml('你的账户入账 +66 积分。')).toBe('你的账户入账 +66 积分。');
+  });
+
+  it('unwraps smuggled markup and keeps only the text', () => {
+    // <script> is a non-text tag: its content vanishes with the tag.
+    const out = sanitizeNotificationHtml(
+      '提到你 <img src="https://evil.test/x.png" alt="x"> <script>alert(1)</script>请看',
+    );
+    expect(out).toBe('提到你  请看');
   });
 });

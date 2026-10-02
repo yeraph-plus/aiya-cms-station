@@ -53,5 +53,11 @@ export default defineConfig({
     // the Vite 8 module runner evaluates react's CJS entry as ESM and crashes
     // with "module is not defined" before the first request. The standalone
     // build re-adds the flag via the integration above.
+    server: {
+      // local.host is the dev domain (hosts-file alias for 127.0.0.1) so the
+      // session cookie exercises its production domain-scoped shape; Vite's
+      // DNS-rebinding guard 403s any Host outside this list by default.
+      allowedHosts: ['local.host'],
+    },
   },
 });

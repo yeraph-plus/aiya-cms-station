@@ -7,7 +7,11 @@
  */
 
 export interface NotificationFeedItem {
+  /** Notification HTML: the escaped message wrapped in the backend's soft
+      reference anchor (data-aiya-ref, zero-routing) when the target
+      resolves — render through `sanitizeNotificationHtml`, never as text. */
   title: string;
+  /** Plain-text excerpt. */
   body: string;
   createdAt: string;
 }

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { CoinsIcon, LoaderCircleIcon } from 'lucide-react';
+import { CoinsIcon, CrownIcon, LoaderCircleIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
@@ -18,10 +18,12 @@ const checkinMarker = (): string => `aiya-checkin-${new Date().toISOString().sli
 
 /**
  * Credit wallet bubble, the third shell bubble next to notifications and the
- * user menu. The trigger shows the live balance; the popover's first layer
- * pairs the balance with the 赞助 entry (opening the purchase modal) and the
- * currently effective plan, the second layer is the daily check-in. Renders
- * only for signed-in visitors (UserCenter).
+ * user menu. The trigger shows the live balance; the popover pairs the
+ * balance with the currently effective plan, then the daily check-in. The
+ * sponsorship entry (opening the purchase modal) is NOT inside the popover —
+ * it is a header button right next to the credits chip, reading the same
+ * membership fetch: active sponsors see their tier name on the button, everyone
+ * else the plain 赞助 label. Renders only for signed-in visitors (UserCenter).
  *
  * "Already claimed today" stays the backend's call — a 409 settles it, the
  * island never guesses from the clock. Active sponsors additionally get the
@@ -174,7 +176,22 @@ export function WalletBubble({ locale, timezone }: { locale: Locale; timezone?: 
   );
 
   return (
-    <span ref={rootRef}>
+    /* inline-flex: the span carries TWO buttons now (sponsor + credits) —
+       as a flex item it would blockify and stack the two flex-container
+       buttons vertically without it. */
+    <span ref={rootRef} className="inline-flex items-center gap-1">
+      {/* The sponsorship entry, OUTSIDE the popover: crowned header button
+          next to the credits chip — active sponsors see their tier name. */}
+      <button
+        type="button"
+        onClick={() => setPlansOpen(true)}
+        aria-label={currentPlan ? currentPlan.tierName : copy.sponsorTitle}
+        title={currentPlan ? currentPlan.tierName : copy.sponsorTitle}
+        className="flex h-8 max-w-40 cursor-pointer items-center gap-1 rounded-md px-2 text-sm text-foreground outline-none hover:bg-secondary focus-visible:outline-2 focus-visible:outline-focus-blue"
+      >
+        <CrownIcon className="size-4 shrink-0" aria-hidden="true" />
+        <span className="truncate">{currentPlan ? currentPlan.tierName : copy.sponsorTitle}</span>
+      </button>
       <Popover open={open} onOpenChange={handleOpen}>
         <PopoverTrigger asChild>
           <button
@@ -188,18 +205,13 @@ export function WalletBubble({ locale, timezone }: { locale: Locale; timezone?: 
           </button>
         </PopoverTrigger>
         <PopoverContent align="end" sideOffset={8} className="w-80 overflow-hidden p-0">
-          {/* Layer 1: balance left, the sponsorship entry right, the
-              effective plan underneath. */}
-          <div className="flex items-center justify-between gap-3 px-4 py-3">
-            <div className="flex items-baseline gap-x-1.5">
-              <span className="text-2xl font-semibold tabular-nums text-foreground">
-                {shown !== null ? shown : '—'}
-              </span>
-              <span className="text-sm text-body-muted">{copy.balanceUnit}</span>
-            </div>
-            <Button type="button" size="sm" onClick={() => setPlansOpen(true)}>
-              {copy.sponsorTitle}
-            </Button>
+          {/* Layer 1: the balance with its unit, the effective plan
+              underneath. */}
+          <div className="flex items-baseline gap-x-1.5 px-4 pt-3">
+            <span className="text-2xl font-semibold tabular-nums text-foreground">
+              {shown !== null ? shown : '—'}
+            </span>
+            <span className="text-sm text-body-muted">{copy.balanceUnit}</span>
           </div>
           <div className="px-4 pb-3">
             {state === 'loading' && (

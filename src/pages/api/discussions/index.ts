@@ -71,7 +71,7 @@ export const POST: APIRoute = async ({ cookies, request, clientAddress }) => {
       content: body.content,
       postId: typeof body.postId === 'number' ? body.postId : 0,
     });
-    return jsonResponse({ ok: true, url: result.data.url });
+    return jsonResponse({ ok: true });
   } catch (error) {
     return jsonResponse(
       { ok: false, code: errorCode(error), requestId: errorRequestId(error) },

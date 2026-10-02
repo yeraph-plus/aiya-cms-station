@@ -5,14 +5,16 @@ import { safeHref } from '@/lib/media';
 
 /**
  * Advertisement space (the Blocks page's page-top / page-bottom lists):
- * banner cards spanning the main container's width, two per row — a lone
- * card centers itself instead of hugging the left column. Every upload
- * renders into ONE fixed ratio — **5:1**（站长 2026-09-25 拍板：6:1 在移动端
- * 过窄）— via object-cover: off-ratio sources crop from their center, and
- * the card's height simply scales with its width (67px on a 375px phone,
- * ~97px on the desktop two-up), which is what makes the slot mobile-safe
- * — the old fixed 200px height cropped a 375px-wide card down to a third
- * of the artwork. The ratio rides on
+ * banner cards in a fixed two-column grid — a lone card occupies the left
+ * column at the same size as any two-up card, with NO centering compat (a
+ * percentage width on a grid item resolves against its grid area — half
+ * the container — so the old "half width, centered" trick quartered the
+ * artwork). Every upload renders into ONE fixed ratio — **5:1**（站长
+ * 2026-09-25 拍板：6:1 在移动端过窄）— via object-cover: off-ratio sources
+ * crop from their center, and the card's height simply scales with its
+ * width (67px on a 375px phone, ~97px on the desktop two-up), which is
+ * what makes the slot mobile-safe — the old fixed 200px height cropped a
+ * 375px-wide card down to a third of the artwork. The ratio rides on
  * inline styles: the dev pipeline has twice served stale utility CSS for
  * this island, and the ratio is the one property the design cannot lose.
  * Cards render plain <img> banners with the slot label as alt and hover
@@ -25,7 +27,6 @@ const AD_RATIO = '5 / 1';
 
 export default function AdSpace({ slots }: { slots: AdSlot[] }) {
   if (slots.length === 0) return null;
-  const single = slots.length === 1;
 
   return (
     <div
@@ -46,9 +47,7 @@ export default function AdSpace({ slots }: { slots: AdSlot[] }) {
             title={slot.label}
             // self-start: the grid would otherwise stretch the card to the
             // row's tallest sibling. The card simply wraps its image.
-            className={`group relative block w-full self-start overflow-hidden rounded-lg border border-border bg-muted/30 transition-all hover:border-primary/50 hover:shadow-sm ${
-              single ? 'sm:mx-auto sm:w-[calc(50%-0.375rem)]' : ''
-            }`}
+            className="group relative block w-full self-start overflow-hidden rounded-lg border border-border bg-muted/30 transition-all hover:border-primary/50 hover:shadow-sm"
           >
             <img
               src={slot.image.url}

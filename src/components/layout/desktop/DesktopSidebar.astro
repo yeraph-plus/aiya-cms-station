@@ -17,9 +17,9 @@ const isExternal = (url: string) => /^https?:\/\//i.test(url);
 // Proportions ported 1:1 from the frozen prototype (global.css .nav-items):
 // min-height 44px, 14px text, 0.9rem gap, 5px radius, 0.2rem row gap.
 const linkClass =
-  'my-0.5 flex min-h-[44px] items-center gap-3.5 rounded-[5px] px-3.5 py-3 text-sm transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-focus-blue';
+  'my-0.5 flex min-h-[44px] items-center gap-3.5 rounded-md px-3.5 py-3 text-sm transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-focus-blue';
 const subLinkClass =
-  'flex min-h-[36px] items-center rounded-[5px] px-3 py-2 text-sm transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-focus-blue';
+  'flex min-h-[36px] items-center rounded-md px-3 py-2 text-sm transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-focus-blue';
 ---
 
 <aside
@@ -38,19 +38,21 @@ const subLinkClass =
           <img
             src={rewriteMediaUrl(site.favicon.url)}
             alt=""
-            class="h-10 w-10 shrink-0 rounded-md"
-            width={40}
-            height={40}
+            class="h-9 w-9 shrink-0 rounded-md"
+            width={36}
+            height={36}
           />
         ) : null
       }
       <span
-        class="brand-title min-w-0 overflow-hidden font-display text-2xl font-extrabold leading-none tracking-[-0.06em] group-data-[collapsed]:hidden"
+        class="brand-title min-w-0 overflow-hidden font-display text-xl font-extrabold leading-none tracking-[-0.06em] group-data-[collapsed]:hidden"
       >
         {site.name.toLowerCase()}
       </span>
     </a>
-    <p class="brand-desc mt-1 h-5 overflow-hidden px-2 text-xs font-bold leading-5 text-body-muted">
+    <p
+      class="brand-desc mt-1 h-4 overflow-hidden px-2 text-[11px] font-bold leading-4 text-body-muted"
+    >
       {site.description}
     </p>
   </div>

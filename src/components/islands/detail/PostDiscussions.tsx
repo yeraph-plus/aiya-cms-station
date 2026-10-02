@@ -361,8 +361,10 @@ function SidebarThread({
           .replace(/\s+/g, ' ')
           .trim()
           .slice(0, 60) || copy.searchPlaceholder;
+  // Threads have no self page (zero-routing rule): the card is a teaser —
+  // the full thread lives in the community section's inline expansion.
   return (
-    <a href={thread.url} className="group flex items-start gap-3">
+    <div className="group flex items-start gap-3">
       <span
         aria-hidden="true"
         className={`mt-[7px] size-1.5 flex-none rounded-full ${
@@ -383,6 +385,6 @@ function SidebarThread({
           </span>
         </span>
       </span>
-    </a>
+    </div>
   );
 }

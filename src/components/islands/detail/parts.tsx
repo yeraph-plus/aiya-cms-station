@@ -48,7 +48,7 @@ import FavoriteButton from '@/components/islands/FavoriteButton';
 import LikeButton from '@/components/islands/LikeButton';
 import RatingRow from '@/components/islands/RatingRow';
 import UnlockGate from '@/components/islands/UnlockGate';
-import { safeContent } from '@/lib/content';
+import { postRoute, safeContent } from '@/lib/content';
 import { displayDate } from '@/lib/format';
 import Avatar from '@/components/islands/Avatar';
 import EmptyNote from '@/components/islands/EmptyNote';
@@ -648,7 +648,7 @@ export function PrevNextNav({ post, locale }: { post: PostDetail; locale: Locale
   if (!post.previous && !post.next) return null;
   const card = (item: PostSummary, rel: 'prev' | 'next', label: string) => (
     <Card className="overflow-hidden transition-colors hover:border-body-muted">
-      <a href={item.url} rel={rel} className="flex items-center gap-3 p-3">
+      <a href={postRoute(item.type, item.slug)} rel={rel} className="flex items-center gap-3 p-3">
         {item.thumbnail ? (
           <img
             src={item.thumbnail.url}
@@ -715,7 +715,11 @@ export function RelatedList({
       ) : (
         <div className="flex flex-col gap-4">
           {items.map((item) => (
-            <a key={item.id} href={item.url} className="group flex items-start gap-3">
+            <a
+              key={item.id}
+              href={postRoute(item.type, item.slug)}
+              className="group flex items-start gap-3"
+            >
               {item.thumbnail ? (
                 <img
                   src={item.thumbnail.url}

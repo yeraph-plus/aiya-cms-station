@@ -12,7 +12,7 @@ import type { SettingsCopy, SettingsUser } from './SettingsPanel';
 export interface HubFavorite {
   id: number;
   title: string;
-  url: string;
+  route: string;
   date: string;
   thumbUrl: string | null;
 }
@@ -95,7 +95,7 @@ export default function UserHub({
             {favorites.map((favorite) => (
               <li key={favorite.id}>
                 <a
-                  href={favorite.url}
+                  href={favorite.route}
                   className="flex items-center gap-4 rounded-lg border border-border bg-surface p-3 transition-colors hover:border-body-muted"
                 >
                   {favorite.thumbUrl ? (

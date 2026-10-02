@@ -30,7 +30,15 @@ export const POST: APIRoute = async (Astro) => {
 
   try {
     const session = (await authClient(null, ip).register(parsed.data)).data;
-    setSessionCookie(Astro.cookies, session.token, session.expiresAt, requestHost(Astro.request));
+    // Same legacy-shape cleanup gate as login: the delete header targets
+    // the host-only shape only — on a host-only deployment it would erase
+    // the fresh cookie (scope undefined there), so it is skipped.
+    const scope = setSessionCookie(
+      Astro.cookies,
+      session.token,
+      session.expiresAt,
+      requestHost(Astro.request),
+    );
     const response = jsonResponse({
       ok: true,
       // Cloak server-side like login: the browser bundle has no WP origin.
@@ -39,9 +47,9 @@ export const POST: APIRoute = async (Astro) => {
         avatarUrl: session.user.avatar.url ? rewriteMediaUrl(session.user.avatar.url) : null,
       },
     });
-    // Same legacy-shape cleanup as login: it must not shadow the fresh
-    // domain-scoped cookie on the reload's SSR read.
-    response.headers.append('set-cookie', legacySessionDeleteHeader());
+    if (scope !== undefined) {
+      response.headers.append('set-cookie', legacySessionDeleteHeader());
+    }
     return response;
   } catch (error) {
     return jsonResponse(
