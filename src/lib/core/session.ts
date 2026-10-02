@@ -3,7 +3,7 @@
 // or HTML. Importing server.ts pins this module to the Astro server.
 import type { AstroCookies } from 'astro';
 import type { User } from './contracts';
-import { authClient, siteOrigin } from './server';
+import { authClient, sessionCookieDomain, siteOrigin } from './server';
 
 export const SESSION_COOKIE = 'aiya_session';
 
@@ -50,15 +50,31 @@ export function setSessionCookie(cookies: AstroCookies, token: string, expiresAt
   } catch {
     /* malformed site URL: keep the cookie off-secure, dev only */
   }
+  // Optional cross-subdomain scope (AIYA_SESSION_COOKIE_DOMAIN). The
+  // getter fails closed on a malformed/mismatched value: a Domain the
+  // browser would reject means login dies invisibly.
+  const domain = sessionCookieDomain();
   cookies.set(SESSION_COOKIE, token, {
     path: '/',
     httpOnly: true,
     sameSite: 'lax',
     secure,
     expires: new Date(expiresAt * 1000),
+    ...(domain ? { domain } : {}),
   });
 }
 
 export function clearSessionCookie(cookies: AstroCookies): void {
-  cookies.delete(SESSION_COOKIE, { path: '/' });
+  // The delete must carry the same Domain the cookie was set with — a
+  // host-only delete cannot clear a domain-scoped cookie, logout would
+  // leave the session alive on every subdomain. A broken configuration
+  // never delivered the scoped cookie either, so fall back to the
+  // host-only delete instead of failing the logout itself.
+  let domain: string | undefined;
+  try {
+    domain = sessionCookieDomain();
+  } catch {
+    domain = undefined;
+  }
+  cookies.delete(SESSION_COOKIE, domain ? { path: '/', domain } : { path: '/' });
 }

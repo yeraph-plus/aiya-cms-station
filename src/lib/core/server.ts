@@ -54,6 +54,43 @@ export function clientIpHeader(): string {
 }
 
 /**
+ * Optional `Domain` attribute for the `aiya_session` cookie
+ * (AIYA_SESSION_COOKIE_DOMAIN, e.g. `site.name`): sibling apps under one
+ * registrable domain read the login state, because the browser then sends
+ * the cookie to every subdomain instead of only the front-end origin.
+ * Unset keeps the cookie host-only. The value is normalized (leading dot
+ * and case) and syntax-checked; a value outside the site's own hostname
+ * would make browsers silently drop the cookie — invisible login breakage
+ * — so a non-suffix mismatch fails closed like every other configuration
+ * error. Only point this at a domain whose every subdomain is first-party:
+ * the cookie carries the visitor's bearer token.
+ */
+export function sessionCookieDomain(): string | undefined {
+  const raw = getSecret('AIYA_SESSION_COOKIE_DOMAIN') ?? '';
+  const value = raw.trim().replace(/^\./, '').toLowerCase();
+  if (value === '') {
+    // A leading dot is the classic scope syntax, but a value that
+    // normalizes away entirely (`.`) is a typo, not an unset.
+    if (raw.trim() === '') return undefined;
+    throw new AiyaApiError('configuration', 503);
+  }
+  // At least two labels (a bare `localhost` cannot share subdomains) and
+  // no scheme/port/path — those belong to a URL, not a cookie domain.
+  if (
+    !/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/.test(
+      value,
+    )
+  ) {
+    throw new AiyaApiError('configuration', 503);
+  }
+  const host = new URL(siteOrigin()).hostname;
+  if (host !== value && !host.endsWith(`.${value}`)) {
+    throw new AiyaApiError('configuration', 503);
+  }
+  return value;
+}
+
+/**
  * Anonymous read client for the public site. No machine credential
  * (decision 2026-09-10): the frontend implements no admin or preview
  * capability, so content reads are exactly what any visitor would see.
