@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { loginRequestSchema } from '@/lib/core/contracts';
 import { authClient } from '@/lib/core/server';
-import { setSessionCookie } from '@/lib/core/session';
+import { legacySessionDeleteHeader, setSessionCookie } from '@/lib/core/session';
 import {
   errorCode,
   errorRequestId,
@@ -9,6 +9,7 @@ import {
   jsonResponse,
   readJsonBody,
   requesterLocale,
+  requestHost,
   visitorIp,
 } from '@/lib/api-auth';
 import { aiyaErrorCopy, t } from '@/lib/i18n';
@@ -29,8 +30,8 @@ export const POST: APIRoute = async (Astro) => {
 
   try {
     const session = (await authClient(null, ip).login(parsed.data)).data;
-    setSessionCookie(Astro.cookies, session.token, session.expiresAt);
-    return jsonResponse({
+    setSessionCookie(Astro.cookies, session.token, session.expiresAt, requestHost(Astro.request));
+    const response = jsonResponse({
       ok: true,
       // Cloak server-side: the browser bundle has no WP origin (non-public
       // env), so the island rendering this avatar cannot rewrite it.
@@ -39,6 +40,10 @@ export const POST: APIRoute = async (Astro) => {
         avatarUrl: session.user.avatar.url ? rewriteMediaUrl(session.user.avatar.url) : null,
       },
     });
+    // Clear any legacy host-only session shape in the same response, or it
+    // shadows the fresh domain-scoped cookie on the reload's SSR read.
+    response.headers.append('set-cookie', legacySessionDeleteHeader());
+    return response;
   } catch (error) {
     return jsonResponse(
       {

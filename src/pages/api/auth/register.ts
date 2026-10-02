@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { registerRequestSchema } from '@/lib/core/contracts';
 import { authClient } from '@/lib/core/server';
-import { setSessionCookie } from '@/lib/core/session';
+import { legacySessionDeleteHeader, setSessionCookie } from '@/lib/core/session';
 import {
   errorCode,
   errorRequestId,
@@ -9,6 +9,7 @@ import {
   jsonResponse,
   readJsonBody,
   requesterLocale,
+  requestHost,
   visitorIp,
 } from '@/lib/api-auth';
 import { aiyaErrorCopy, t } from '@/lib/i18n';
@@ -29,8 +30,8 @@ export const POST: APIRoute = async (Astro) => {
 
   try {
     const session = (await authClient(null, ip).register(parsed.data)).data;
-    setSessionCookie(Astro.cookies, session.token, session.expiresAt);
-    return jsonResponse({
+    setSessionCookie(Astro.cookies, session.token, session.expiresAt, requestHost(Astro.request));
+    const response = jsonResponse({
       ok: true,
       // Cloak server-side like login: the browser bundle has no WP origin.
       user: {
@@ -38,6 +39,10 @@ export const POST: APIRoute = async (Astro) => {
         avatarUrl: session.user.avatar.url ? rewriteMediaUrl(session.user.avatar.url) : null,
       },
     });
+    // Same legacy-shape cleanup as login: it must not shadow the fresh
+    // domain-scoped cookie on the reload's SSR read.
+    response.headers.append('set-cookie', legacySessionDeleteHeader());
+    return response;
   } catch (error) {
     return jsonResponse(
       {

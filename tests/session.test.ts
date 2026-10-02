@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import type { AstroCookies } from 'astro';
-import { clearSessionCookie, SESSION_COOKIE, setSessionCookie } from '@/lib/core/session';
+import {
+  clearSessionCookie,
+  legacySessionDeleteHeader,
+  SESSION_COOKIE,
+  setSessionCookie,
+} from '@/lib/core/session';
 
 // session.ts derives its configuration through astro:env/server (aliased
 // to the process.env stub in vitest.config), so each case plants its own
@@ -97,5 +102,30 @@ describe('session cookie scoping (registrable root of AIYA_SITE_URL)', () => {
     const hostOnly = fakeCookies();
     clearSessionCookie(hostOnly.cookies);
     expect(hostOnly.deletes[0].options).toEqual({ path: '/', domain: undefined });
+  });
+
+  it('keeps the Domain scope when the browsed host is inside the root', () => {
+    plantSite('https://www.example.com/');
+    const { cookies, sets } = fakeCookies();
+    setSessionCookie(cookies, '12.abc', 1800000000, 'app.example.com');
+    expect(sets[0].options.domain).toBe('example.com');
+  });
+
+  it('falls back to host-only when the browsed host is outside the root', () => {
+    plantSite('https://www.example.com/');
+    const { cookies, sets } = fakeCookies();
+    // A server-IP or LAN-host visit would get its Domain cookie rejected
+    // by the browser — the host-only shape keeps that login alive.
+    setSessionCookie(cookies, '12.abc', 1800000000, '192.168.1.5');
+    expect(sets[0].options.domain).toBeUndefined();
+  });
+
+  it('targets only the host-only shape in the legacy delete header', () => {
+    const header = legacySessionDeleteHeader();
+    expect(header).toContain('aiya_session=;');
+    expect(header).toContain('Path=/');
+    expect(header).toContain('Expires=Thu, 01 Jan 1970');
+    // A Domain attribute here would delete the fresh scoped cookie too.
+    expect(header.toLowerCase()).not.toContain('domain=');
   });
 });

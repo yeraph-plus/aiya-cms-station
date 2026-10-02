@@ -43,7 +43,32 @@ export function currentUser(cookies: AstroCookies, clientIp?: string | null): Pr
   return read;
 }
 
-export function setSessionCookie(cookies: AstroCookies, token: string, expiresAt: number): void {
+/**
+ * The Domain scope for this response's session cookie: the site's
+ * registrable root, unless the browsed host sits outside it (server IP,
+ * LAN name, alternate hostname) — there the browser would reject a
+ * Domain=root cookie outright, so the host-only shape keeps login alive
+ * and the mismatch is logged for the operator.
+ */
+function resolveScope(requestHost?: string): string | undefined {
+  const root = sessionCookieDomain();
+  if (!root) return undefined;
+  const host = requestHost?.toLowerCase();
+  if (host && host !== root && !host.endsWith(`.${root}`)) {
+    console.error(
+      `[aiya] session cookie stays host-only: browsed host "${host}" is outside AIYA_SITE_URL's root "${root}"`,
+    );
+    return undefined;
+  }
+  return root;
+}
+
+export function setSessionCookie(
+  cookies: AstroCookies,
+  token: string,
+  expiresAt: number,
+  requestHost?: string,
+): void {
   let secure = false;
   try {
     secure = siteOrigin().startsWith('https:');
@@ -59,14 +84,27 @@ export function setSessionCookie(cookies: AstroCookies, token: string, expiresAt
     sameSite: 'lax',
     secure,
     expires: new Date(expiresAt * 1000),
-    domain: sessionCookieDomain(),
+    domain: resolveScope(requestHost),
   });
 }
 
-export function clearSessionCookie(cookies: AstroCookies): void {
+/**
+ * Header clearing the LEGACY host-only session shape. Login/register/
+ * logout append it beside the AstroCookies Set-Cookie (which can only
+ * carry one entry per name): browsers order same-path cookies oldest
+ * first and the SSR parser keeps the first, so a leftover pre-0.5.2
+ * host-only cookie would shadow the fresh domain-scoped one on the very
+ * next read — success toast, reload, still a guest. No Domain attribute:
+ * this targets the host-only shape only, never the scoped cookie.
+ */
+export function legacySessionDeleteHeader(): string {
+  return `${SESSION_COOKIE}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Lax`;
+}
+
+export function clearSessionCookie(cookies: AstroCookies, requestHost?: string): void {
   // The delete must carry the same Domain the cookie was set with — a
   // host-only clear cannot remove a domain-scoped cookie, logout would
-  // leave the session alive on every subdomain. Undefined keeps the
-  // host-only shape for dev hosts, the single code path for both.
-  cookies.delete(SESSION_COOKIE, { path: '/', domain: sessionCookieDomain() });
+  // leave the session alive on every subdomain. The legacy host-only
+  // shape is cleared by the appended header in the calling proxy.
+  cookies.delete(SESSION_COOKIE, { path: '/', domain: resolveScope(requestHost) });
 }

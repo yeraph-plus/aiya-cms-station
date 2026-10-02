@@ -118,6 +118,20 @@ export function uploadLengthStatus(request: Request, max: number): number | null
   return null;
 }
 
+/**
+ * The browsed hostname for session-cookie scoping: the Host header the
+ * adapter reflects into request.url (nginx passes $host through). The
+ * session cookie's Domain only fits when this host lives inside the
+ * site's registrable root — see session.ts resolveScope.
+ */
+export function requestHost(request: Request): string | undefined {
+  try {
+    return new URL(request.url).hostname;
+  } catch {
+    return undefined;
+  }
+}
+
 export function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
