@@ -1,5 +1,6 @@
 // Astro rejects this module if an island or browser script tries to import it.
 import { getSecret } from 'astro:env/server';
+import { getDomain } from 'tldts';
 import { createAiyaClient } from './client';
 import { AiyaApiError } from './errors';
 
@@ -54,40 +55,23 @@ export function clientIpHeader(): string {
 }
 
 /**
- * Optional `Domain` attribute for the `aiya_session` cookie
- * (AIYA_SESSION_COOKIE_DOMAIN, e.g. `site.name`): sibling apps under one
- * registrable domain read the login state, because the browser then sends
- * the cookie to every subdomain instead of only the front-end origin.
- * Unset keeps the cookie host-only. The value is normalized (leading dot
- * and case) and syntax-checked; a value outside the site's own hostname
- * would make browsers silently drop the cookie — invisible login breakage
- * — so a non-suffix mismatch fails closed like every other configuration
- * error. Only point this at a domain whose every subdomain is first-party:
- * the cookie carries the visitor's bearer token.
+ * The `Domain` attribute for the `aiya_session` cookie, derived straight
+ * from AIYA_SITE_URL — no second constant to configure. The site's
+ * registrable domain (www.site.name → site.name, PSL-aware so multi-part
+ * suffixes like site.com.cn resolve correctly) makes the browser send the
+ * session to every sibling subdomain app; only first-party subdomains may
+ * live under it, since the cookie carries the visitor's bearer. Hosts
+ * without a registrable domain — localhost, IP addresses, dev loops —
+ * answer undefined, which keeps the cookie host-only exactly as before.
  */
 export function sessionCookieDomain(): string | undefined {
-  const raw = getSecret('AIYA_SESSION_COOKIE_DOMAIN') ?? '';
-  const value = raw.trim().replace(/^\./, '').toLowerCase();
-  if (value === '') {
-    // A leading dot is the classic scope syntax, but a value that
-    // normalizes away entirely (`.`) is a typo, not an unset.
-    if (raw.trim() === '') return undefined;
-    throw new AiyaApiError('configuration', 503);
+  try {
+    return getDomain(new URL(siteOrigin()).hostname, { allowPrivateDomains: true }) ?? undefined;
+  } catch {
+    // Unresolvable site configuration: the host-only cookie keeps auth
+    // working in dev instead of failing the login path.
+    return undefined;
   }
-  // At least two labels (a bare `localhost` cannot share subdomains) and
-  // no scheme/port/path — those belong to a URL, not a cookie domain.
-  if (
-    !/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/.test(
-      value,
-    )
-  ) {
-    throw new AiyaApiError('configuration', 503);
-  }
-  const host = new URL(siteOrigin()).hostname;
-  if (host !== value && !host.endsWith(`.${value}`)) {
-    throw new AiyaApiError('configuration', 503);
-  }
-  return value;
 }
 
 /**

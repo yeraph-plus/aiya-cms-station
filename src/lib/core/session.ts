@@ -50,31 +50,23 @@ export function setSessionCookie(cookies: AstroCookies, token: string, expiresAt
   } catch {
     /* malformed site URL: keep the cookie off-secure, dev only */
   }
-  // Optional cross-subdomain scope (AIYA_SESSION_COOKIE_DOMAIN). The
-  // getter fails closed on a malformed/mismatched value: a Domain the
-  // browser would reject means login dies invisibly.
-  const domain = sessionCookieDomain();
+  // Domain is derived from AIYA_SITE_URL's registrable root (sibling
+  // subdomain apps share the session); localhost/IP answers undefined and
+  // keeps the cookie host-only. Never throws — see sessionCookieDomain.
   cookies.set(SESSION_COOKIE, token, {
     path: '/',
     httpOnly: true,
     sameSite: 'lax',
     secure,
     expires: new Date(expiresAt * 1000),
-    ...(domain ? { domain } : {}),
+    domain: sessionCookieDomain(),
   });
 }
 
 export function clearSessionCookie(cookies: AstroCookies): void {
   // The delete must carry the same Domain the cookie was set with — a
-  // host-only delete cannot clear a domain-scoped cookie, logout would
-  // leave the session alive on every subdomain. A broken configuration
-  // never delivered the scoped cookie either, so fall back to the
-  // host-only delete instead of failing the logout itself.
-  let domain: string | undefined;
-  try {
-    domain = sessionCookieDomain();
-  } catch {
-    domain = undefined;
-  }
-  cookies.delete(SESSION_COOKIE, domain ? { path: '/', domain } : { path: '/' });
+  // host-only clear cannot remove a domain-scoped cookie, logout would
+  // leave the session alive on every subdomain. Undefined keeps the
+  // host-only shape for dev hosts, the single code path for both.
+  cookies.delete(SESSION_COOKIE, { path: '/', domain: sessionCookieDomain() });
 }
