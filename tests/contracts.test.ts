@@ -461,7 +461,10 @@ const manifest: Record<string, z.ZodType> = {
 /** Strips nullable/optional/default/catch wrappers and returns the inner
     type tag. `catch` is the degrade-not-503 fallback (zod parses the field,
     an unknown future enum value lands on the safe default) — the inner
-    schema still governs the snapshot type comparison. */
+    schema still governs the snapshot type comparison. `pipe` is the wpText
+    entity-decode transform: the snapshot pins the wire type, which is the
+    pipe's input side (decode happens after validation, wire form stays
+    string). */
 function unwrapField(field: z.ZodType): { type: string; nullable: boolean } {
   let current = field;
   let nullable = false;
@@ -469,10 +472,14 @@ function unwrapField(field: z.ZodType): { type: string; nullable: boolean } {
     current.def.type === 'nullable' ||
     current.def.type === 'optional' ||
     current.def.type === 'default' ||
-    current.def.type === 'catch'
+    current.def.type === 'catch' ||
+    current.def.type === 'pipe'
   ) {
     if (current.def.type === 'nullable') nullable = true;
-    current = (current.def as unknown as { innerType: z.ZodType }).innerType;
+    current =
+      current.def.type === 'pipe'
+        ? (current.def as unknown as { in: z.ZodType }).in
+        : (current.def as unknown as { innerType: z.ZodType }).innerType;
   }
   return { type: current.def.type, nullable };
 }
@@ -607,5 +614,50 @@ describe('enum catch defaults (backend-first rollout safety)', () => {
       'usdt',
     ]);
     expect(field(membershipEntitlementSchema, 'status').parse('active')).toBe('active');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// WP entity protocol (wpText): the backend ships display text in
+// HTML-entity wire form (`the_title`/`the_excerpt` run wptexturize →
+// `--` becomes `&#8211;`, quotes curl, and stored text keeps `&amp;`).
+// Plain-text fields decode once at the contract boundary; HTML payload
+// fields and round-trip tokens must stay on the wire form.
+// ---------------------------------------------------------------------------
+
+describe('wp text decoding (entity wire protocol)', () => {
+  it('decodes wptexturize and stored entities in plain-text fields', () => {
+    expect(field(postSummarySchema, 'title').parse('A &#8211; B &amp; C &#8220;q&#8221;')).toBe(
+      'A – B & C “q”',
+    );
+    expect(field(postSummarySchema, 'excerpt').parse('one &#8230; two &copy;')).toBe('one … two ©');
+    expect(field(termSchema, 'name').parse('Tips &amp; Tricks')).toBe('Tips & Tricks');
+    expect(field(imageSchema, 'alt').parse('&#8211; slide')).toBe('– slide');
+    expect(field(seoSchema, 'title').parse('回顾 &#8211; 2026')).toBe('回顾 – 2026');
+  });
+
+  it('decodes the title/excerpt of a full summary payload', () => {
+    const parsed = postSummarySchema.parse({
+      ...summary,
+      title: '回顾 &#8211; 2026',
+      excerpt: '第一篇 &amp; 唯一篇',
+    });
+    expect(parsed.title).toBe('回顾 – 2026');
+    expect(parsed.excerpt).toBe('第一篇 & 唯一篇');
+  });
+
+  it('decodes references like the browser text parser (WP library semantics)', () => {
+    // Legacy no-semicolon forms follow HTML text parsing — `&not` is a real
+    // legacy reference, `&zzz`/`&zzz;` are not references at all. This is
+    // byte-identical to what @wordpress/html-entities produces in a browser.
+    expect(field(postSummarySchema, 'title').parse('A &not B &zzz; C &')).toBe('A ¬ B &zzz; C &');
+  });
+
+  it('never decodes HTML payload fields or round-trip tokens', () => {
+    const html = '&lt;p&gt;hi&lt;/p&gt; &amp;amp;';
+    expect(field(discussionSchema, 'contentHtml').parse(html)).toBe(html);
+    expect(field(commentSchema, 'bodyHtml').parse(html)).toBe(html);
+    // Tags feed the closed-loop search that matches the raw stored content.
+    expect(field(discussionSchema, 'tags').parse(['A &amp; B'])).toEqual(['A &amp; B']);
   });
 });

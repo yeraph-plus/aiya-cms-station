@@ -204,7 +204,13 @@ components/ui/      shadcn 控件（已装必备件：button/input/label/textare
                     dialog/alert-dialog/dropdown-menu/tooltip/sonner），
                     只服务 islands/，壳不导入
 lib/core/         contracts.ts（zod 线上契约，后端 PHP DTO 的逐字段镜像，改后端
-                  先改这里）→ client.ts（唯一 transport：基址校验、超时、写路由
+                  先改这里；显示文本字段经 wpText 在解析时统一做一次 WP 实体
+                  解码——the_title/the_excerpt 的 wptexturize 线上形态
+                  （&#8211; 等）在契约层还原为真实字符，SSR 与 /api/* 代理
+                  同源受益；HTML 载荷字段（content.html/contentHtml/bodyHtml）
+                  与讨论 #标签#（闭环搜索须匹配原文）刻意不解；解码用 entities
+                  包的 decodeHTML——@wordpress/html-entities 是 DOM 实现、
+                  SSR 即崩）→ client.ts（唯一 transport：基址校验、超时、写路由
                   白名单、响应全量 safeParse、错误只透出 status+requestId+aiya_*
                   码）→ server.ts（环境变量唯一入口；island/browser 导入即构建
                   失败）→ session.ts（Bearer → HttpOnly cookie，失败降级游客）→

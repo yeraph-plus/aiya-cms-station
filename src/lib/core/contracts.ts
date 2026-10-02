@@ -1,3 +1,4 @@
+import { decodeHTML } from 'entities';
 import { z } from 'zod';
 
 /**
@@ -65,9 +66,29 @@ export const isoSchema = z.iso.datetime({ offset: true });
 /** The backend answers `''` (not null) wherever an optional date is absent. */
 export const isoOrEmptySchema = z.union([isoSchema, z.literal('')]);
 
+/**
+ * WP ships display text in HTML-entity wire form: `the_title`/`the_excerpt`
+ * run wptexturize at read time (`--` → `&#8211;`, straight quotes → curly,
+ * `...` → `&#8230;`), and stored text keeps `&amp;`-style references — the
+ * API forwards all of it verbatim, while every renderer here emits plain
+ * text (Astro/React auto-escaping). Plain-text fields therefore decode once
+ * right here, at the contract boundary: every payload (SSR reads and the
+ * /api/* proxies re-serving islands) parses through these schemas, so no
+ * renderer ever sees the wire form. Deliberately NOT decoded: HTML payload
+ * fields (content.html / contentHtml / bodyHtml — entity-decoding them
+ * could resurrect markup ahead of the sanitizer) and round-trip tokens
+ * (discussion tags feed the closed-loop search that matches raw content).
+ *
+ * `@wordpress/html-entities` is the WP library for this job, but it is
+ * DOM-coupled — its Node path dereferences `document`, killing Astro SSR —
+ * so the decode uses `entities`' decodeHTML: the same WHATWG named-entity
+ * table that library obtains from the browser textarea trick, isomorphically.
+ */
+const wpText = (schema: z.ZodString) => schema.transform((value) => decodeHTML(value));
+
 export const imageSchema = z.object({
   url: httpUrlSchema,
-  alt: z.string(),
+  alt: wpText(z.string()),
   width: id.nullable(),
   height: id.nullable(),
 });
@@ -84,7 +105,7 @@ export const authorSchema = z.object({
   id: count,
   /** Public profile route key (/profile/{slug}/); system-generated nicename. */
   slug: z.string(),
-  name: z.string(),
+  name: wpText(z.string()),
   avatar: imageSchema.nullable(),
 });
 export const termSchema = z.object({
@@ -93,8 +114,8 @@ export const termSchema = z.object({
   // 503ing every term-consuming page until the frontend ships support.
   taxonomy: z.enum(['category', 'tag']).catch('tag'),
   slug: z.string().min(1),
-  name: z.string(),
-  description: z.string(),
+  name: wpText(z.string()),
+  description: wpText(z.string()),
   parentId: id.nullable(),
   count,
   /** Owning taxonomy's code name — a type may carry several tag vocabularies; group by this. */
@@ -161,8 +182,8 @@ export const postSummarySchema = z.object({
       /pages/{slug}/ route (shared projection with posts). */
   type: z.enum(['post', 'resource', 'page']),
   /** WP allows publishing an untitled item; the snapshot's plain string is the contract. */
-  title: z.string(),
-  excerpt: z.string(),
+  title: wpText(z.string()),
+  excerpt: wpText(z.string()),
   publishedAt: isoSchema,
   updatedAt: isoSchema,
   readingMinutes: count,
@@ -174,10 +195,13 @@ export const postSummarySchema = z.object({
   /** Display-state keys: `sticky`, `password`, `private`, plus the visibility gates `login`/`member` — the front end owns copy and styling. */
   badges: z.array(z.enum(['sticky', 'password', 'private', 'login', 'member'])),
 });
-export const breadcrumbSchema = z.object({ label: z.string(), url: sitePathSchema.nullable() });
+export const breadcrumbSchema = z.object({
+  label: wpText(z.string()),
+  url: sitePathSchema.nullable(),
+});
 export const seoSchema = z.object({
-  title: z.string(),
-  description: z.string(),
+  title: wpText(z.string()),
+  description: wpText(z.string()),
   noindex: z.boolean(),
 });
 export const postDetailSchema = postSummarySchema.extend({
@@ -219,15 +243,15 @@ export const siteDefaultsSchema = z.object({
   emptyImage: imageSchema.nullable(),
   theme: siteThemeSchema,
   /** Site-level SEO head values; empty = not configured. */
-  seoKeywords: z.string(),
-  seoDescription: z.string(),
+  seoKeywords: wpText(z.string()),
+  seoDescription: wpText(z.string()),
   /** Google Analytics measurement id; the front end renders the snippet. */
   gaId: z.string(),
 });
 /** One compliance link row from the footer repeater. The URL is authored in
     the admin, so it is a path or an external URL like every other link row. */
 export const beianLinkSchema = z.object({
-  label: z.string(),
+  label: wpText(z.string()),
   url: linkTargetSchema,
   icon: z.enum(['shield', 'police', 'custom']).catch('shield'),
   iconUrl: z.string(),
@@ -269,7 +293,7 @@ export const smiliesPackSchema = z.object({
 
 export const menuItemSchema: z.ZodType<MenuItem> = z.object({
   id,
-  label: z.string().min(1),
+  label: wpText(z.string().min(1)),
   url: linkTargetSchema,
   target: z.enum(['self', 'blank']).catch('self'),
   /** Optional Lucide icon name from the primary-menu repeater. */
@@ -289,7 +313,7 @@ export interface MenuItem {
     link text (also the banner alt) and the banner artwork. */
 export const adSlotSchema = z.object({
   url: linkTargetSchema,
-  label: z.string(),
+  label: wpText(z.string()),
   image: imageSchema,
 });
 export type AdSlot = z.infer<typeof adSlotSchema>;
@@ -300,7 +324,7 @@ export type AdSlot = z.infer<typeof adSlotSchema>;
     override, empty derives the type's archive path. */
 export const homeSectionSchema = z.object({
   id: count,
-  title: z.string().min(1),
+  title: wpText(z.string().min(1)),
   // .catch: a section type the frontend cannot load yet degrades to the
   // post loop instead of taking the whole /site payload (and site) down.
   type: z.enum(['post', 'resource']).catch('post'),
@@ -322,8 +346,8 @@ export const siteBlocksSchema = z.object({
 });
 
 export const siteSchema = z.object({
-  name: z.string().min(1),
-  description: z.string(),
+  name: wpText(z.string().min(1)),
+  description: wpText(z.string()),
   language: z.string(),
   timezone: z.string(),
   /** Mirrors the WP site icon (Settings > General). */
@@ -359,8 +383,8 @@ export const discussionStatusSchema = z.enum(['open', 'closed']);
 export const discussionBoardSchema = z.object({
   id,
   slug: z.string().min(1),
-  name: z.string().min(1),
-  description: z.string(),
+  name: wpText(z.string().min(1)),
+  description: wpText(z.string()),
   threads: count,
 });
 
@@ -383,7 +407,7 @@ export const discussionSchema = z.object({
   id,
   url: sitePathSchema,
   /** May be empty for content-only threads; cards fall back to a text excerpt. */
-  title: z.string(),
+  title: wpText(z.string()),
   board: discussionBoardSchema.nullable(),
   status: discussionStatusSchema,
   author: authorSchema,
@@ -429,7 +453,7 @@ export const discussionDetailSchema = discussionSchema.extend({
 export const fileEntrySchema = z.object({
   /** Opaque reference to one row; a claim quotes it back. */
   ref: z.string().min(1),
-  name: z.string().min(1),
+  name: wpText(z.string().min(1)),
   /** file | dir — a folder carries no link at all. */
   kind: z.enum(['file', 'dir']),
   size: count,
@@ -445,7 +469,7 @@ export const fileListSchema = z.object({
   /** Which adapter produced this list (platform, openlist_list, …). */
   adapter: z.string().min(1),
   /** Caption above the list; `''` falls back to a generic label. */
-  title: z.string(),
+  title: wpText(z.string()),
   /** Credits charged per file of this list; 0 = free. */
   price: count,
   items: z.array(fileEntrySchema),
@@ -480,8 +504,8 @@ export const notificationSchema = z.object({
   /** One of the action-system kinds (announcement, post_commented, …);
       titles carry the copy, so the front end never branches on it. */
   type: z.string(),
-  title: z.string(),
-  body: z.string(),
+  title: wpText(z.string()),
+  body: wpText(z.string()),
   createdAt: isoOrEmptySchema,
 });
 /**
@@ -500,7 +524,7 @@ export const notificationsResponseSchema = z.object({
 export const commentAuthorSchema = z.object({
   /** 0 for guests. */
   id: count,
-  name: z.string(),
+  name: wpText(z.string()),
   /** Raw avatar URL (or null); deliberately not the Image shape. */
   avatar: z.string().nullable(),
 });
@@ -508,7 +532,7 @@ export const commentSchema = z.object({
   id,
   parentId: id.nullable(),
   author: commentAuthorSchema,
-  body: z.string(),
+  body: wpText(z.string()),
   /** Whitelisted comment HTML with backend-injected smilies imgs;
       render through `sanitizeCommentHtml`, never raw. */
   bodyHtml: z.string(),
@@ -525,7 +549,7 @@ export const uploadedImageSchema = z.object({
   width: count,
   height: count,
   mime: z.string(),
-  title: z.string(),
+  title: wpText(z.string()),
 });
 export const uploadResultSchema = z.object({
   image: uploadedImageSchema,
@@ -555,10 +579,10 @@ export const userSchema = z.object({
   username: z.string().min(1),
   /** Public profile route key (/profile/{slug}/); system-generated nicename. */
   slug: z.string().min(1),
-  nickname: z.string().min(1),
+  nickname: wpText(z.string().min(1)),
   email: z.email(),
   url: z.string(),
-  description: z.string(),
+  description: wpText(z.string()),
   /** WP locale string; the i18n layer normalizes it into the supported set. */
   locale: z.string(),
   registeredAt: isoOrEmptySchema,
@@ -592,10 +616,10 @@ export const membershipBadgeSchema = z.object({
 export const profileSchema = z.object({
   id,
   slug: z.string().min(1),
-  name: z.string().min(1),
+  name: wpText(z.string().min(1)),
   role: z.enum(['administrator', 'author', 'sponsor', 'subscriber']),
   avatar: imageSchema.nullable(),
-  bio: z.string(),
+  bio: wpText(z.string()),
   joinedAt: isoOrEmptySchema,
   stats: profileStatsSchema,
   membership: membershipBadgeSchema,
@@ -608,7 +632,7 @@ export const profileSchema = z.object({
 
 export const tierSchema = z.object({
   key: z.string().min(1),
-  name: z.string(),
+  name: wpText(z.string()),
   price: z.number().nonnegative(),
   cycleDays: z.number().int().min(1),
   creditsPerCycle: count,
@@ -617,11 +641,11 @@ export const tierSchema = z.object({
   /** Fixed cycle count of one purchase; there is no front-end picker. */
   cycles: z.number().int().min(1),
   /** Plan-card blurb the membership settings page configures. */
-  description: z.string(),
+  description: wpText(z.string()),
 });
 export const membershipEntitlementSchema = z.object({
   tierKey: z.string(),
-  tierName: z.string(),
+  tierName: wpText(z.string()),
   cycleDays: z.number().int().min(1),
   creditsPerCycle: count,
   cyclesTotal: count,
