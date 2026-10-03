@@ -1,41 +1,21 @@
-import type { APIRoute } from 'astro';
-import {
-  errorCode,
-  errorRequestId,
-  errorStatus,
-  jsonResponse,
-  readJsonBody,
-  visitorIp,
-} from '@/lib/api-auth';
-import { authClient } from '@/lib/core/server';
-import { readSessionToken } from '@/lib/core/session';
+import { defineProxy, jsonResponse, readJsonBody } from '@/lib/api-auth';
 
 /**
  * POST /api/account/password/: change the login password. The backend
  * revokes every token, so the island logs the visitor out afterwards.
  */
-export const POST: APIRoute = async (Astro) => {
-  const ip = visitorIp(Astro.request, Astro.clientAddress);
-  const token = readSessionToken(Astro.cookies);
-  if (!token) return jsonResponse({ ok: false }, 401);
-  const body = await readJsonBody(Astro.request);
+export const POST = defineProxy({ auth: 'required' }, async ({ client, request }) => {
+  const body = await readJsonBody(request);
   if (body === null || typeof body !== 'object') return jsonResponse({ ok: false }, 400);
-  try {
-    const payload = body as {
-      currentPassword?: unknown;
-      password?: unknown;
-      passwordConfirm?: unknown;
-    };
-    const result = await authClient(token, ip).changePassword({
-      currentPassword: String(payload.currentPassword ?? ''),
-      password: String(payload.password ?? ''),
-      passwordConfirm: String(payload.passwordConfirm ?? ''),
-    });
-    return jsonResponse({ ok: true, done: result.data.done });
-  } catch (error) {
-    return jsonResponse(
-      { ok: false, code: errorCode(error), requestId: errorRequestId(error) },
-      errorStatus(error),
-    );
-  }
-};
+  const payload = body as {
+    currentPassword?: unknown;
+    password?: unknown;
+    passwordConfirm?: unknown;
+  };
+  const result = await client.changePassword({
+    currentPassword: String(payload.currentPassword ?? ''),
+    password: String(payload.password ?? ''),
+    passwordConfirm: String(payload.passwordConfirm ?? ''),
+  });
+  return jsonResponse({ ok: true, done: result.data.done });
+});

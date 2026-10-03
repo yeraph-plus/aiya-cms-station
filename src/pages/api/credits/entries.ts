@@ -1,7 +1,4 @@
-import type { APIRoute } from 'astro';
-import { errorCode, errorRequestId, errorStatus, jsonResponse, visitorIp } from '@/lib/api-auth';
-import { authClient } from '@/lib/core/server';
-import { readSessionToken } from '@/lib/core/session';
+import { defineProxy, jsonResponse } from '@/lib/api-auth';
 
 /**
  * GET /api/credits/entries?page=N: the ledger's older pages. Page 1 arrives
@@ -9,24 +6,14 @@ import { readSessionToken } from '@/lib/core/session';
  * caller `perPage` rides through when present; absent stays absent so the
  * backend's default window decides.
  */
-export const GET: APIRoute = async (Astro) => {
-  const ip = visitorIp(Astro.request, Astro.clientAddress);
-  const token = readSessionToken(Astro.cookies);
-  if (!token) return jsonResponse({ ok: false }, 401);
-  const page = Number(Astro.url.searchParams.get('page') ?? 1);
+export const GET = defineProxy({ auth: 'required' }, async ({ client, url }) => {
+  const page = Number(url.searchParams.get('page') ?? 1);
   if (!Number.isInteger(page) || page < 1) return jsonResponse({ ok: false }, 400);
-  const perPageRaw = Astro.url.searchParams.get('perPage');
+  const perPageRaw = url.searchParams.get('perPage');
   const perPage = perPageRaw ? Math.min(100, Math.max(1, Number(perPageRaw) || 1)) : undefined;
-  try {
-    const result = await authClient(token, ip).creditsEntries({
-      page,
-      ...(perPage !== undefined ? { perPage } : {}),
-    });
-    return jsonResponse({ ok: true, entries: result.data, pagination: result.meta.pagination });
-  } catch (error) {
-    return jsonResponse(
-      { ok: false, code: errorCode(error), requestId: errorRequestId(error) },
-      errorStatus(error),
-    );
-  }
-};
+  const result = await client.creditsEntries({
+    page,
+    ...(perPage !== undefined ? { perPage } : {}),
+  });
+  return jsonResponse({ ok: true, entries: result.data, pagination: result.meta.pagination });
+});

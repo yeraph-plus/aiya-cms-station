@@ -1,25 +1,12 @@
-import type { APIRoute } from 'astro';
-import { errorCode, errorRequestId, errorStatus, jsonResponse, visitorIp } from '@/lib/api-auth';
-import { authClient } from '@/lib/core/server';
-import { readSessionToken } from '@/lib/core/session';
+import { defineProxy, jsonResponse } from '@/lib/api-auth';
 
 /**
  * DELETE /api/account/favorites/{postId}/: drop the post from the viewer's
  * favorites; answers with the resulting favorited state.
  */
-export const DELETE: APIRoute = async (Astro) => {
-  const ip = visitorIp(Astro.request, Astro.clientAddress);
-  const token = readSessionToken(Astro.cookies);
-  if (!token) return jsonResponse({ ok: false }, 401);
-  const postId = Number(Astro.params.postId);
+export const DELETE = defineProxy({ auth: 'required' }, async ({ client, params }) => {
+  const postId = Number(params.postId);
   if (!Number.isInteger(postId) || postId < 1) return jsonResponse({ ok: false }, 400);
-  try {
-    const result = await authClient(token, ip).removeFavorite(postId);
-    return jsonResponse({ ok: true, favorited: result.data.favorited });
-  } catch (error) {
-    return jsonResponse(
-      { ok: false, code: errorCode(error), requestId: errorRequestId(error) },
-      errorStatus(error),
-    );
-  }
-};
+  const result = await client.removeFavorite(postId);
+  return jsonResponse({ ok: true, favorited: result.data.favorited });
+});

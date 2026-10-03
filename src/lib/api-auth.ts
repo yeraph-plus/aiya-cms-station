@@ -166,6 +166,10 @@ export interface ProxyOptions {
   auth?: 'required';
   /** Feed the client the visitor's NSFW soft switch (the PostLoop feed). */
   nsfw?: boolean;
+  /** Always the anonymous read client, even with a session cookie — for
+      reads whose result set must not widen behind the visitor's bearer
+      (the comments list reads approved rows only). */
+  client?: 'server';
 }
 
 /**
@@ -188,7 +192,10 @@ export function defineProxy(
       return jsonResponse({ ok: false }, 401);
     }
     const excludeNsfw = options.nsfw ? nsfwExcluded(astro.cookies) : undefined;
-    const client = token ? authClient(token, ip, excludeNsfw) : serverClient(ip, excludeNsfw);
+    const client =
+      options.client === 'server' || !token
+        ? serverClient(ip, excludeNsfw)
+        : authClient(token, ip, excludeNsfw);
     try {
       return await handler({
         astro,

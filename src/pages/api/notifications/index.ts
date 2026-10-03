@@ -1,7 +1,5 @@
-import type { APIRoute } from 'astro';
-import { errorCode, errorRequestId, errorStatus, jsonResponse, visitorIp } from '@/lib/api-auth';
-import { authClient, serverClient } from '@/lib/core/server';
-import { readSessionToken } from '@/lib/core/session';
+import { defineProxy, errorCode, errorRequestId, errorStatus, jsonResponse } from '@/lib/api-auth';
+import { serverClient } from '@/lib/core/server';
 
 /**
  * Same-origin notification feed proxy. The bearer lives in an HttpOnly
@@ -11,10 +9,7 @@ import { readSessionToken } from '@/lib/core/session';
  * same endpoint personalizes itself from the resolved viewer. Page and
  * perPage ride through for the /notifications/ page's pagination.
  */
-export const GET: APIRoute = async ({ request, cookies, clientAddress }) => {
-  const ip = visitorIp(request, clientAddress);
-  const token = readSessionToken(cookies);
-  const url = new URL(request.url);
+export const GET = defineProxy({}, async ({ client, ip, token, url }) => {
   // Clamped at the proxy: integers only, page ≥ 1, perPage inside the
   // proxy cap of 50 (mirroring the client's own clamp) — malformed values
   // degrade to defaults.
@@ -23,18 +18,21 @@ export const GET: APIRoute = async ({ request, cookies, clientAddress }) => {
   const perPageRaw = Number(url.searchParams.get('perPage') ?? 0);
   const perPage =
     Number.isInteger(perPageRaw) && perPageRaw >= 1 ? Math.min(perPageRaw, 50) : undefined;
+  const project = (feed: {
+    data: unknown[];
+    meta: { pagination: { page: number; totalPages: number; hasNext: boolean } };
+  }) => ({
+    ok: true as const,
+    items: feed.data,
+    pagination: {
+      page: feed.meta.pagination.page,
+      totalPages: feed.meta.pagination.totalPages,
+      hasNext: feed.meta.pagination.hasNext,
+    },
+  });
   try {
-    const client = token ? authClient(token, ip) : serverClient(ip);
     const feed = await client.notifications({ page, ...(perPage ? { perPage } : {}) });
-    return jsonResponse({
-      ok: true,
-      items: feed.data,
-      pagination: {
-        page: feed.meta.pagination.page,
-        totalPages: feed.meta.pagination.totalPages,
-        hasNext: feed.meta.pagination.hasNext,
-      },
-    });
+    return jsonResponse(project(feed));
   } catch (error) {
     // A dead session (revoked/expired bearer) answers 401 — degrade to the
     // anonymous feed instead of sticking the bell in an error state.
@@ -44,15 +42,7 @@ export const GET: APIRoute = async ({ request, cookies, clientAddress }) => {
           page,
           ...(perPage ? { perPage } : {}),
         });
-        return jsonResponse({
-          ok: true,
-          items: feed.data,
-          pagination: {
-            page: feed.meta.pagination.page,
-            totalPages: feed.meta.pagination.totalPages,
-            hasNext: feed.meta.pagination.hasNext,
-          },
-        });
+        return jsonResponse(project(feed));
       } catch {
         /* fall through to the error answer */
       }
@@ -64,4 +54,4 @@ export const GET: APIRoute = async ({ request, cookies, clientAddress }) => {
       errorStatus(error),
     );
   }
-};
+});

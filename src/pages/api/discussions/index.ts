@@ -1,24 +1,15 @@
-import type { APIRoute } from 'astro';
-import {
-  errorCode,
-  errorRequestId,
-  errorStatus,
-  jsonResponse,
-  readJsonBody,
-  visitorIp,
-} from '@/lib/api-auth';
-import { authClient, serverClient } from '@/lib/core/server';
-import { readSessionToken } from '@/lib/core/session';
-import { cloakDiscussion } from '@/lib/community';
 import { discussionsQuerySchema } from '@/lib/core/contracts';
+import { defineProxy, jsonResponse, readJsonBody } from '@/lib/api-auth';
+import { cloakDiscussion } from '@/lib/community';
 
 /** GET /api/discussions/: public paged feed (board/status-sort/post filters
     ride as query params); items carry text-safe HTML and cloaked media URLs
     so the community island can render client-fetched pages without touching
     the WP host. A caller `perPage` rides through when present — absent
-    params stay absent so the backend's default window decides. */
-export const GET: APIRoute = async ({ url, cookies, request, clientAddress }) => {
-  const ip = visitorIp(request, clientAddress);
+    params stay absent so the backend's default window decides. The session
+    rides along so the backend derives real canEdit/canDelete/canReply
+    flags — a guest-context fetch would strip them. */
+export const GET = defineProxy({}, async ({ client, url }) => {
   const perPageRaw = url.searchParams.get('perPage');
   const postRaw = url.searchParams.get('post');
   const post = postRaw !== null && /^\d+$/.test(postRaw) ? Number(postRaw) : undefined;
@@ -31,30 +22,16 @@ export const GET: APIRoute = async ({ url, cookies, request, clientAddress }) =>
     ...(perPageRaw ? { perPage: Number(perPageRaw) } : {}),
   });
   if (!parsed.success) return jsonResponse({ ok: false }, 400);
-  try {
-    // Forward the session so the backend derives real canEdit/canDelete/
-    // canReply flags — a guest-context fetch would strip them.
-    const token = readSessionToken(cookies);
-    const client = token ? authClient(token, ip) : serverClient(ip);
-    const result = await client.discussions(parsed.data);
-    return jsonResponse({
-      ok: true,
-      items: result.data.map(cloakDiscussion),
-      pagination: result.meta.pagination,
-    });
-  } catch (error) {
-    return jsonResponse(
-      { ok: false, code: errorCode(error), requestId: errorRequestId(error) },
-      errorStatus(error),
-    );
-  }
-};
+  const result = await client.discussions(parsed.data);
+  return jsonResponse({
+    ok: true,
+    items: result.data.map(cloakDiscussion),
+    pagination: result.meta.pagination,
+  });
+});
 
 /** POST /api/discussions/: create a thread (login-only, rate limited 5/h). */
-export const POST: APIRoute = async ({ cookies, request, clientAddress }) => {
-  const ip = visitorIp(request, clientAddress);
-  const token = readSessionToken(cookies);
-  if (!token) return jsonResponse({ ok: false }, 401);
+export const POST = defineProxy({ auth: 'required' }, async ({ client, request }) => {
   const body = (await readJsonBody(request)) as {
     title?: unknown;
     board?: unknown;
@@ -64,18 +41,11 @@ export const POST: APIRoute = async ({ cookies, request, clientAddress }) => {
   if (!body || typeof body.title !== 'string' || typeof body.content !== 'string') {
     return jsonResponse({ ok: false }, 400);
   }
-  try {
-    await authClient(token, ip).createDiscussion({
-      title: body.title,
-      board: typeof body.board === 'string' ? body.board : '',
-      content: body.content,
-      postId: typeof body.postId === 'number' ? body.postId : 0,
-    });
-    return jsonResponse({ ok: true });
-  } catch (error) {
-    return jsonResponse(
-      { ok: false, code: errorCode(error), requestId: errorRequestId(error) },
-      errorStatus(error),
-    );
-  }
-};
+  await client.createDiscussion({
+    title: body.title,
+    board: typeof body.board === 'string' ? body.board : '',
+    content: body.content,
+    postId: typeof body.postId === 'number' ? body.postId : 0,
+  });
+  return jsonResponse({ ok: true });
+});

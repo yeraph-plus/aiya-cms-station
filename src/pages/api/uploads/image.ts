@@ -1,14 +1,4 @@
-import type { APIRoute } from 'astro';
-import {
-  errorCode,
-  errorRequestId,
-  errorStatus,
-  jsonResponse,
-  uploadLengthStatus,
-  visitorIp,
-} from '@/lib/api-auth';
-import { authClient } from '@/lib/core/server';
-import { readSessionToken } from '@/lib/core/session';
+import { defineProxy, jsonResponse, uploadLengthStatus } from '@/lib/api-auth';
 import { rewriteMediaUrl } from '@/lib/media';
 
 /** Mirrors the backend pic-bed gate (aiya_upload_too_large / _type). */
@@ -20,14 +10,11 @@ const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
  * then cloaks the returned WP-absolute URL to `/media/…` so the editor
  * inserts a single-origin src. Size is pre-checked before buffering.
  */
-export const POST: APIRoute = async (Astro) => {
-  const ip = visitorIp(Astro.request, Astro.clientAddress);
-  const token = readSessionToken(Astro.cookies);
-  if (!token) return jsonResponse({ ok: false }, 401);
+export const POST = defineProxy({ auth: 'required' }, async ({ client, request }) => {
   // formData() buffers the whole body before the field size is known, and a
   // chunked body carries no length at all — gate the declared length up
   // front (islands' fetch always sends one).
-  const lengthStatus = uploadLengthStatus(Astro.request, MAX_UPLOAD_BYTES + 4096);
+  const lengthStatus = uploadLengthStatus(request, MAX_UPLOAD_BYTES + 4096);
   if (lengthStatus !== null) {
     return jsonResponse(
       { ok: false, code: lengthStatus === 413 ? 'aiya_upload_too_large' : 'aiya_invalid_param' },
@@ -36,7 +23,7 @@ export const POST: APIRoute = async (Astro) => {
   }
   let file: File;
   try {
-    const form = await Astro.request.formData();
+    const form = await request.formData();
     const entry = form.get('image');
     if (!(entry instanceof File) || entry.size === 0) return jsonResponse({ ok: false }, 400);
     if (entry.size > MAX_UPLOAD_BYTES) {
@@ -49,13 +36,6 @@ export const POST: APIRoute = async (Astro) => {
   } catch {
     return jsonResponse({ ok: false }, 400);
   }
-  try {
-    const result = await authClient(token, ip).uploadImage(file, file.name || 'upload');
-    return jsonResponse({ ok: true, url: rewriteMediaUrl(result.url) });
-  } catch (error) {
-    return jsonResponse(
-      { ok: false, code: errorCode(error), requestId: errorRequestId(error) },
-      errorStatus(error),
-    );
-  }
-};
+  const result = await client.uploadImage(file, file.name || 'upload');
+  return jsonResponse({ ok: true, url: rewriteMediaUrl(result.url) });
+});

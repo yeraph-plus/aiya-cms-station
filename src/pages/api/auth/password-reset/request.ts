@@ -1,13 +1,5 @@
-import type { APIRoute } from 'astro';
-import {
-  errorCode,
-  errorRequestId,
-  errorStatus,
-  jsonResponse,
-  readJsonBody,
-  visitorIp,
-} from '@/lib/api-auth';
-import { authClient, siteOrigin } from '@/lib/core/server';
+import { defineProxy, jsonResponse, readJsonBody } from '@/lib/api-auth';
+import { siteOrigin } from '@/lib/core/server';
 
 /**
  * POST /api/auth/password-reset/request/: anonymous rate-limited upstream.
@@ -16,9 +8,8 @@ import { authClient, siteOrigin } from '@/lib/core/server';
  * material. A misconfigured origin fails hard (503); the reset host must
  * also be whitelisted on the backend Security page.
  */
-export const POST: APIRoute = async (Astro) => {
-  const ip = visitorIp(Astro.request, Astro.clientAddress);
-  const body = (await readJsonBody(Astro.request)) as { email?: unknown } | null;
+export const POST = defineProxy({ client: 'server' }, async ({ client, request }) => {
+  const body = (await readJsonBody(request)) as { email?: unknown } | null;
   const email = String(body?.email ?? '');
   if (email === '') return jsonResponse({ ok: false }, 400);
   let domain: string;
@@ -27,13 +18,6 @@ export const POST: APIRoute = async (Astro) => {
   } catch {
     return jsonResponse({ ok: false }, 503);
   }
-  try {
-    await authClient(null, ip).passwordResetRequest({ email, domain });
-    return jsonResponse({ ok: true });
-  } catch (error) {
-    return jsonResponse(
-      { ok: false, code: errorCode(error), requestId: errorRequestId(error) },
-      errorStatus(error),
-    );
-  }
-};
+  await client.passwordResetRequest({ email, domain });
+  return jsonResponse({ ok: true });
+});

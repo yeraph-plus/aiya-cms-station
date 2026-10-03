@@ -1,18 +1,8 @@
-import type { APIRoute } from 'astro';
-import {
-  errorCode,
-  errorRequestId,
-  errorStatus,
-  jsonResponse,
-  readJsonBody,
-  visitorIp,
-} from '@/lib/api-auth';
-import { authClient } from '@/lib/core/server';
+import { defineProxy, jsonResponse, readJsonBody } from '@/lib/api-auth';
 
 /** POST /api/auth/password-reset/reset/: consumes the key, sets the new password. */
-export const POST: APIRoute = async (Astro) => {
-  const ip = visitorIp(Astro.request, Astro.clientAddress);
-  const body = (await readJsonBody(Astro.request)) as {
+export const POST = defineProxy({ client: 'server' }, async ({ client, request }) => {
+  const body = (await readJsonBody(request)) as {
     login?: unknown;
     key?: unknown;
     password?: unknown;
@@ -23,18 +13,11 @@ export const POST: APIRoute = async (Astro) => {
   const password = String(body?.password ?? '');
   const passwordConfirm = String(body?.passwordConfirm ?? '');
   if (login === '' || key === '' || password === '') return jsonResponse({ ok: false }, 400);
-  try {
-    const result = await authClient(null, ip).passwordReset({
-      login,
-      key,
-      password,
-      passwordConfirm,
-    });
-    return jsonResponse({ ok: true, done: result.data.done });
-  } catch (error) {
-    return jsonResponse(
-      { ok: false, code: errorCode(error), requestId: errorRequestId(error) },
-      errorStatus(error),
-    );
-  }
-};
+  const result = await client.passwordReset({
+    login,
+    key,
+    password,
+    passwordConfirm,
+  });
+  return jsonResponse({ ok: true, done: result.data.done });
+});

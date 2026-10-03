@@ -1,7 +1,14 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { ZodError } from 'zod';
 import { AiyaApiError } from '@/lib/core/errors';
-import { defineProxy, jsonResponse, type ProxyHandlerContext } from '@/lib/api-auth';
+import {
+  defineProxy,
+  errorStatus,
+  jsonResponse,
+  readJsonBody,
+  uploadLengthStatus,
+  type ProxyHandlerContext,
+} from '@/lib/api-auth';
 
 // The wrapper constructs a real AiyaClient per request; point it at a dead
 // loopback origin so construction passes the transport checks while the
@@ -127,5 +134,45 @@ describe('defineProxy skeleton', () => {
     const { response, ranHandler } = run(async () => jsonResponse({ ok: false }, 400));
     expect((await response).status).toBe(400);
     expect(ranHandler()).toBe(1);
+  });
+});
+
+describe('api-auth assembly helpers', () => {
+  it('errorStatus passes only real backend statuses through, 502 otherwise', () => {
+    expect(errorStatus(new AiyaApiError('http', 404, 'r', 'aiya_not_found'))).toBe(404);
+    expect(errorStatus(new AiyaApiError('http', 500))).toBe(500);
+    expect(errorStatus(new AiyaApiError('network'))).toBe(502);
+    expect(errorStatus(new AiyaApiError('timeout'))).toBe(502);
+    expect(errorStatus(new AiyaApiError('contract'))).toBe(502);
+    expect(errorStatus(new AiyaApiError('http', 399))).toBe(502);
+    expect(errorStatus(new AiyaApiError('http', 600))).toBe(502);
+    expect(errorStatus(new Error('boom'))).toBe(502);
+  });
+
+  it('readJsonBody parses bounded JSON and returns null on oversize/malformed', async () => {
+    const request = (body: string | null, chunked = false) =>
+      new Request('https://x/', {
+        method: 'POST',
+        headers: chunked ? {} : { 'content-length': String(body?.length ?? 0) },
+        body,
+        duplex: 'half',
+      } as RequestInit);
+    expect(await readJsonBody(request(JSON.stringify({ a: 1 })))).toEqual({ a: 1 });
+    expect(await readJsonBody(request('{broken', true))).toBeNull();
+    expect(await readJsonBody(request('x'.repeat(64 * 1024 + 1), true))).toBeNull();
+    expect(await readJsonBody(new Request('https://x/', { method: 'GET' }))).toBeNull();
+  });
+
+  it('uploadLengthStatus gates missing, malformed and oversized lengths', () => {
+    const req = (length?: string) =>
+      new Request('https://x/', {
+        method: 'POST',
+        headers: length === undefined ? {} : { 'content-length': length },
+      });
+    expect(uploadLengthStatus(req('100'), 200)).toBeNull();
+    expect(uploadLengthStatus(req(), 200)).toBe(411);
+    expect(uploadLengthStatus(req('abc'), 200)).toBe(400);
+    expect(uploadLengthStatus(req('-1'), 200)).toBe(400);
+    expect(uploadLengthStatus(req('201'), 200)).toBe(413);
   });
 });
