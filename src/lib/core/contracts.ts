@@ -408,7 +408,7 @@ export const discussionSchema = z.object({
   board: discussionBoardSchema.nullable(),
   status: discussionStatusSchema,
   author: authorSchema,
-  /** Flat reply count maintained by the backend; the only interaction metric. */
+  /** Flat reply count maintained by the backend. */
   replies: count,
   /** #tags extracted from the thread content. */
   tags: z.array(z.string()),
@@ -426,6 +426,10 @@ export const discussionSchema = z.object({
   canReply: z.boolean(),
   /** Raw thread HTML (list projection carries it for the inline feed). */
   contentHtml: z.string(),
+  /** Materialized like count (0.102.0, dedicated relation table). */
+  likes: count,
+  /** The current reader's like state; false for guests. */
+  viewerLiked: z.boolean(),
 });
 export const discussionReplySchema = z.object({
   id,

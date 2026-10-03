@@ -200,6 +200,8 @@ describe('reads and writes', () => {
               canDelete: true,
               canReply: true,
               contentHtml: '<p>x</p>',
+              likes: 0,
+              viewerLiked: false,
               replies: [],
               content: { format: 'html', html: '<p>x</p>' },
             },

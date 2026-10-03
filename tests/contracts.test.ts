@@ -92,6 +92,8 @@ describe('discussion thread contract (0.26.0 form)', () => {
     canDelete: false,
     canReply: true,
     contentHtml: '<p>正文</p>',
+    likes: 3,
+    viewerLiked: false,
   };
   const listResponse = { data: [discussion], meta: { ...meta, pagination } };
 

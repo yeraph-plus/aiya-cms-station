@@ -300,6 +300,16 @@
         "name": "contentHtml",
         "type": "string",
         "nullable": false
+      },
+      {
+        "name": "likes",
+        "type": "int",
+        "nullable": false
+      },
+      {
+        "name": "viewerLiked",
+        "type": "bool",
+        "nullable": false
       }
     ],
     "DiscussionBoard": [
@@ -398,6 +408,16 @@
       {
         "name": "contentHtml",
         "type": "string",
+        "nullable": false
+      },
+      {
+        "name": "likes",
+        "type": "int",
+        "nullable": false
+      },
+      {
+        "name": "viewerLiked",
+        "type": "bool",
         "nullable": false
       },
       {
