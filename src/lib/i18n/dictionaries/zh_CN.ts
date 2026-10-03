@@ -240,6 +240,7 @@ const zh_CN = {
     publish: '发布',
     loginToPost: '登录后发起讨论',
     edit: '编辑',
+    like: '点赞',
     delete: '删除',
     removeAttachment: '移除图片',
     closeThread: '关闭讨论',
@@ -436,6 +437,7 @@ const zh_CN = {
     aiya_mail_failed: '邮件暂时无法发送，请稍后再试。',
     aiya_already_logged_in: '你已处于登录状态。',
     aiya_not_logged_in: '请先登录。',
+    aiya_thread_closed: '讨论已关闭，不再接受点赞。',
     aiya_user_missing: '账号信息加载失败，请稍后重试。',
     // validation
     aiya_invalid_param: '提交的内容未通过校验，请检查后重试。',

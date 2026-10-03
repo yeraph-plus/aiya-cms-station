@@ -51,6 +51,10 @@ const excerpt = htmlToText(discussion.contentHtml, 80) || '…';
     {discussion.tags.map((tag) => <span>#{tag}</span>)}
     {activity && <span>{displayDate(activity, locale, timezone)}</span>}
     <span class="inline-flex items-center gap-1">
+      <Icon name="heart" size={13} />
+      {discussion.likes}
+    </span>
+    <span class="inline-flex items-center gap-1">
       <Icon name="messageCircle" size={13} />
       {discussion.replies}
     </span>

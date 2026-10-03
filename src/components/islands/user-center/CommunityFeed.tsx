@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
   ChevronDownIcon,
+  HeartIcon,
   LoaderCircleIcon,
   MessageSquareIcon,
   PencilIcon,
@@ -235,6 +236,8 @@ function CommunityFeedInner({
   /** Keyword filter — typed in the loop toolbar, debounced fetch. */
   const [search, setSearch] = useState('');
   const searchTimer = useRef<number | null>(null);
+  /** The thread whose like toggle is in flight (one at a time per card). */
+  const [likeBusyId, setLikeBusyId] = useState<number | null>(null);
   /** Monotonic guard for feed mutations — responses of superseded requests
    *  (page fetch or auto-append) are dropped instead of applied. */
   const feedSeq = useRef(0);
@@ -601,6 +604,40 @@ function CommunityFeedInner({
     return true;
   };
 
+  /** Thread like toggle: login-only upstream, so guests are handed the
+   *  login dialog through the bridge; a duplicate like is the idempotent
+   *  "already" path whose answer just refreshes the count. */
+  const toggleLike = async (thread: FeedThread) => {
+    if (!user) {
+      window.dispatchEvent(new CustomEvent('aiya:open-auth'));
+      return;
+    }
+    setLikeBusyId(thread.id);
+    try {
+      const response = await fetch(`/api/discussions/${thread.id}/like/`, {
+        method: thread.viewerLiked ? 'DELETE' : 'POST',
+      });
+      const json = (await response.json().catch(() => null)) as {
+        ok?: boolean;
+        likes?: number;
+        viewerLiked?: boolean;
+        code?: string;
+      } | null;
+      if (json?.ok && typeof json.likes === 'number' && typeof json.viewerLiked === 'boolean') {
+        const { likes, viewerLiked } = json;
+        setThreads((prev) =>
+          prev.map((item) => (item.id === thread.id ? { ...item, likes, viewerLiked } : item)),
+        );
+      } else {
+        toastApiError(json?.code ?? null, locale);
+      }
+    } catch {
+      toastApiError(null, locale);
+    } finally {
+      setLikeBusyId(null);
+    }
+  };
+
   const deleteThread = async (thread: FeedThread): Promise<boolean> => {
     try {
       const response = await fetch(`/api/discussions/${thread.id}/`, { method: 'DELETE' });
@@ -836,6 +873,29 @@ function CommunityFeedInner({
                   />
                 </button>
                 <div className="ml-auto flex items-center gap-1">
+                  <button
+                    type="button"
+                    className={`inline-flex items-center gap-1 rounded-md px-2 py-1.5 tabular-nums transition-colors hover:bg-secondary ${
+                      thread.viewerLiked
+                        ? 'text-red-500 dark:text-red-400'
+                        : 'hover:text-foreground'
+                    }`}
+                    disabled={likeBusyId === thread.id}
+                    aria-pressed={thread.viewerLiked}
+                    aria-label={`${copy.like} ${thread.likes}`}
+                    onClick={() => void toggleLike(thread)}
+                  >
+                    {likeBusyId === thread.id ? (
+                      <LoaderCircleIcon className="size-3.5 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <HeartIcon
+                        className="size-3.5"
+                        fill={thread.viewerLiked ? 'currentColor' : 'none'}
+                        aria-hidden="true"
+                      />
+                    )}
+                    {thread.likes}
+                  </button>
                   {/* Hidden while editing — the editor block already has its
                       own cancel button; showing a second one misleads. */}
                   {thread.canEdit && editingId !== thread.id && (

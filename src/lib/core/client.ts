@@ -15,6 +15,7 @@ import {
   discussionReplyCreateSchema,
   discussionReplyUpdateSchema,
   discussionReplyResponseSchema,
+  discussionLikeResponseSchema,
   discussionResponseSchema,
   discussionsQuerySchema,
   discussionsResponseSchema,
@@ -139,6 +140,8 @@ const WRITE_ALLOWLIST: ReadonlyArray<{ method: WriteMethod; pattern: RegExp }> =
   { method: 'POST', pattern: /^content\/\d+\/(like|view|rating|comments|unlock|downloads)$/ },
   { method: 'POST', pattern: /^discussions$/ },
   { method: 'POST', pattern: /^discussions\/\d+\/replies$/ },
+  { method: 'POST', pattern: /^discussions\/\d+\/like$/ },
+  { method: 'DELETE', pattern: /^discussions\/\d+\/like$/ },
   { method: 'POST', pattern: /^sponsorship\/orders$/ },
   { method: 'POST', pattern: /^credits\/(checkin|redeem)$/ },
   { method: 'POST', pattern: /^users\/me\/following\/\d+$/ },
@@ -377,6 +380,17 @@ export function createAiyaClient(options: ClientOptions) {
       return request('GET', `discussions/${id}/replies`, discussionRepliesResponseSchema, {
         query: { page: Number.isSafeInteger(page) && page >= 1 ? page : 1 },
       });
+    },
+    /** The thread like toggle (login-only upstream). A duplicate like is the
+        idempotent "already" path: the answer is the materialized count plus
+        the viewer's resulting state, not an error. */
+    discussionLike: (id: number, action: 'like' | 'unlike') => {
+      if (!Number.isSafeInteger(id) || id < 1) throw new AiyaApiError('configuration', 400);
+      return request(
+        action === 'like' ? 'POST' : 'DELETE',
+        `discussions/${id}/like`,
+        discussionLikeResponseSchema,
+      );
     },
     profile: (slug: string) => {
       if (!PROFILE_SLUG_PATTERN.test(slug)) throw new AiyaApiError('configuration', 400);

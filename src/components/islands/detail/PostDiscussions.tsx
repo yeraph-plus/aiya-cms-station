@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import {
+  HeartIcon,
   LoaderCircleIcon,
   MessageCircleIcon,
   MessageSquareDotIcon,
@@ -360,6 +361,10 @@ function SidebarThread({
           <span>{thread.status === 'open' ? copy.status_open : copy.status_closed}</span>
           <span>{thread.author.name}</span>
           <span>{displayDate(thread.publishedAt, locale, timezone)}</span>
+          <span className="inline-flex items-center gap-1">
+            <HeartIcon className="size-3" aria-hidden="true" />
+            {thread.likes}
+          </span>
           <span className="inline-flex items-center gap-1">
             <MessageCircleIcon className="size-3" aria-hidden="true" />
             {thread.replies}
