@@ -598,6 +598,23 @@
         "nullable": true
       }
     ],
+    "LikeResponse": [
+      {
+        "name": "likes",
+        "type": "int",
+        "nullable": false
+      },
+      {
+        "name": "viewerLiked",
+        "type": "bool",
+        "nullable": false
+      },
+      {
+        "name": "already",
+        "type": "bool",
+        "nullable": false
+      }
+    ],
     "Membership": [
       {
         "name": "status",

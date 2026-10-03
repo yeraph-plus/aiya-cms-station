@@ -162,13 +162,13 @@ describe('reads and writes', () => {
   it('routes the discussion like toggle through the allowlist', async () => {
     const { client, requests } = clientWith(async (request) =>
       request.method === 'DELETE'
-        ? okJson({ data: { likes: 2, viewerLiked: false }, meta: META })
-        : okJson({ data: { likes: 3, viewerLiked: true }, meta: META }),
+        ? okJson({ data: { likes: 2, viewerLiked: false, already: false }, meta: META })
+        : okJson({ data: { likes: 3, viewerLiked: true, already: false }, meta: META }),
     );
     const liked = await client.discussionLike(5, 'like');
-    expect(liked.data).toEqual({ likes: 3, viewerLiked: true });
+    expect(liked.data).toEqual({ likes: 3, viewerLiked: true, already: false });
     const unliked = await client.discussionLike(5, 'unlike');
-    expect(unliked.data).toEqual({ likes: 2, viewerLiked: false });
+    expect(unliked.data).toEqual({ likes: 2, viewerLiked: false, already: false });
     const hops = requests.map((r) => `${r.method} ${r.url}`);
     expect(hops).toContain(`POST ${BASE}discussions/5/like`);
     expect(hops).toContain(`DELETE ${BASE}discussions/5/like`);

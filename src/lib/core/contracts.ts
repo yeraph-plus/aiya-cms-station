@@ -804,8 +804,12 @@ export const postUnlockResponseSchema = itemEnvelope(postDetailSchema);
 export const relatedResponseSchema = itemEnvelope(z.array(postSummarySchema));
 export const afdianOrderUrlResponseSchema = itemEnvelope(z.object({ url: httpUrlSchema }));
 export const likeResponseSchema = itemEnvelope(likeResultSchema);
-/** POST/DELETE discussions/{id}/like: the toggle's materialized count plus the viewer's resulting state. */
-export const discussionLikeResultSchema = z.object({ likes: count, viewerLiked: z.boolean() });
+/** POST/DELETE discussions/{id}/like: the toggle's materialized count plus the viewer's resulting state; `already` marks the idempotent re-like (always false on unlike). */
+export const discussionLikeResultSchema = z.object({
+  likes: count,
+  viewerLiked: z.boolean(),
+  already: z.boolean(),
+});
 export const discussionLikeResponseSchema = itemEnvelope(discussionLikeResultSchema);
 export const viewResponseSchema = itemEnvelope(viewResultSchema);
 export const ratingResponseSchema = itemEnvelope(ratingResultSchema);
