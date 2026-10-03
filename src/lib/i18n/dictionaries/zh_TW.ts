@@ -238,6 +238,7 @@ const zh_TW: Dictionary = {
     loginToPost: '登入後發起討論',
     edit: '編輯',
     delete: '刪除',
+    removeAttachment: '移除圖片',
     closeThread: '關閉討論',
     deleteConfirmTitle: '刪除這條討論？',
     deleteConfirmDesc: '刪除後無法復原。',
@@ -311,6 +312,8 @@ const zh_TW: Dictionary = {
     guestEmail: '信箱',
     identityRequired: '請填寫暱稱和有效信箱後發表評論。',
     uploadFailed: '圖片上傳失敗，請稍後重試。',
+    removeAttachment: '移除圖片',
+    cancelReply: '取消回覆',
     closed: '評論區已關閉，不再接受新評論。',
   },
   settings: {

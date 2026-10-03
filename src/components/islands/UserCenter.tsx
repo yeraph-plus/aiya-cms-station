@@ -42,7 +42,6 @@ export interface UserCenterProps {
 export default function UserCenter({
   user,
   registrationOpen,
-  localeTag,
   locale,
   timezone,
   copy,

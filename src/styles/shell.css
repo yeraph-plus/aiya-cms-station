@@ -500,3 +500,11 @@ a[data-aiya-ref] .aiya-ref-avatar {
   width: fit-content;
   margin-block: 1em;
 }
+
+/* Dialog shells below sm: near-full-width with the named cap
+   (tokens.css --container-dialog-sm). A plain utility instead of the
+   w-[min(...)] arbitrary value, whose escaped class name Lightning CSS
+   fails to parse at optimize time. */
+.w-dialog-sm {
+  width: min(92vw, var(--container-dialog-sm));
+}

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
   ChevronDownIcon,
@@ -18,7 +18,6 @@ import 'yet-another-react-lightbox/plugins/counter.css';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   Select,
   SelectContent,
@@ -34,7 +33,7 @@ import RichEditor, {
   AttachmentStrip,
   PostEditorBlock,
 } from '@/components/islands/user-center/RichEditor';
-import { toastApiError } from '@/lib/feedback';
+import { apiErrorCopy, toastApiError } from '@/lib/feedback';
 import { t, type Locale } from '@/lib/i18n';
 import type { FeedThread, FeedReply } from '@/lib/community';
 import type { Pagination } from '@/lib/core/contracts';
@@ -138,39 +137,41 @@ function ImageGrid({
   );
 }
 
-import React from 'react';
-
 class FeedErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  { message: string | null }
+  { children: React.ReactNode; locale: Locale },
+  { error: unknown; detail: string | null }
 > {
-  state = { message: null as string | null };
+  state = { error: null as unknown, detail: null as string | null };
   static getDerivedStateFromError(error: unknown) {
-    return { message: error instanceof Error ? `${error.name}: ${error.message}` : String(error) };
+    return { error };
   }
   componentDidCatch(error: unknown) {
     // The stack rides along in dev only — production visitors should not
     // see internal paths, and the browser console keeps it regardless.
     if (!import.meta.env.DEV) return;
     this.setState((prev) => ({
-      message:
-        (prev.message ?? '') +
+      detail:
+        (prev.detail ?? '') +
         '\n--- stack ---\n' +
         String((error as Error)?.stack ?? '').slice(0, 800),
     }));
   }
   render() {
-    if (this.state.message) {
+    if (this.state.error !== null) {
+      // Production visitors get the shared generic line; the raw error text
+      // is a dev-only detail (internal paths live in messages and stacks).
       return (
         <pre
           style={{
             whiteSpace: 'pre-wrap',
-            color: 'crimson',
+            color: 'var(--destructive)',
             padding: 16,
-            border: '1px solid crimson',
+            border: '1px solid var(--destructive)',
           }}
         >
-          {this.state.message}
+          {import.meta.env.DEV
+            ? `${this.state.error instanceof Error ? `${this.state.error.name}: ${this.state.error.message}` : String(this.state.error)}${this.state.detail ?? ''}`
+            : apiErrorCopy(null, this.props.locale)}
         </pre>
       );
     }
@@ -201,7 +202,7 @@ function CommunityFeedInner({
   const [composerBoard, setComposerBoard] = useState(boards[0]?.slug ?? initialBoard);
   /** Feed filter — '' means all boards. Set once from the SSR route; board
    * switching itself happens through the server-rendered rail links. */
-  const [board] = useState(initialBoard);
+  const board = initialBoard;
   const [sort, setSort] = useState<Sort>('last_activity');
   const [loading, setLoading] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -459,7 +460,7 @@ function CommunityFeedInner({
     })();
   };
 
-  /** 加载更多: reveal the already-fetched replies beyond the first three and
+  /** 加载更多: reveal the already-fetched replies beyond the first five and
    *  pull the next page when the backend window (50/page) has more. */
   const loadMoreReplies = (threadId: number) => {
     setRevealAll((prev) => ({ ...prev, [threadId]: true }));
@@ -543,7 +544,9 @@ function CommunityFeedInner({
         // Show the visitor their own reply even when the list was truncated.
         setRevealAll((prev) => ({ ...prev, [thread.id]: true }));
         setThreads((prev) =>
-          prev.map((t) => (t.id === thread.id ? { ...t, replies: t.replies + 1 } : t)),
+          prev.map((item) =>
+            item.id === thread.id ? { ...item, replies: item.replies + 1 } : item,
+          ),
         );
         const cache = replies[thread.id];
         setReplies((prev) => ({
@@ -591,7 +594,9 @@ function CommunityFeedInner({
     }));
     // The footer count mirrors thread.replies — keep it in step locally.
     setThreads((prev) =>
-      prev.map((t) => (t.id === threadId ? { ...t, replies: Math.max(0, t.replies - 1) } : t)),
+      prev.map((item) =>
+        item.id === threadId ? { ...item, replies: Math.max(0, item.replies - 1) } : item,
+      ),
     );
     return true;
   };
@@ -608,7 +613,7 @@ function CommunityFeedInner({
       toastApiError(null, locale);
       return false;
     }
-    setThreads((prev) => prev.filter((t) => t.id !== thread.id));
+    setThreads((prev) => prev.filter((item) => item.id !== thread.id));
     return true;
   };
 
@@ -635,6 +640,7 @@ function CommunityFeedInner({
             labels={{
               title: copy.titleLabel,
               titleOptional: copy.titleOptional,
+              removeImage: copy.removeAttachment,
               bold: copy.bold,
               italic: copy.italic,
               underline: copy.underline,
@@ -970,6 +976,7 @@ function CommunityFeedInner({
                               images={replyImages[thread.id] ?? []}
                               onRemove={(index) => removeReplyImage(thread.id, index)}
                               uploading={replyUploadingId === thread.id}
+                              removeLabel={copy.removeAttachment}
                             />
                             <div className="mt-2 flex justify-end">
                               <Button
@@ -1031,7 +1038,7 @@ function CommunityFeedInner({
 
 export default function CommunityFeed(props: Props) {
   return (
-    <FeedErrorBoundary>
+    <FeedErrorBoundary locale={props.locale}>
       <CommunityFeedInner {...props} />
     </FeedErrorBoundary>
   );
@@ -1109,6 +1116,7 @@ function ThreadEditForm({
         labels={{
           title: copy.titleLabel,
           titleOptional: copy.titleOptional,
+          removeImage: copy.removeAttachment,
           bold: copy.bold,
           italic: copy.italic,
           underline: copy.underline,

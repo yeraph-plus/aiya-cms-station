@@ -144,7 +144,7 @@ export default function AvatarDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[min(92vw,var(--container-dialog-sm))] gap-5 sm:max-w-dialog-sm">
+      <DialogContent className="w-dialog-sm gap-5 sm:max-w-dialog-sm">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <KeyRoundIcon className="size-4 text-primary" />

@@ -1077,11 +1077,12 @@ export function DownloadPanel({
           delete next[key];
           return next;
         });
+        const url = payload.url;
         setClaims((prev) => ({
           ...prev,
-          [key]: { url: payload.url as string, code: payload.code ?? null },
+          [key]: { url, code: payload.code ?? null },
         }));
-        return payload.url;
+        return url;
       } catch {
         setFailures((prev) => ({ ...prev, [key]: 'failed' }));
         return null;
@@ -1436,10 +1437,6 @@ export function DownloadPanel({
 }
 
 /**
- * Heading plus panel, shared by the three detail shells. A null list means the
- * read failed (or the post is gated) and the section stays away entirely.
- */
-/**
  * The download block as an in-card module: it rides inside the article
  * card, under the body, and carries no section heading of its own — each
  * data group's own caption (with the aria2 controls beside it) is the
@@ -1493,7 +1490,7 @@ export function CommentsBlock({
   loggedIn,
   locale,
   timezone,
-  window,
+  commentsWindow,
 }: {
   post: PostDetail;
   comments: Comment[];
@@ -1503,7 +1500,7 @@ export function CommentsBlock({
   locale: Locale;
   timezone?: string;
 
-  window: { order: 'asc' | 'desc'; perPage: number };
+  commentsWindow: { order: 'asc' | 'desc'; perPage: number };
 }) {
   if (post.gated || post.locked) return null;
   return (
@@ -1512,8 +1509,8 @@ export function CommentsBlock({
       initial={comments}
       pagination={commentsPagination}
       total={post.metrics.comments}
-      order={window.order}
-      perPage={window.perPage}
+      order={commentsWindow.order}
+      perPage={commentsWindow.perPage}
       settings={settings}
       loggedIn={loggedIn}
       closed={!post.commentsOpen}

@@ -26,7 +26,7 @@ import { cn } from '@/lib/utils';
  * black by the global stylesheet, revealed on hover/focus. Registered as a
  * plain mark so the core `toggleMark('spoiler')` command suffices.
  */
-export const SpoilerMark = Mark.create({
+const SpoilerMark = Mark.create({
   name: 'spoiler',
   keepOnSplit: false,
   parseHTML() {
@@ -223,12 +223,6 @@ export default function RichEditor({
   );
 }
 
-/** Current HTML of an editor instance (empty-guard included). */
-export function editorHtml(editor: Editor | null): string {
-  if (!editor) return '';
-  return editor.isEmpty ? '' : editor.getHTML();
-}
-
 export interface PostEditorBlockProps {
   /** `composer` = feed-top publisher; `edit` = inline thread edit form.
    *  Only the title placeholder copy differs between the two modes. */
@@ -237,7 +231,11 @@ export interface PostEditorBlockProps {
   onTitleChange: (value: string) => void;
   initialHtml: string;
   onHtmlChange: (html: string) => void;
-  labels: RichEditorProps['labels'] & { title: string; titleOptional: string };
+  labels: RichEditorProps['labels'] & {
+    title: string;
+    titleOptional: string;
+    removeImage: string;
+  };
   bodyPlaceholder?: string;
   onImageFile?: (file: File) => void;
   /** Uploaded attachment srcs, rendered as a read-only strip in the block. */
@@ -294,7 +292,12 @@ export function PostEditorBlock({
       />
       {(strip.length > 0 || uploading) && (
         <div className="px-3 pb-3">
-          <AttachmentStrip images={strip} onRemove={onRemoveImage} uploading={uploading} />
+          <AttachmentStrip
+            images={strip}
+            onRemove={onRemoveImage}
+            uploading={uploading}
+            removeLabel={labels.removeImage}
+          />
         </div>
       )}
     </div>
@@ -308,10 +311,14 @@ export function AttachmentStrip({
   images,
   onRemove,
   uploading,
+  removeLabel,
 }: {
   images: string[];
   onRemove?: (index: number) => void;
   uploading?: boolean;
+  /** Accessible name for the remove button; the visible "×" glyph is not
+      one. Callers pass their own copy section's removeAttachment. */
+  removeLabel: string;
 }) {
   if (images.length === 0 && !uploading) return null;
   return (
@@ -325,7 +332,7 @@ export function AttachmentStrip({
           {onRemove && (
             <button
               type="button"
-              aria-label="×"
+              aria-label={removeLabel}
               onClick={() => onRemove(index)}
               className="absolute right-0.5 top-0.5 flex size-4.5 items-center justify-center rounded-full bg-black/60 text-[10px] leading-none text-white hover:bg-black/80"
             >

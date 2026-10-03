@@ -240,6 +240,7 @@ const en_US: Dictionary = {
     loginToPost: 'Log in to start a discussion',
     edit: 'Edit',
     delete: 'Delete',
+    removeAttachment: 'Remove image',
     closeThread: 'Close thread',
     deleteConfirmTitle: 'Delete this thread?',
     deleteConfirmDesc: 'This cannot be undone.',
@@ -314,6 +315,8 @@ const en_US: Dictionary = {
     guestEmail: 'Email',
     identityRequired: 'Please provide your name and a valid email address to comment.',
     uploadFailed: 'Image upload failed, please try again later.',
+    removeAttachment: 'Remove image',
+    cancelReply: 'Cancel reply',
     closed: 'Comments are closed — new comments are no longer accepted.',
   },
   settings: {

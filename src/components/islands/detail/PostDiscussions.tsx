@@ -286,6 +286,7 @@ export default function PostDiscussions({
               labels={{
                 title: community.titleLabel,
                 titleOptional: community.titleOptional,
+                removeImage: community.removeAttachment,
                 bold: community.bold,
                 italic: community.italic,
                 underline: community.underline,

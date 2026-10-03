@@ -14,12 +14,9 @@ import type { TermArchiveView } from '@/lib/archive';
 
 interface Props {
   view: TermArchiveView;
-  /** The wrapper renders its own visible header (with the h1) — the
-      built-in sr-only title would duplicate it. */
-  hideTitle?: boolean;
 }
 
-const { view, hideTitle = false } = Astro.props;
+const { view } = Astro.props;
 const { page, pageNumber, archiveBase, pagePattern, feed, filter, title, emptyText, locale } = view;
 const copy = t(locale);
 const showList = page.ok && !(pageNumber > 1 && pageNumber > page.value.pagination.totalPages);
@@ -39,7 +36,7 @@ const metaDescription = page.ok ? view.description || page.site.description : pa
     page.ok ? (
       showList ? (
         <>
-          {pageNumber === 1 && !hideTitle && <h1 class="sr-only">{title}</h1>}
+          {pageNumber === 1 && <h1 class="sr-only">{title}</h1>}
           <slot />
           <PostLoop
             client:load

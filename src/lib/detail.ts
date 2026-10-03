@@ -107,7 +107,7 @@ export async function loadDetail(kind: DetailKind, client: AiyaClient, site: Sit
       boards: [],
       authorBio: authorProfile?.data.bio ?? '',
       authorId: detail.data.author.id,
-      window: commentsWindow,
+      commentsWindow,
     };
   }
 
@@ -135,6 +135,6 @@ export async function loadDetail(kind: DetailKind, client: AiyaClient, site: Sit
     boards: boards?.data ?? [],
     authorBio: authorProfile?.data.bio ?? '',
     authorId: detail.data.author.id,
-    window: commentsWindow,
+    commentsWindow,
   };
 }

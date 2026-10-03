@@ -16,7 +16,8 @@ export const GET: APIRoute = async ({ request, cookies, clientAddress }) => {
   const token = readSessionToken(cookies);
   const url = new URL(request.url);
   // Clamped at the proxy: integers only, page ≥ 1, perPage inside the
-  // backend's own 1-100 ceiling — malformed values degrade to defaults.
+  // proxy cap of 50 (mirroring the client's own clamp) — malformed values
+  // degrade to defaults.
   const pageRaw = Math.floor(Number(url.searchParams.get('page') ?? 1));
   const page = Number.isFinite(pageRaw) && pageRaw >= 1 ? pageRaw : 1;
   const perPageRaw = Number(url.searchParams.get('perPage') ?? 0);

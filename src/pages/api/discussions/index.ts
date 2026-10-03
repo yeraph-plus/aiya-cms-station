@@ -65,7 +65,7 @@ export const POST: APIRoute = async ({ cookies, request, clientAddress }) => {
     return jsonResponse({ ok: false }, 400);
   }
   try {
-    const result = await authClient(token, ip).createDiscussion({
+    await authClient(token, ip).createDiscussion({
       title: body.title,
       board: typeof body.board === 'string' ? body.board : '',
       content: body.content,

@@ -1,8 +1,9 @@
 ---
-// Page-number-less shape: bounce to the search root. Every paged route
-// keeps one of these fallbacks except this one, which was missing.
-import { searchPath } from '@/lib/search';
+// Page-number-less shape: permanent normalization to the search root.
+// The keyword is normalized like the results route — whitespace-only
+// shapes go home instead of encoding into the path.
+import { normalizeKeyword, searchPath } from '@/lib/search';
 
-const key = Array.isArray(Astro.params.key) ? Astro.params.key[0] : (Astro.params.key ?? '');
+const key = normalizeKeyword(Astro.params.key ?? '');
 return Astro.redirect(key === '' ? '/' : `${searchPath(key)}${Astro.url.search}`, 308);
 ---

@@ -47,7 +47,8 @@ export default function WalletPanel({
         pagination?: { hasNext: boolean };
       } | null;
       if (json?.ok && json.entries) {
-        setLedger((current) => [...current, ...json.entries!]);
+        const fresh = json.entries;
+        setLedger((current) => [...current, ...fresh]);
         setPage(next);
         setMore(Boolean(json.pagination?.hasNext));
       } else {

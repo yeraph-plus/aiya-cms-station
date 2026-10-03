@@ -305,7 +305,7 @@ export default function CommentSection({
                 </span>
                 <button
                   type="button"
-                  aria-label="×"
+                  aria-label={copy.cancelReply}
                   onClick={() => setReplyTo(null)}
                   className="hover:text-foreground"
                 >
@@ -324,6 +324,7 @@ export default function CommentSection({
               <AttachmentStrip
                 images={images}
                 uploading={uploading}
+                removeLabel={copy.removeAttachment}
                 onRemove={(index) => setImages((prev) => prev.filter((_, i) => i !== index))}
               />
             )}

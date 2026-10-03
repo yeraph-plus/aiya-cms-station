@@ -630,9 +630,10 @@ export default function PostLoop({
         const json = await requestFeed(s.query, s.page + 1);
         if (json?.ok && json.items && json.pagination) {
           ok = true;
+          const { items, pagination } = json;
           setState((prev) => ({
-            items: [...prev.items, ...(json.items ?? [])],
-            pagination: json.pagination!,
+            items: [...prev.items, ...items],
+            pagination,
             page: prev.page + 1,
             query: prev.query,
             route: prev.route,

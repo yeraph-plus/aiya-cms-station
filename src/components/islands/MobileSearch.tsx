@@ -38,7 +38,7 @@ export default function MobileSearch({ locale, value = '', scope = 'all' }: Mobi
         <SearchIcon size={20} strokeWidth={1.8} />
       </button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="w-[min(92vw,var(--container-dialog-sm))] gap-4 sm:max-w-dialog-sm">
+        <DialogContent className="w-dialog-sm gap-4 sm:max-w-dialog-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-1.5 text-base font-semibold">
               <SearchIcon className="size-4 text-primary" aria-hidden="true" />

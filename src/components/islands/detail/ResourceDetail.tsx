@@ -48,7 +48,7 @@ export default function ResourceDetail({
   locale,
   timezone,
   termIcons,
-  window,
+  commentsWindow,
 }: DetailShellProps & {
   related: PostSummary[];
   downloads: FileList[] | null;
@@ -56,7 +56,7 @@ export default function ResourceDetail({
   threads: FeedThread[];
   threadsTotal: number;
   boards: { slug: string; name: string }[];
-  window: CommentsWindow;
+  commentsWindow: CommentsWindow;
 }) {
   useViewPing(post.id);
   const copy = t(locale);
@@ -97,7 +97,7 @@ export default function ResourceDetail({
           loggedIn={loggedIn}
           locale={locale}
           timezone={timezone}
-          window={window}
+          commentsWindow={commentsWindow}
         />
       </div>
       <aside className="mt-10 flex flex-col gap-5 lg:mt-0">

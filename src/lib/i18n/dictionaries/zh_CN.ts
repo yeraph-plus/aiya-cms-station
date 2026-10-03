@@ -241,6 +241,7 @@ const zh_CN = {
     loginToPost: '登录后发起讨论',
     edit: '编辑',
     delete: '删除',
+    removeAttachment: '移除图片',
     closeThread: '关闭讨论',
     deleteConfirmTitle: '删除这条讨论？',
     deleteConfirmDesc: '删除后无法恢复。',
@@ -314,6 +315,8 @@ const zh_CN = {
     guestEmail: '邮箱',
     identityRequired: '请填写昵称和有效邮箱后发表评论。',
     uploadFailed: '图片上传失败，请稍后重试。',
+    removeAttachment: '移除图片',
+    cancelReply: '取消回复',
     closed: '评论区已关闭，不再接受新评论。',
   },
   settings: {

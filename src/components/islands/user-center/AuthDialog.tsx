@@ -115,7 +115,7 @@ export function AuthDialog({
         }
       }}
     >
-      <DialogContent className="w-[min(92vw,var(--container-dialog-sm))] gap-5 sm:max-w-dialog-sm">
+      <DialogContent className="w-dialog-sm gap-5 sm:max-w-dialog-sm">
         {/* text-left: the part centers its header below the sm breakpoint;
             the auth dialog reads left-aligned at every width. */}
         <DialogHeader className="text-left">

@@ -67,7 +67,7 @@ export default function PostDetail({
   locale,
   timezone,
   termIcons,
-  window,
+  commentsWindow,
 }: DetailShellProps & {
   related: PostSummary[];
   downloads: FileList[] | null;
@@ -75,7 +75,7 @@ export default function PostDetail({
   threads: FeedThread[];
   threadsTotal: number;
   boards: { slug: string; name: string }[];
-  window: CommentsWindow;
+  commentsWindow: CommentsWindow;
 }) {
   useViewPing(post.id);
   return (
@@ -109,7 +109,7 @@ export default function PostDetail({
           loggedIn={loggedIn}
           locale={locale}
           timezone={timezone}
-          window={window}
+          commentsWindow={commentsWindow}
         />
       </div>
       <aside className="mt-10 flex flex-col gap-5 lg:mt-0">
