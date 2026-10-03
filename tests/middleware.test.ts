@@ -131,6 +131,30 @@ describe('media branch', () => {
     }
   });
 
+  it('keeps the proxy’s SVG sandbox CSP instead of overwriting it', async () => {
+    // proxyMedia answers image/svg+xml with `CSP: sandbox` (embedded SVG
+    // scripts must not run when the file is opened directly); the stamping
+    // baseline must fill blanks, never clobber that stricter policy.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response('<svg/>', {
+            status: 200,
+            headers: { 'Content-Type': 'image/svg+xml' },
+          }),
+      ),
+    );
+    try {
+      const { response } = run('/media/x.svg');
+      const media = await response;
+      expect(media.headers.get('Content-Type')).toBe('image/svg+xml');
+      expect(media.headers.get('Content-Security-Policy')).toBe('sandbox');
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('404s suspicious targets without dialing out', async () => {
     const fetchSpy = vi.fn();
     vi.stubGlobal('fetch', fetchSpy);

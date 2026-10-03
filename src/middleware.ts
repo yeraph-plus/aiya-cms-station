@@ -14,11 +14,15 @@ function stampSecurityHeaders(response: Response): Response {
   response.headers.set('X-Frame-Options', 'SAMEORIGIN');
   // Defense-in-depth base trio (no script-src yet: the pre-paint theme
   // script is inline; a nonce pipeline is its own batch). The sanitize-html
-  // boundary stays the first line for content HTML.
-  response.headers.set(
-    'Content-Security-Policy',
-    "object-src 'none'; frame-ancestors 'self'; base-uri 'none'",
-  );
+  // boundary stays the first line for content HTML. A response that already
+  // carries a policy keeps it — the media proxy's SVG `sandbox` is the
+  // stronger containment for direct opens and must not be clobbered.
+  if (!response.headers.has('Content-Security-Policy')) {
+    response.headers.set(
+      'Content-Security-Policy',
+      "object-src 'none'; frame-ancestors 'self'; base-uri 'none'",
+    );
+  }
   return response;
 }
 

@@ -130,6 +130,27 @@ describe('defineProxy skeleton', () => {
     });
   });
 
+  it('answers the wire error shape even when the client cannot be built', async () => {
+    // A broken WP origin throws AiyaApiError('configuration') at client
+    // construction — that must map through the shared catch (503 JSON),
+    // not escape the wrapper as an unhandled 500.
+    const wpUrl = process.env.AIYA_WP_API_URL;
+    delete process.env.AIYA_WP_API_URL;
+    try {
+      const { response, ranHandler } = run(async () => jsonResponse({ ok: true }));
+      const settled = await response;
+      expect(settled.status).toBe(503);
+      expect(await settled.json()).toEqual({
+        ok: false,
+        code: undefined,
+        requestId: undefined,
+      });
+      expect(ranHandler()).toBe(0);
+    } finally {
+      process.env.AIYA_WP_API_URL = wpUrl;
+    }
+  });
+
   it('passes the handler’s own early 4xx responses through untouched', async () => {
     const { response, ranHandler } = run(async () => jsonResponse({ ok: false }, 400));
     expect((await response).status).toBe(400);

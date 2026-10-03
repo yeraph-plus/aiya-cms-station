@@ -191,12 +191,15 @@ export function defineProxy(
     if (options.auth === 'required' && !token) {
       return jsonResponse({ ok: false }, 401);
     }
-    const excludeNsfw = options.nsfw ? nsfwExcluded(astro.cookies) : undefined;
-    const client =
-      options.client === 'server' || !token
-        ? serverClient(ip, excludeNsfw)
-        : authClient(token, ip, excludeNsfw);
     try {
+      // Construction lives inside the try: a broken WP origin throws
+      // AiyaApiError('configuration') here, which must answer the wire
+      // error shape (503 JSON) instead of escaping as an unhandled 500.
+      const excludeNsfw = options.nsfw ? nsfwExcluded(astro.cookies) : undefined;
+      const client =
+        options.client === 'server' || !token
+          ? serverClient(ip, excludeNsfw)
+          : authClient(token, ip, excludeNsfw);
       return await handler({
         astro,
         request: astro.request,
