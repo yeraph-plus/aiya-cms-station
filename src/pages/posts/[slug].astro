@@ -1,56 +1,18 @@
 ---
 import AppShell from '@/components/layout/AppShell.astro';
 import PostDetail from '@/components/islands/detail/PostDetail';
-import { cloakPostSummaryMedia, rewriteMediaUrl } from '@/lib/media';
-import { articleJsonLd, breadcrumbJsonLd } from '@/lib/seo';
 import { t } from '@/lib/i18n';
 import { loadPage } from '@/lib/page.server';
 import { setCrumbs } from '@/lib/breadcrumbs';
-import { cloakPostDetail, detailSlug, termIconMap } from '@/lib/detail';
-import { cloakDiscussion } from '@/lib/community';
+import { detailSlug, loadDetail } from '@/lib/detail';
+import { detailSeo } from '@/lib/seo';
 
 const slug = detailSlug(Astro.params.slug);
 if (slug === '') {
   return Astro.redirect(`/posts/${Astro.url.search}`, 308);
 }
 const page = await loadPage(
-  async (client, site) => {
-    const detail = await client.post(slug);
-    // A WP-password-locked body hides its comments too (the read 404s), so
-    // the lock skips the fetch — the shell hides the section for that state.
-    const hidden = detail.data.locked || detail.data.gated;
-    const perPage = site.comments.commentsPerPage;
-    const order =
-      site.comments.defaultCommentsPage === 'newest' ? ('desc' as const) : ('asc' as const);
-    const [comments, related, downloads, threads, boards] = await Promise.all([
-      hidden ? Promise.resolve(null) : client.comments(detail.data.id, { page: 1, perPage, order }),
-      client.related(detail.data.id),
-      client.downloads(detail.data.id).catch(() => null),
-      // Bound community threads for the sidebar feedback part; both reads are
-      // best-effort — the sidebar renders its empty state when they fail.
-      client.discussions({ post: detail.data.id, perPage: 5, sort: 'newest' }).catch(() => null),
-      client.discussionBoards().catch(() => null),
-    ]);
-    const authorProfile = detail.data.author.slug
-      ? await client.profile(detail.data.author.slug).catch(() => null)
-      : null;
-    return {
-      // Cloak before the island sees it: media URLs and body HTML cross the
-      // single-origin boundary here (lib/detail.ts), not in the browser.
-      post: cloakPostDetail(detail.data),
-      termIcons: termIconMap(detail.data),
-      comments: comments?.data ?? [],
-      commentsPagination: comments?.meta.pagination ?? null,
-      related: related.data.map(cloakPostSummaryMedia),
-      downloads: downloads?.data.lists ?? null,
-      threads: threads?.data.map(cloakDiscussion) ?? [],
-      threadsTotal: threads?.meta.pagination.totalItems ?? 0,
-      boards: boards?.data ?? [],
-      authorBio: authorProfile?.data.bio ?? '',
-      authorId: detail.data.author.id,
-      window: { order, perPage },
-    };
-  },
+  (client, site) => loadDetail('post', client, site, slug),
   Astro.cookies,
   Astro.locals.visitorIp,
 );
@@ -63,27 +25,24 @@ if (page.ok && post) {
     { label: post.title },
   ]);
 }
-const origin = page.origin;
-const jsonLd =
-  page.ok && post
-    ? [articleJsonLd(post, page.site, origin), breadcrumbJsonLd(post.breadcrumbs)]
-    : [];
-const cover = post?.featured ?? post?.thumbnail ?? null;
-// Backend-managed projection SEO (title + excerpt) overrides the defaults.
-const seoTitle = post?.seo.title || post?.title || copy.state.notFoundTitle;
-const seoDescription = post?.seo.description || post?.excerpt || copy.state.notFoundMessage;
-const noindex = !page.ok || Boolean(post?.seo.noindex);
+const seo = detailSeo(
+  post,
+  page.site,
+  page.origin,
+  copy.state.notFoundTitle,
+  copy.state.notFoundMessage,
+);
 ---
 
 <AppShell
   page={page}
-  title={seoTitle}
-  description={seoDescription}
+  title={seo.title}
+  description={seo.description}
   canonicalPath={`/posts/${Astro.params.slug}/`}
-  noindex={noindex}
-  image={cover ? rewriteMediaUrl(cover.url) : null}
+  noindex={seo.noindex}
+  image={seo.coverUrl}
   ogType="article"
-  jsonLd={jsonLd}
+  jsonLd={seo.jsonLd}
 >
   {
     page.ok && post && (

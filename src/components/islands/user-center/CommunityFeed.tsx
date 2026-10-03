@@ -37,13 +37,12 @@ import RichEditor, {
 import { toastApiError } from '@/lib/feedback';
 import { t, type Locale } from '@/lib/i18n';
 import type { FeedThread, FeedReply } from '@/lib/community';
+import type { Pagination } from '@/lib/core/contracts';
+import { htmlHasContent } from '@/lib/content';
+import { useInfiniteScroll } from '@/lib/use-infinite-scroll';
+import { uploadImage } from '@/lib/upload';
 
-interface PageMeta {
-  page: number;
-  totalPages: number;
-  hasNext: boolean;
-  hasPrevious: boolean;
-}
+type PageMeta = Pick<Pagination, 'page' | 'totalPages' | 'hasNext' | 'hasPrevious'>;
 
 export interface FeedBoard {
   id: number;
@@ -64,22 +63,6 @@ interface Props {
 }
 
 type Sort = 'last_activity' | 'newest';
-
-/** Shared composer/edit upload: posts the file to the same-origin proxy and
- *  resolves the cloaked /media/ URL (null on failure). */
-async function uploadImageFile(file: File): Promise<string | null> {
-  try {
-    const form = new FormData();
-    form.set('image', file);
-    const response = await fetch('/api/uploads/image/', { method: 'POST', body: form });
-    const json = (await response.json().catch(() => null)) as { ok?: boolean; url?: string } | null;
-    return json?.ok && json.url ? json.url : null;
-  } catch {
-    // Network-level rejection still counts as a failed upload: the callers'
-    // busy flags reset in the .then below and must run.
-    return null;
-  }
-}
 
 interface ReplyCache {
   items: FeedReply[];
@@ -323,16 +306,9 @@ function CommunityFeedInner({
   };
 
   /**
-   * Infinite scroll: when the sentinel below the list enters the viewport
-   * (600px early), the next page appends to the feed. No history entries —
-   * the feed is a single app surface. After each append the sentinel is
-   * re-checked once, so short boards fill the viewport and reach their end
-   * marker without extra scrolling.
+   * Auto-append: sentinel observation and re-arm live in the shared hook;
+   * this island owns the fetch itself (single-flight + queue + sequence).
    */
-  const sentinelRef = useRef<HTMLDivElement>(null);
-  // The re-arm timeout outlives the append that scheduled it; unmount must
-  // cancel it or it fires one append (and a setState) into a dead island.
-  const rearmRef = useRef<number | null>(null);
   const appendNext = useCallback(() => {
     if (busyRef.current) return;
     const s = stateRef.current;
@@ -341,6 +317,7 @@ function CommunityFeedInner({
     const seq = ++feedSeq.current;
     setLoading(true);
     void (async () => {
+      let ok = false;
       try {
         const params = new URLSearchParams();
         if (s.board) params.set('board', s.board);
@@ -355,49 +332,29 @@ function CommunityFeedInner({
         } | null;
         if (seq !== feedSeq.current) return;
         if (json?.ok && json.items && json.pagination) {
+          ok = true;
           setThreads((prev) => [...prev, ...(json.items ?? [])]);
           setPagination(json.pagination);
         }
       } finally {
         busyRef.current = false;
-        if (seq === feedSeq.current) setLoading(false);
-        // Re-arm while the sentinel is still on screen (short boards).
-        rearmRef.current = window.setTimeout(() => {
-          const el = sentinelRef.current;
-          if (el && el.getBoundingClientRect().top < window.innerHeight + 600) appendNext();
-        }, 200);
+        const queued = queuedFetch.current;
+        queuedFetch.current = null;
+        if (queued) {
+          // A board/sort/search click landed while this append was in
+          // flight — it queued through fetchFeed and is the authoritative
+          // next fetch (same drain as fetchFeed's own finally). Skip the
+          // re-arm: this append's page belongs to the superseded query.
+          void fetchFeed(queued.board, queued.sort, queued.q);
+        } else {
+          if (seq === feedSeq.current) setLoading(false);
+          rearm(ok);
+        }
       }
     })();
   }, []);
 
-  useEffect(() => {
-    const el = sentinelRef.current;
-    if (!el) return;
-    const near = () => el.getBoundingClientRect().top < window.innerHeight + 600;
-    // Primary driver: IntersectionObserver. Fallback: a slow scroll poll —
-    // backgrounded tabs may never produce the observer callbacks.
-    const io = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) appendNext();
-      },
-      { rootMargin: '600px 0px' },
-    );
-    io.observe(el);
-    const poll = window.setInterval(() => {
-      if (near()) appendNext();
-    }, 600);
-    const onScroll = () => {
-      if (near()) appendNext();
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => {
-      io.disconnect();
-      window.clearInterval(poll);
-      window.removeEventListener('scroll', onScroll);
-      if (rearmRef.current !== null) window.clearTimeout(rearmRef.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const { sentinelRef, rearm } = useInfiniteScroll({ enabled: true, start: appendNext });
 
   // ---------- composer ----------
   const [draftHtml, setDraftHtml] = useState('');
@@ -406,14 +363,11 @@ function CommunityFeedInner({
   const [draftKey, setDraftKey] = useState(0);
   /** Uploaded attachment srcs — merged into the content on publish. */
   const [composerImages, setComposerImages] = useState<string[]>([]);
-  const hasDraft =
-    composerImages.length > 0 ||
-    /<img/.test(draftHtml) ||
-    draftHtml.replace(/<[^>]*>/g, '').trim() !== '';
+  const hasDraft = composerImages.length > 0 || htmlHasContent(draftHtml);
 
   const onPickImage = (file: File) => {
     setUploadingImage(true);
-    void uploadImageFile(file).then((url) => {
+    void uploadImage(file).then((url) => {
       if (url) setComposerImages((prev) => [...prev, url]);
       else toastApiError(null, locale);
       setUploadingImage(false);
@@ -542,13 +496,12 @@ function CommunityFeedInner({
   /** Reply editor has content when its HTML carries text or attachments. */
   const replyHasContent = (threadId: number) => {
     const html = replyDrafts[threadId] ?? '';
-    if (html.replace(/<[^>]*>/g, '').trim() !== '') return true;
-    return (replyImages[threadId]?.length ?? 0) > 0;
+    return htmlHasContent(html) || (replyImages[threadId]?.length ?? 0) > 0;
   };
 
   const onReplyImage = (threadId: number, file: File) => {
     setReplyUploadingId(threadId);
-    void uploadImageFile(file).then((url) => {
+    void uploadImage(file).then((url) => {
       if (url)
         setReplyImages((prev) => ({ ...prev, [threadId]: [...(prev[threadId] ?? []), url] }));
       else toastApiError(null, locale);
@@ -1103,7 +1056,7 @@ function ThreadEditForm({
 
   const onPickImage = (file: File) => {
     setUploading(true);
-    void uploadImageFile(file).then((url) => {
+    void uploadImage(file).then((url) => {
       if (url) setImages((prev) => [...prev, url]);
       else toastApiError(null, locale);
       setUploading(false);

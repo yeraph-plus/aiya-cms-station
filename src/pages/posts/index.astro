@@ -6,14 +6,13 @@ import { iconInner } from '@/lib/icons';
 import { t } from '@/lib/i18n';
 import { loadPage } from '@/lib/page.server';
 import { setCrumbs } from '@/lib/breadcrumbs';
+import { canonicalQuery, chipHref, isFiltered, parseListFilters } from '@/lib/filters';
 
 // The posts list filter contract — q / category / tag / sort. Both this route
-// and /posts/page/[n]/ read the same four keys and pass the same carry list,
-// so paginating never silently drops a filter.
-const q = (Astro.url.searchParams.get('q') ?? '').slice(0, 100);
-const category = (Astro.url.searchParams.get('category') ?? '').slice(0, 200);
-const tag = (Astro.url.searchParams.get('tag') ?? '').slice(0, 200);
-const sort = Astro.url.searchParams.get('sort') === 'oldest' ? 'oldest' : 'newest';
+// and /posts/page/[n]/ read the same four keys (lib/filters) and pass the
+// same carry list, so paginating never silently drops a filter.
+const filters = parseListFilters(Astro.url, true);
+const { q, category, tag, sort } = filters;
 const page = await loadPage(
   async (client) => {
     const [posts, terms, tagTerms] = await Promise.all([
@@ -34,18 +33,10 @@ const page = await loadPage(
 if (!page.ok) Astro.response.status = page.error.status;
 const copy = t(page.locale);
 if (page.ok) setCrumbs(Astro.locals, page.locale, [{ label: copy.posts.title }]);
-const filtered = q !== '' || category !== '' || tag !== '';
+const filtered = isFiltered(filters);
 const listTitle = q !== '' ? copy.posts.searchTitle(q) : copy.posts.title;
 // Category chips filter this same list, so each chip href is the query
 // state the island itself produces — same contract as /resources/.
-const chipHref = (slug: string) => {
-  const params = new URLSearchParams();
-  if (q !== '') params.set('q', q);
-  if (slug !== '') params.set('category', slug);
-  if (tag !== '') params.set('tag', tag);
-  const s = params.toString();
-  return s ? `/posts/?${s}` : '/posts/';
-};
 // Category chips filter this same list, so their crawlable fallback href is
 // the query state the island itself produces — the path route they used to
 // point at (/posts/category/{slug}/) no longer exists. The crawlable category
@@ -67,7 +58,7 @@ const chips = [
         name: term.name,
         count: term.count,
         icon: term.icon ? iconInner(term.icon) : null,
-        href: chipHref(term.slug),
+        href: chipHref('/posts/', filters, term.slug),
       }))
     : []),
 ];
@@ -88,18 +79,13 @@ const tagGroups = page.ok
   : [];
 // Filters (not the sort preference) make the canonical; a filtered list stays
 // noindex and defers to the crawlable archive.
-const canonicalParams = new URLSearchParams();
-if (q !== '') canonicalParams.set('q', q);
-if (category !== '') canonicalParams.set('category', category);
-if (tag !== '') canonicalParams.set('tag', tag);
-const canonicalQuery = canonicalParams.toString();
 ---
 
 <AppShell
   page={page}
   title={listTitle}
   description={page.site.description}
-  canonicalPath={filtered ? `/posts/?${canonicalQuery}` : '/posts/'}
+  canonicalPath={filtered ? `/posts/?${canonicalQuery(filters)}` : '/posts/'}
   noindex={filtered || !page.ok}
 >
   <h1 class="sr-only">{listTitle}</h1>

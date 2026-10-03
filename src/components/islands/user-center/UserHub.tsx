@@ -7,7 +7,8 @@ import type { Locale } from '@/lib/i18n/locale';
 import type { MembershipState, CreditEntry } from '@/lib/core/contracts';
 import Avatar from '@/components/islands/Avatar';
 import EmptyNote from '@/components/islands/EmptyNote';
-import type { SettingsCopy, SettingsUser } from './SettingsPanel';
+import type { SettingsCopy } from '@/lib/i18n';
+import type { SettingsUser } from './SettingsPanel';
 
 export interface HubFavorite {
   id: number;

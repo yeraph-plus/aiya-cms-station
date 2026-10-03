@@ -1,7 +1,4 @@
-import type { APIRoute } from 'astro';
-import { errorCode, errorRequestId, errorStatus, jsonResponse, visitorIp } from '@/lib/api-auth';
-import { authClient } from '@/lib/core/server';
-import { readSessionToken } from '@/lib/core/session';
+import { defineProxy, jsonResponse } from '@/lib/api-auth';
 
 /**
  * GET /api/sponsorship/membership: the wallet bubble's one read. MembershipState
@@ -9,17 +6,7 @@ import { readSessionToken } from '@/lib/core/session';
  * shell's wallet entry needs this single call (no separate balance request).
  * Guests answer 401 — the bubble renders only for signed-in visitors anyway.
  */
-export const GET: APIRoute = async (Astro) => {
-  const ip = visitorIp(Astro.request, Astro.clientAddress);
-  const token = readSessionToken(Astro.cookies);
-  if (!token) return jsonResponse({ ok: false }, 401);
-  try {
-    const result = await authClient(token, ip).myMembership();
-    return jsonResponse({ ok: true, membership: result.data });
-  } catch (error) {
-    return jsonResponse(
-      { ok: false, code: errorCode(error), requestId: errorRequestId(error) },
-      errorStatus(error),
-    );
-  }
-};
+export const GET = defineProxy({ auth: 'required' }, async ({ client }) => {
+  const result = await client.myMembership();
+  return jsonResponse({ ok: true, membership: result.data });
+});

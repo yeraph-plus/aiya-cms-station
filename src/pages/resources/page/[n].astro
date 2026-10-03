@@ -3,67 +3,56 @@
 import AppShell from '@/components/layout/AppShell.astro';
 import PageState from '@/components/layout/PageState.astro';
 import PostLoop from '@/components/islands/feed/PostLoop';
-import { cloakPostSummaryMedia } from '@/lib/media';
 import { t } from '@/lib/i18n';
-import { loadPage } from '@/lib/page.server';
-import { setCrumbs } from '@/lib/breadcrumbs';
+import { loadFeedPage } from '@/lib/feed-page';
 
 const n = Number(Astro.params.n);
-// Page 1 and non-numeric shapes live at /resources/ — bounce there (302).
+// Page 1 and non-numeric shapes live at /resources/ — permanent
+// normalization (308), and the active filter query rides along.
 if (!Number.isInteger(n) || n < 2) {
-  return Astro.redirect('/resources/');
+  return Astro.redirect(`/resources/${Astro.url.search}`, 308);
 }
-// Same filter contract as /resources/ — q / category / tag / sort.
-const q = (Astro.url.searchParams.get('q') ?? '').slice(0, 100);
-const category = (Astro.url.searchParams.get('category') ?? '').slice(0, 200);
-const tag = (Astro.url.searchParams.get('tag') ?? '').slice(0, 200);
-const sort = Astro.url.searchParams.get('sort') === 'oldest' ? 'oldest' : 'newest';
-const filtered = q !== '' || category !== '' || tag !== '';
 
-const page = await loadPage(
-  async (client) => {
-    const list = await client.resources({ page: n, q, category, tag, sort });
-    return { resources: list.data, pagination: list.meta.pagination };
-  },
+const view = await loadFeedPage(
+  'resources',
+  Astro.response,
+  Astro.url,
   Astro.cookies,
-  Astro.locals.visitorIp,
+  Astro.locals,
+  n,
 );
-if (!page.ok) Astro.response.status = page.error.status;
-const overRange = page.ok && n > page.value.pagination.totalPages;
-if (overRange) Astro.response.status = 404;
-const copy = t(page.locale);
-if (page.ok)
-  setCrumbs(Astro.locals, page.locale, [
-    { label: copy.resources.title, href: '/resources/' },
-    { label: copy.resources.pageOf(n) },
-  ]);
-const showList = page.ok && !overRange;
-const listTitle = q !== '' ? copy.resources.searchTitle(q) : copy.resources.pageOf(n);
-// Bare canonical: the filtered shape is noindex, so carrying the filter
-// into the canonical buys nothing (posts/page/[n] does the same).
-const canonical = `/resources/page/${n}/`;
+const copy = t(view.page.locale);
 ---
 
 <AppShell
-  page={page}
-  title={listTitle}
+  page={view.page}
+  title={view.listTitle}
   description={copy.resources.description}
-  canonicalPath={canonical}
-  noindex={filtered || overRange}
+  canonicalPath={view.canonical}
+  noindex={view.filtered || view.overRange}
 >
   {
-    page.ok &&
-      (showList ? (
+    view.page.ok &&
+      (view.overRange ? (
+        <PageState
+          image={view.page.site.defaults.emptyImage}
+          error
+          title={copy.state.notFoundTitle}
+          message={copy.state.notFoundMessage}
+          retry="/resources/"
+          retryLabel={copy.common.retry}
+        />
+      ) : (
         <>
-          <h1 class="sr-only">{listTitle}</h1>
+          <h1 class="sr-only">{view.listTitle}</h1>
           <PostLoop
             autoLoad
             client:load
             endpoint="/api/feed/resources/"
-            items={page.value.resources.map(cloakPostSummaryMedia)}
-            pagination={page.value.pagination}
+            items={view.page.value.items}
+            pagination={view.page.value.pagination}
             page={n}
-            query={{ q, category, tag, sort }}
+            query={{ ...view.filters }}
             route={{
               index: '/resources/',
               pagePattern: '/resources/page/{page}/',
@@ -71,18 +60,9 @@ const canonical = `/resources/page/${n}/`;
             }}
             emptyText={copy.resources.listEmpty}
             errorText={copy.state.backendMessage}
-            locale={page.locale}
+            locale={view.page.locale}
           />
         </>
-      ) : (
-        <PageState
-          image={page.site.defaults.emptyImage}
-          error
-          title={copy.state.notFoundTitle}
-          message={copy.state.notFoundMessage}
-          retry="/resources/"
-          retryLabel={copy.common.retry}
-        />
       ))
   }
 </AppShell>

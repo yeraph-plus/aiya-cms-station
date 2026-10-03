@@ -54,6 +54,29 @@ export function searchHref(key: string, scope: SearchScope): string {
   return scope === 'all' ? path : `${path}?type=${scope}`;
 }
 
+/** Address-bar seed for the header search boxes: on /search/{key}/ the box
+    mirrors the results already on screen (keyword from the path segment,
+    scope from ?type=), so the SSR markup is correct and nothing has to be
+    filled in after hydration. Both shells fed this from copy-pasted
+    frontmatter before. */
+export function searchSeed(
+  pathname: string,
+  scopeParam: string,
+): { keyword: string; scope: SearchScope } {
+  const segments = pathname.split('/').filter(Boolean);
+  const routedKey = segments[0] === 'search' && segments[1] ? segments[1] : '';
+  let decoded = '';
+  try {
+    decoded = decodeURIComponent(routedKey);
+  } catch {
+    decoded = '';
+  }
+  return {
+    keyword: normalizeKeyword(decoded),
+    scope: isSearchScope(scopeParam) ? scopeParam : 'all',
+  };
+}
+
 /** The slice of Pagination the loop consumes (and what the routes need for
     the over-range check). The union mode has no honest totalItems — "page N"
     means round N of every type — so only these four are ever synthesized. */

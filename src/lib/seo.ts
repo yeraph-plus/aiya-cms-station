@@ -77,6 +77,48 @@ export function breadcrumbJsonLd(crumbs: Breadcrumb[]): Record<string, unknown> 
   };
 }
 
+export interface DetailSeo {
+  title: string;
+  description: string;
+  noindex: boolean;
+  coverUrl: string | null;
+  jsonLd: Record<string, unknown>[];
+}
+
+/**
+ * SEO projection for one detail page (the AppShell head props): the
+ * backend-managed projection (seo.title/description/noindex) overrides the
+ * route defaults, the og image is the cloaked hero, and the JSON-LD pair
+ * rides the same verdict. A null post (failed read) degrades to the
+ * not-found copy, noindex. The three detail routes hand-copied this block
+ * before; an og-rule change meant three edits.
+ */
+export function detailSeo(
+  post: PostDetail | null,
+  site: Site,
+  origin: string,
+  fallbackTitle: string,
+  fallbackDescription: string,
+): DetailSeo {
+  if (!post) {
+    return {
+      title: fallbackTitle,
+      description: fallbackDescription,
+      noindex: true,
+      coverUrl: null,
+      jsonLd: [],
+    };
+  }
+  const cover = post.featured ?? post.thumbnail ?? null;
+  return {
+    title: post.seo.title || post.title || fallbackTitle,
+    description: post.seo.description || post.excerpt || fallbackDescription,
+    noindex: Boolean(post.seo.noindex),
+    coverUrl: cover ? rewriteMediaUrl(cover.url) : null,
+    jsonLd: [articleJsonLd(post, site, origin), breadcrumbJsonLd(post.breadcrumbs)],
+  };
+}
+
 /**
  * Named AI crawlers granted full read access. The wildcard group below
  * already allows everything except API JSON and query-string URLs, but the

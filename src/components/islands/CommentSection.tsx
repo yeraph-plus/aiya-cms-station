@@ -16,16 +16,13 @@ import { Input } from '@/components/ui/input';
 import RichEditor, { AttachmentStrip } from '@/components/islands/user-center/RichEditor';
 import { sanitizeCommentHtml } from '@/lib/content';
 import Avatar from '@/components/islands/Avatar';
-import type { Comment, SiteComments } from '@/lib/core/contracts';
+import type { Comment, Pagination as WirePagination, SiteComments } from '@/lib/core/contracts';
 import { displayDate } from '@/lib/format';
 import { rewriteMediaUrl } from '@/lib/media';
 import { t, type Locale } from '@/lib/i18n';
+import { uploadImage } from '@/lib/upload';
 
-interface Pagination {
-  page: number;
-  totalPages: number;
-  hasNext: boolean;
-}
+type Pagination = Pick<WirePagination, 'page' | 'totalPages' | 'hasNext'>;
 
 interface Props {
   postId: number;
@@ -183,18 +180,9 @@ export default function CommentSection({
     setUploading(true);
     setError(null);
     try {
-      const form = new FormData();
-      form.set('image', file);
-      const response = await fetch('/api/uploads/image/', { method: 'POST', body: form });
-      const json = (await response.json().catch(() => null)) as {
-        ok?: boolean;
-        url?: string;
-        code?: string;
-      } | null;
-      if (json?.ok && json.url) setImages((prev) => [...prev, json.url ?? '']);
+      const url = await uploadImage(file);
+      if (url) setImages((prev) => [...prev, url]);
       else setError(copy.uploadFailed);
-    } catch {
-      setError(copy.uploadFailed);
     } finally {
       setUploading(false);
     }

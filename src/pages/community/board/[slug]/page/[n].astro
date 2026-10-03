@@ -4,7 +4,7 @@ import { loadCommunityBoard } from '@/lib/community-board';
 
 const slug = Astro.params.slug ?? '';
 const n = Number(Astro.params.n);
-// Page 1 lives at the board root; anything non-numeric 404s.
+// Page 1 lives at the board root; anything non-numeric 308s there (query rides along).
 if (!Number.isInteger(n) || n < 2) {
   // Astro params arrive decoded; re-encode the segment (a raw CJK slug
   // would break the Location header).

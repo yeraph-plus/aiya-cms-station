@@ -15,7 +15,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import Avatar from '@/components/islands/Avatar';
 import { apiErrorCopy, flashToast } from '@/lib/feedback';
-import type { Locale } from '@/lib/i18n';
+import type { Locale, SettingsCopy } from '@/lib/i18n';
 
 export interface SettingsUser {
   nickname: string;
@@ -26,33 +26,6 @@ export interface SettingsUser {
   avatarUrl: string | null;
   /** "Always show NSFW content" (0.96.0) — the account-level hard switch. */
   showNsfw: boolean;
-}
-
-export interface SettingsCopy {
-  avatarTitle: string;
-  changeAvatar: string;
-  removeAvatar: string;
-  avatarRemoveConfirm: string;
-  cancel: string;
-  profileTitle: string;
-  nicknameLabel: string;
-  descriptionLabel: string;
-  urlLabel: string;
-  localeLabel: string;
-  emailLabel: string;
-  currentPasswordLabel: string;
-  currentPasswordHint: string;
-  accountTitle: string;
-  newPasswordLabel: string;
-  newPasswordHint: string;
-  passwordConfirmLabel: string;
-  /** Account-level NSFW hard switch (0.96.0). */
-  alwaysShowNsfw: string;
-  alwaysShowNsfwHint: string;
-  save: string;
-  saved: string;
-  passwordSaved: string;
-  authFailed: string;
 }
 
 interface Props {
@@ -307,7 +280,7 @@ export default function SettingsPanel({ user, locale, localeOptions, copy }: Pro
           </div>
           {profileError && (
             <p role="alert" className="text-sm text-error">
-              {errorText(profileError)}
+              {profileError}
             </p>
           )}
           {profileState === 'saved' && (

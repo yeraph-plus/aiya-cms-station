@@ -1,11 +1,10 @@
 ---
+/** Posts list pagination: /posts/page/[n]/ (n ≥ 2); filters ride along. */
 import AppShell from '@/components/layout/AppShell.astro';
 import PageState from '@/components/layout/PageState.astro';
 import PostLoop from '@/components/islands/feed/PostLoop';
-import { cloakPostSummaryMedia } from '@/lib/media';
 import { t } from '@/lib/i18n';
-import { loadPage } from '@/lib/page.server';
-import { setCrumbs } from '@/lib/breadcrumbs';
+import { loadFeedPage } from '@/lib/feed-page';
 
 const n = Number(Astro.params.n);
 // Page 1 and non-numeric shapes live at /posts/ — permanent
@@ -14,56 +13,39 @@ if (!Number.isInteger(n) || n < 2) {
   return Astro.redirect(`/posts/${Astro.url.search}`, 308);
 }
 
-// Same filter contract as /posts/ — q / category / tag / sort. Page 1 and its
-// paginated pages must read the identical keys, or a filter set on page 1
-// silently vanishes on page 2.
-const q = (Astro.url.searchParams.get('q') ?? '').slice(0, 100);
-const category = (Astro.url.searchParams.get('category') ?? '').slice(0, 200);
-const tag = (Astro.url.searchParams.get('tag') ?? '').slice(0, 200);
-const sort = Astro.url.searchParams.get('sort') === 'oldest' ? 'oldest' : 'newest';
-const filtered = q !== '' || category !== '' || tag !== '';
-
-const page = await loadPage(
-  async (client) => {
-    const posts = await client.posts({ page: n, q, category, tag, sort });
-    return { posts: posts.data, pagination: posts.meta.pagination };
-  },
-  Astro.cookies,
-  Astro.locals.visitorIp,
-);
-if (!page.ok) Astro.response.status = page.error.status;
-const overRange = page.ok && n > page.value.pagination.totalPages;
-if (overRange) Astro.response.status = 404;
-const copy = t(page.locale);
-if (page.ok)
-  setCrumbs(Astro.locals, page.locale, [
-    { label: copy.posts.title, href: '/posts/' },
-    { label: copy.posts.pageOf(n) },
-  ]);
-const showList = page.ok && !overRange;
-const title = q !== '' ? copy.posts.searchTitle(q) : copy.posts.pageOf(n);
+const view = await loadFeedPage('posts', Astro.response, Astro.url, Astro.cookies, Astro.locals, n);
+const copy = t(view.page.locale);
 ---
 
 <AppShell
-  page={page}
-  title={title}
-  description={page.site.description}
-  canonicalPath={`/posts/page/${n}/`}
-  noindex={filtered || overRange}
+  page={view.page}
+  title={view.listTitle}
+  description={view.page.site.description}
+  canonicalPath={view.canonical}
+  noindex={view.filtered || view.overRange}
 >
   {
-    page.ok &&
-      (showList ? (
+    view.page.ok &&
+      (view.overRange ? (
+        <PageState
+          image={view.page.site.defaults.emptyImage}
+          error
+          title={copy.state.notFoundTitle}
+          message={copy.state.notFoundMessage}
+          retry="/posts/"
+          retryLabel={copy.common.retry}
+        />
+      ) : (
         <>
-          <h1 class="sr-only">{title}</h1>
+          <h1 class="sr-only">{view.listTitle}</h1>
           <PostLoop
             autoLoad
             client:load
             endpoint="/api/feed/posts/"
-            items={page.value.posts.map(cloakPostSummaryMedia)}
-            pagination={page.value.pagination}
+            items={view.page.value.items}
+            pagination={view.page.value.pagination}
             page={n}
-            query={{ q, category, tag, sort }}
+            query={{ ...view.filters }}
             route={{
               index: '/posts/',
               pagePattern: '/posts/page/{page}/',
@@ -71,18 +53,9 @@ const title = q !== '' ? copy.posts.searchTitle(q) : copy.posts.pageOf(n);
             }}
             emptyText={copy.posts.listEmpty}
             errorText={copy.state.backendMessage}
-            locale={page.locale}
+            locale={view.page.locale}
           />
         </>
-      ) : (
-        <PageState
-          image={page.site.defaults.emptyImage}
-          error
-          title={copy.state.notFoundTitle}
-          message={copy.state.notFoundMessage}
-          retry="/posts/"
-          retryLabel={copy.common.retry}
-        />
       ))
   }
 </AppShell>

@@ -4,6 +4,7 @@ import type { Menu } from '@/lib/core/contracts';
 import { menuIconName } from '@/lib/icons';
 import { safeHref } from '@/lib/media';
 import { t, type Locale } from '@/lib/i18n';
+import { isExternalLink, isMenuActive } from '@/lib/menu';
 
 interface Props {
   menu: Menu;
@@ -21,8 +22,8 @@ const copy = t(locale);
 const items = menu.items;
 const more = items.length > 5;
 const visible = more ? items.slice(0, 4) : items.slice(0, 5);
-const isActive = (url: string) => (url === '/' ? pathname === '/' : pathname.startsWith(url));
-const isExternal = (url: string) => /^https?:\/\//i.test(url);
+const isActive = (url: string) => isMenuActive(pathname, url);
+const isExternal = isExternalLink;
 ---
 
 <nav

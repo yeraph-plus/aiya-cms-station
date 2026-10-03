@@ -56,3 +56,38 @@ export const LOCALE_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
   { value: 'zh_HK', label: '繁體中文（香港）' },
   { value: 'en_US', label: 'English' },
 ];
+
+/**
+ * The copy pack the settings island consumes, projected off the dictionary
+ * (a handful of keys come from `shell`). Both mounting pages rendered this
+ * 24-key map by hand before — one source, or a new setting key drifts.
+ */
+export function settingsCopy(copy: Dictionary) {
+  return {
+    avatarTitle: copy.settings.avatarTitle,
+    changeAvatar: copy.settings.changeAvatar,
+    removeAvatar: copy.settings.removeAvatar,
+    avatarRemoveConfirm: copy.settings.avatarRemoveConfirm,
+    cancel: copy.settings.cancel,
+    profileTitle: copy.settings.profileTitle,
+    nicknameLabel: copy.shell.nicknameLabel,
+    descriptionLabel: copy.settings.descriptionLabel,
+    urlLabel: copy.settings.urlLabel,
+    localeLabel: copy.settings.localeLabel,
+    emailLabel: copy.shell.emailLabel,
+    currentPasswordLabel: copy.settings.currentPasswordLabel,
+    currentPasswordHint: copy.settings.currentPasswordHint,
+    accountTitle: copy.settings.accountTitle,
+    newPasswordLabel: copy.settings.newPasswordLabel,
+    newPasswordHint: copy.settings.newPasswordHint,
+    alwaysShowNsfw: copy.settings.alwaysShowNsfw,
+    alwaysShowNsfwHint: copy.settings.alwaysShowNsfwHint,
+    passwordConfirmLabel: copy.shell.passwordConfirmLabel,
+    save: copy.settings.save,
+    saved: copy.settings.saved,
+    passwordSaved: copy.settings.passwordSaved,
+    authFailed: copy.shell.authFailed,
+  };
+}
+
+export type SettingsCopy = ReturnType<typeof settingsCopy>;

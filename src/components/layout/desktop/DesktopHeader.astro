@@ -4,7 +4,7 @@ import { NotificationPopover } from '@/components/islands/user-center/Notificati
 import SearchBox from '@/components/islands/SearchBox';
 import type { UserCenterCopy, UserCenterUser } from '@/components/islands/user-center/types';
 import Icon from '@/components/layout/Icon.astro';
-import { isSearchScope, normalizeKeyword } from '@/lib/search';
+import { searchSeed } from '@/lib/search';
 import type { Locale } from '@/lib/i18n/locale';
 
 interface Props {
@@ -33,18 +33,10 @@ const {
 } = Astro.props;
 
 // The search box mirrors the results already on screen: on /search/{key}/
-// it seeds keyword and scope straight from the address bar, so the SSR
-// markup is correct and nothing has to be filled in after hydration.
-const segments = Astro.url.pathname.split('/').filter(Boolean);
-const routedKey = segments[0] === 'search' && segments[1] ? segments[1] : '';
-const decodedKey = (() => {
-  try {
-    return decodeURIComponent(routedKey);
-  } catch {
-    return '';
-  }
-})();
-const scopeParam = Astro.url.searchParams.get('type') ?? '';
+// it seeds keyword and scope straight from the address bar (shared rule in
+// lib/search), so the SSR markup is correct and nothing has to be filled in
+// after hydration.
+const seed = searchSeed(Astro.url.pathname, Astro.url.searchParams.get('type') ?? '');
 ---
 
 <header
@@ -60,12 +52,7 @@ const scopeParam = Astro.url.searchParams.get('type') ?? '';
   >
     <Icon name="menu" size={18} />
   </button>
-  <SearchBox
-    client:load
-    locale={locale}
-    value={normalizeKeyword(decodedKey)}
-    scope={isSearchScope(scopeParam) ? scopeParam : 'all'}
-  />
+  <SearchBox client:load locale={locale} value={seed.keyword} scope={seed.scope} />
   <div class="ml-auto flex shrink-0 items-center gap-1.5">
     <button
       type="button"

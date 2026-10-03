@@ -31,6 +31,7 @@ import {
 import Spinner from '@/components/islands/Spinner';
 import { t, type Locale } from '@/lib/i18n';
 import type { Pagination, PostSummary } from '@/lib/core/contracts';
+import { useInfiniteScroll } from '@/lib/use-infinite-scroll';
 
 /** Route shapes computed by the Astro page — the island never invents URLs. */
 export interface FeedRoute {
@@ -612,18 +613,11 @@ export default function PostLoop({
   };
 
   /**
-   * Auto-load: appends the next page without touching history. A sentinel
-   * div below the list drives an IntersectionObserver plus a scroll poll —
-   * the observer only fires on intersection CHANGES, so a short page that
-   * leaves the sentinel inside the root margin would otherwise stall; the
-   * poll and the post-append re-arm keep the loop going. The loop stops
-   * itself once hasNext turns false.
+   * Auto-load: appends the next page without touching history. Sentinel
+   * observation and re-arm live in the shared hook; this island owns the
+   * fetch itself (single-flight + queue). The loop stops itself once hasNext
+   * turns false.
    */
-  const sentinelRef = useRef<HTMLDivElement>(null);
-  const failuresRef = useRef(0);
-  // The re-arm timeout outlives the append that scheduled it; unmount must
-  // cancel it or it fires one append (and a setState) into a dead island.
-  const rearmRef = useRef<number | null>(null);
   const appendNext = () => {
     if (busyRef.current) return;
     const s = stateRef.current;
@@ -658,44 +652,13 @@ export default function PostLoop({
           fetchState(queued.next, queued.historyUrl);
         } else {
           setLoading(false);
-          // Re-arm while the sentinel is still on screen (short pages): the
-          // observer will not refire without an intersection change. A failed
-          // fetch backs off exponentially (capped) so a dead endpoint is not
-          // hammered at poll cadence; one success resets the ladder.
-          failuresRef.current = ok ? 0 : failuresRef.current + 1;
-          const delay = ok ? 200 : Math.min(200 * 2 ** failuresRef.current, 10_000);
-          rearmRef.current = window.setTimeout(() => {
-            const el = sentinelRef.current;
-            if (el && el.getBoundingClientRect().top < window.innerHeight + 600) appendNext();
-          }, delay);
+          rearm(ok);
         }
       }
     })();
   };
 
-  useEffect(() => {
-    if (!autoLoad) return;
-    const el = sentinelRef.current;
-    if (!el) return;
-    const near = () => el.getBoundingClientRect().top < window.innerHeight + 600;
-    const io = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) appendNext();
-      },
-      { rootMargin: '600px 0px' },
-    );
-    io.observe(el);
-    // Fallback poll: backgrounded tabs may never produce observer callbacks.
-    const poll = window.setInterval(() => {
-      if (near()) appendNext();
-    }, 600);
-    return () => {
-      io.disconnect();
-      window.clearInterval(poll);
-      if (rearmRef.current !== null) window.clearTimeout(rearmRef.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoLoad]);
+  const { sentinelRef, rearm } = useInfiniteScroll({ enabled: autoLoad, start: appendNext });
 
   /** Canonical pushState URL for a query dict: every non-empty param
       (carry keys, term lists, sort) rides along, keeping the address bar

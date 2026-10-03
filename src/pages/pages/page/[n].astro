@@ -3,10 +3,8 @@
 import AppShell from '@/components/layout/AppShell.astro';
 import PageState from '@/components/layout/PageState.astro';
 import PostLoop from '@/components/islands/feed/PostLoop';
-import { cloakPostSummaryMedia } from '@/lib/media';
 import { t } from '@/lib/i18n';
-import { loadPage } from '@/lib/page.server';
-import { setCrumbs } from '@/lib/breadcrumbs';
+import { loadFeedPage } from '@/lib/feed-page';
 
 const n = Number(Astro.params.n);
 // Page 1 and non-numeric shapes live at /pages/ — permanent
@@ -15,55 +13,39 @@ if (!Number.isInteger(n) || n < 2) {
   return Astro.redirect(`/pages/${Astro.url.search}`, 308);
 }
 
-// Same filter contract as /pages/ — q / category / sort (pages have no tag
-// vocabulary). Page 1 and its paginated pages must read the identical keys,
-// or a filter set on page 1 silently vanishes on page 2.
-const q = (Astro.url.searchParams.get('q') ?? '').slice(0, 100);
-const category = (Astro.url.searchParams.get('category') ?? '').slice(0, 200);
-const sort = Astro.url.searchParams.get('sort') === 'oldest' ? 'oldest' : 'newest';
-const filtered = q !== '' || category !== '';
-
-const page = await loadPage(
-  async (client) => {
-    const list = await client.pages({ page: n, q, category, sort });
-    return { pages: list.data.map(cloakPostSummaryMedia), pagination: list.meta.pagination };
-  },
-  Astro.cookies,
-  Astro.locals.visitorIp,
-);
-if (!page.ok) Astro.response.status = page.error.status;
-const overRange = page.ok && n > page.value.pagination.totalPages;
-if (overRange) Astro.response.status = 404;
-const copy = t(page.locale);
-if (page.ok)
-  setCrumbs(Astro.locals, page.locale, [
-    { label: copy.pages.title, href: '/pages/' },
-    { label: copy.pages.pageOf(n) },
-  ]);
-const showList = page.ok && !overRange;
-const title = q !== '' ? copy.posts.searchTitle(q) : copy.pages.pageOf(n);
+const view = await loadFeedPage('pages', Astro.response, Astro.url, Astro.cookies, Astro.locals, n);
+const copy = t(view.page.locale);
 ---
 
 <AppShell
-  page={page}
-  title={title}
+  page={view.page}
+  title={view.listTitle}
   description={copy.pages.description}
-  canonicalPath={`/pages/page/${n}/`}
-  noindex={filtered || overRange}
+  canonicalPath={view.canonical}
+  noindex={view.filtered || view.overRange}
 >
   {
-    page.ok &&
-      (showList ? (
+    view.page.ok &&
+      (view.overRange ? (
+        <PageState
+          image={view.page.site.defaults.emptyImage}
+          error
+          title={copy.state.notFoundTitle}
+          message={copy.state.notFoundMessage}
+          retry="/pages/"
+          retryLabel={copy.common.retry}
+        />
+      ) : (
         <>
-          <h1 class="sr-only">{title}</h1>
+          <h1 class="sr-only">{view.listTitle}</h1>
           <PostLoop
             autoLoad
             client:load
             endpoint="/api/feed/pages/"
-            items={page.value.pages}
-            pagination={page.value.pagination}
+            items={view.page.value.items}
+            pagination={view.page.value.pagination}
             page={n}
-            query={{ q, category, sort }}
+            query={{ q: view.filters.q, category: view.filters.category, sort: view.filters.sort }}
             route={{
               index: '/pages/',
               pagePattern: '/pages/page/{page}/',
@@ -71,18 +53,9 @@ const title = q !== '' ? copy.posts.searchTitle(q) : copy.pages.pageOf(n);
             }}
             emptyText={copy.pages.listEmpty}
             errorText={copy.state.backendMessage}
-            locale={page.locale}
+            locale={view.page.locale}
           />
         </>
-      ) : (
-        <PageState
-          image={page.site.defaults.emptyImage}
-          error
-          title={copy.state.notFoundTitle}
-          message={copy.state.notFoundMessage}
-          retry="/pages/"
-          retryLabel={copy.common.retry}
-        />
       ))
   }
 </AppShell>

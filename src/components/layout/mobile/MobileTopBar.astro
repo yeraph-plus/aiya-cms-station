@@ -4,7 +4,7 @@ import { NotificationPopover } from '@/components/islands/user-center/Notificati
 import MobileSearch from '@/components/islands/MobileSearch';
 import type { UserCenterCopy, UserCenterUser } from '@/components/islands/user-center/types';
 import type { Site } from '@/lib/core/contracts';
-import { isSearchScope, normalizeKeyword } from '@/lib/search';
+import { searchSeed } from '@/lib/search';
 import { rewriteMediaUrl } from '@/lib/media';
 import { t, type Locale } from '@/lib/i18n';
 
@@ -24,17 +24,8 @@ const { site, user, authCopy, registrationOpen, localeTag, locale, timezone } = 
 const siteName = site.name;
 
 // On results pages the search dialog seeds itself from the address bar,
-// mirroring the desktop SearchBox (which gets the same value as a prop).
-const segments = Astro.url.pathname.split('/').filter(Boolean);
-const routedKey = segments[0] === 'search' && segments[1] ? segments[1] : '';
-const seedValue = (() => {
-  try {
-    return decodeURIComponent(routedKey);
-  } catch {
-    return '';
-  }
-})();
-const seedScope = Astro.url.searchParams.get('type') ?? '';
+// mirroring the desktop SearchBox (shared rule in lib/search).
+const seed = searchSeed(Astro.url.pathname, Astro.url.searchParams.get('type') ?? '');
 ---
 
 <header class="sticky top-0 z-30 border-b border-border bg-surface min-[992px]:hidden">
@@ -62,12 +53,7 @@ const seedScope = Astro.url.searchParams.get('type') ?? '';
       </span>
     </a>
     <div class="flex shrink-0 items-center">
-      <MobileSearch
-        client:load
-        locale={locale}
-        value={normalizeKeyword(seedValue)}
-        scope={isSearchScope(seedScope) ? seedScope : 'all'}
-      />
+      <MobileSearch client:load locale={locale} value={seed.keyword} scope={seed.scope} />
       <NotificationPopover client:load copy={authCopy} localeTag={localeTag} timezone={timezone} />
       <UserCenter
         client:load

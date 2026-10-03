@@ -1,4 +1,5 @@
 ---
-// Page-number-less shape: bounce to the list root instead of a 404.
-return Astro.redirect('/resources/');
+// Page-number-less shape: permanent normalization to the list root,
+// and the active filter query rides along (same contract as /posts/).
+return Astro.redirect(`/resources/${Astro.url.search}`, 308);
 ---

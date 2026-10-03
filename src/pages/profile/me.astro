@@ -11,7 +11,7 @@ import ProfileCard from '@/components/content/ProfileCard.astro';
 import UserHub from '@/components/islands/user-center/UserHub';
 import { displayDate } from '@/lib/format';
 import { rewriteMediaUrl } from '@/lib/media';
-import { LOCALE_OPTIONS, t } from '@/lib/i18n';
+import { LOCALE_OPTIONS, settingsCopy, t } from '@/lib/i18n';
 import { loadPage } from '@/lib/page.server';
 import { setCrumbs } from '@/lib/breadcrumbs';
 import { currentUser, readSessionToken } from '@/lib/core/session';
@@ -75,31 +75,6 @@ const hubFollowers = page.ok
       avatarUrl: a.avatar ? rewriteMediaUrl(a.avatar.url) : null,
     }))
   : [];
-const settingsCopy = {
-  avatarTitle: copy.settings.avatarTitle,
-  changeAvatar: copy.settings.changeAvatar,
-  removeAvatar: copy.settings.removeAvatar,
-  avatarRemoveConfirm: copy.settings.avatarRemoveConfirm,
-  cancel: copy.settings.cancel,
-  profileTitle: copy.settings.profileTitle,
-  nicknameLabel: copy.shell.nicknameLabel,
-  descriptionLabel: copy.settings.descriptionLabel,
-  urlLabel: copy.settings.urlLabel,
-  localeLabel: copy.settings.localeLabel,
-  emailLabel: copy.shell.emailLabel,
-  currentPasswordLabel: copy.settings.currentPasswordLabel,
-  currentPasswordHint: copy.settings.currentPasswordHint,
-  accountTitle: copy.settings.accountTitle,
-  newPasswordLabel: copy.settings.newPasswordLabel,
-  newPasswordHint: copy.settings.newPasswordHint,
-  alwaysShowNsfw: copy.settings.alwaysShowNsfw,
-  alwaysShowNsfwHint: copy.settings.alwaysShowNsfwHint,
-  passwordConfirmLabel: copy.shell.passwordConfirmLabel,
-  save: copy.settings.save,
-  saved: copy.settings.saved,
-  passwordSaved: copy.settings.passwordSaved,
-  authFailed: copy.shell.authFailed,
-};
 const initialTab =
   Astro.url.searchParams.get('tab') === 'following'
     ? 'following'
@@ -165,7 +140,7 @@ const initialTab =
                 ? rewriteMediaUrl(page.value.user.avatar.url)
                 : null,
             },
-            copy: settingsCopy,
+            copy: settingsCopy(copy),
             localeOptions: LOCALE_OPTIONS,
             locale: page.locale,
           }}

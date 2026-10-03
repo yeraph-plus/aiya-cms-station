@@ -1,8 +1,18 @@
+import type { APIContext, APIRoute } from 'astro';
 import { AiyaApiError } from '@/lib/core/errors';
-import { clientIpHeader, serverClient } from '@/lib/core/server';
+import { authClient, clientIpHeader, serverClient } from '@/lib/core/server';
+import type { AiyaClient } from '@/lib/core/client';
+import { readSessionToken } from '@/lib/core/session';
+import { nsfwExcluded } from '@/lib/nsfw';
 import { resolveVisitorIp } from '@/lib/visitor-ip';
 import { resolveLocale, type Locale } from '@/lib/i18n';
 import { ZodError } from 'zod';
+
+/**
+ * Server-only helpers for the same-origin /api proxy routes (every endpoint
+ * under src/pages/api). Importing lib/core/server pins this module to the
+ * Astro server bundle.
+ */
 
 /**
  * The visitor address as this deployment resolves it (lib/visitor-ip.ts).
@@ -14,11 +24,6 @@ import { ZodError } from 'zod';
 export function visitorIp(request: Request, clientAddress: string | null): string | null {
   return resolveVisitorIp(request, clientAddress, clientIpHeader());
 }
-
-/**
- * Server-only helpers for the /api/auth proxy routes. Importing
- * aiya/server pins this module to the Astro server.
- */
 
 let cachedLanguage: { value: string | null } | null = null;
 
@@ -137,4 +142,69 @@ export function jsonResponse(body: unknown, status = 200): Response {
     status,
     headers: { 'Content-Type': 'application/json' },
   });
+}
+
+export interface ProxyHandlerContext {
+  /** The full Astro context (params / url / cookies / redirect…). */
+  astro: APIContext;
+  request: Request;
+  url: URL;
+  params: APIContext['params'];
+  cookies: APIContext['cookies'];
+  /** Visitor address resolved once (lib/visitor-ip) — clients embed it so
+      the backend's rate limiting and dedup bind to the real visitor. */
+  ip: string | null;
+  /** Session bearer, null for guests. */
+  token: string | null;
+  /** Client carrying the visitor's bearer when present (and the NSFW
+      exclusion when options.nsfw). */
+  client: AiyaClient;
+}
+
+export interface ProxyOptions {
+  /** Answer 401 `{ok:false}` before the handler when no session cookie. */
+  auth?: 'required';
+  /** Feed the client the visitor's NSFW soft switch (the PostLoop feed). */
+  nsfw?: boolean;
+}
+
+/**
+ * The /api proxy skeleton: one place resolves the visitor address and the
+ * session, guards `auth: 'required'`, builds the client and maps every
+ * throw into the wire error shape (`{ok:false, code, requestId}` + status —
+ * the contract the islands compile against). The handler returns the
+ * success Response and may return early Responses for its own 4xx checks.
+ * login/register stay handwritten: they attach front-end error copy and
+ * issue the session cookie, neither of which fits this shape.
+ */
+export function defineProxy(
+  options: ProxyOptions,
+  handler: (ctx: ProxyHandlerContext) => Promise<Response>,
+): APIRoute {
+  return async (astro) => {
+    const ip = visitorIp(astro.request, astro.clientAddress);
+    const token = readSessionToken(astro.cookies);
+    if (options.auth === 'required' && !token) {
+      return jsonResponse({ ok: false }, 401);
+    }
+    const excludeNsfw = options.nsfw ? nsfwExcluded(astro.cookies) : undefined;
+    const client = token ? authClient(token, ip, excludeNsfw) : serverClient(ip, excludeNsfw);
+    try {
+      return await handler({
+        astro,
+        request: astro.request,
+        url: astro.url,
+        params: astro.params,
+        cookies: astro.cookies,
+        ip,
+        token,
+        client,
+      });
+    } catch (error) {
+      return jsonResponse(
+        { ok: false, code: errorCode(error), requestId: errorRequestId(error) },
+        errorStatus(error),
+      );
+    }
+  };
 }

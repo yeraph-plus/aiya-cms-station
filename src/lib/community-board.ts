@@ -6,6 +6,7 @@ import type { Discussion, DiscussionBoard, Pagination } from '@/lib/core/contrac
 import { t } from '@/lib/i18n';
 import type { PageResult } from '@/lib/page.server';
 import { loadPage } from '@/lib/page.server';
+import { boardPaths } from '@/lib/routes';
 
 export interface CommunityBoardValue {
   /** Raw discussions — the island boundary cloaks them, the SSR cards take
@@ -49,7 +50,7 @@ export async function loadCommunityBoard(
 ): Promise<CommunityBoardView> {
   const { boardSlug, page: pageNumber } = props;
   const sort = url.searchParams.get('sort') === 'newest' ? 'newest' : 'last_activity';
-  const base = boardSlug === '' ? '/community/' : `/community/board/${boardSlug}/`;
+  const base = boardSlug === '' ? '/community/' : boardPaths(boardSlug).base;
 
   const page = await loadPage<CommunityBoardValue>(
     async (client) => {
@@ -107,7 +108,7 @@ export async function loadCommunityBoard(
   }
 
   const boardHref = (slug: string) => {
-    const target = slug === '' ? '/community/' : `/community/board/${slug}/`;
+    const target = slug === '' ? '/community/' : boardPaths(slug).base;
     return sort !== 'last_activity' ? `${target}?sort=${sort}` : target;
   };
   const listHref = (target: number) =>

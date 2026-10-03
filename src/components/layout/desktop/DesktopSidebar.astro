@@ -3,6 +3,7 @@ import Icon from '@/components/layout/Icon.astro';
 import type { MenuItem, Site } from '@/lib/core/contracts';
 import { menuIconName } from '@/lib/icons';
 import { rewriteMediaUrl, safeHref } from '@/lib/media';
+import { isExternalLink, isMenuActive, MENU_LINK_CLASS, MENU_SUBLINK_COMPACT } from '@/lib/menu';
 
 interface Props {
   site: Site;
@@ -11,15 +12,12 @@ interface Props {
 }
 const { site, menu, pathname } = Astro.props;
 
-const isActive = (url: string) => (url === '/' ? pathname === '/' : pathname.startsWith(url));
-const isExternal = (url: string) => /^https?:\/\//i.test(url);
-
-// Proportions ported 1:1 from the frozen prototype (global.css .nav-items):
-// min-height 44px, 14px text, 0.9rem gap, 5px radius, 0.2rem row gap.
-const linkClass =
-  'my-0.5 flex min-h-[44px] items-center gap-3.5 rounded-md px-3.5 py-3 text-sm transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-focus-blue';
-const subLinkClass =
-  'flex min-h-[36px] items-center rounded-md px-3 py-2 text-sm transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-focus-blue';
+// Active state, external test and row recipes are shared with the mobile
+// shells through lib/menu.
+const isActive = (url: string) => isMenuActive(pathname, url);
+const isExternal = isExternalLink;
+const linkClass = MENU_LINK_CLASS;
+const subLinkClass = MENU_SUBLINK_COMPACT;
 ---
 
 <aside

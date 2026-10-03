@@ -1,5 +1,6 @@
 import sanitizeHtml from 'sanitize-html';
 import { rewriteMediaUrl, rewriteSrcset } from '@/lib/media';
+import { boardPaths } from '@/lib/routes';
 
 /**
  * The backend's reference markers (ARCHITECTURE "Zero-routing rule and
@@ -19,6 +20,16 @@ const REF_ROUTE_PREFIX: Record<string, string> = {
     carry bare type+slug. */
 export function postRoute(type: string, slug: string): string {
   return `/${REF_ROUTE_PREFIX[type] ?? 'posts'}/${slug}/`;
+}
+
+/**
+ * Draft-empty check for the rich-text composers: an image counts as content
+ * even with no alt text; otherwise strip tags and look for surviving text.
+ * The feed, the thread composer and the comment composer shared this
+ * predicate by copy-paste before.
+ */
+export function htmlHasContent(html: string): boolean {
+  return /<img/.test(html) || html.replace(/<[^>]*>/g, '').trim() !== '';
 }
 
 function refHref(attribs: Record<string, string>): string | undefined {
@@ -47,7 +58,7 @@ function refHref(attribs: Record<string, string>): string | undefined {
         : undefined;
     case 'thread':
       return attribs['data-aiya-board'] !== ''
-        ? `/community/board/${encodeURIComponent(attribs['data-aiya-board'])}/`
+        ? boardPaths(encodeURIComponent(attribs['data-aiya-board'])).base
         : undefined;
     default:
       return undefined;

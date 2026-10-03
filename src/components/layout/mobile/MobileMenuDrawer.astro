@@ -3,6 +3,7 @@ import Icon from '@/components/layout/Icon.astro';
 import type { MenuItem } from '@/lib/core/contracts';
 import { menuIconName } from '@/lib/icons';
 import { safeHref } from '@/lib/media';
+import { isExternalLink, isMenuActive, MENU_LINK_CLASS, MENU_SUBLINK_TOUCH } from '@/lib/menu';
 
 interface Props {
   siteName: string;
@@ -11,15 +12,12 @@ interface Props {
 }
 const { siteName, menu, pathname } = Astro.props;
 
-const isActive = (url: string) => (url === '/' ? pathname === '/' : pathname.startsWith(url));
-const isExternal = (url: string) => /^https?:\/\//i.test(url);
-
-// Row proportions mirror the desktop sidebar (44px rows, 14px text) so the
-// full menu tree reads the same in both shells.
-const linkClass =
-  'my-0.5 flex min-h-[44px] items-center gap-3.5 rounded-md px-3.5 py-3 text-sm transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-focus-blue';
-const subLinkClass =
-  'flex min-h-[44px] items-center rounded-md px-3 py-2 text-sm transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-focus-blue';
+// Active state, external test and row recipes are shared with the desktop
+// sidebar through lib/menu (sub-rows lift to the 44px touch target here).
+const isActive = (url: string) => isMenuActive(pathname, url);
+const isExternal = isExternalLink;
+const linkClass = MENU_LINK_CLASS;
+const subLinkClass = MENU_SUBLINK_TOUCH;
 ---
 
 <!-- Mobile menu drawer (UX.md §6): the TabBar "more" button toggles the full

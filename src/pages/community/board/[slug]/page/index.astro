@@ -1,9 +1,13 @@
 ---
-// Page-number-less shape: bounce to the board root ('page' guard as above).
+// Page-number-less shape: permanent normalization to the board root ('page'
+// guard as above); the active sort query rides along.
 const slug = Astro.params.slug ?? '';
 // Astro params arrive decoded; re-encode the segment (a raw CJK slug
 // would break the Location header).
 return Astro.redirect(
-  slug === 'page' ? '/community/' : `/community/board/${encodeURIComponent(slug)}/`,
+  slug === 'page'
+    ? `/community/${Astro.url.search}`
+    : `/community/board/${encodeURIComponent(slug)}/${Astro.url.search}`,
+  308,
 );
 ---

@@ -1,4 +1,4 @@
-import { toBcp47, type Locale } from '@/lib/i18n/locale';
+import { DEFAULT_LOCALE, toBcp47, type Locale } from '@/lib/i18n/locale';
 
 /**
  * The site's own calendar default (fallbackSite + the current WP install
@@ -12,7 +12,7 @@ export const DEFAULT_TIMEZONE = 'Asia/Shanghai';
 /** Pure formatting: safe to import from SSR components or hydrated islands. */
 export function displayDate(
   value: string,
-  locale: Locale = 'zh_CN',
+  locale: Locale = DEFAULT_LOCALE,
   timeZone: string = DEFAULT_TIMEZONE,
 ): string {
   const date = new Date(value);
@@ -62,9 +62,6 @@ export function notificationTime(
   try {
     return new Intl.DateTimeFormat(bcp47Tag, options).format(date);
   } catch {
-    return new Intl.DateTimeFormat(toBcp47(DEFAULT_LOCALE_FALLBACK), options).format(date);
+    return new Intl.DateTimeFormat(toBcp47(DEFAULT_LOCALE), options).format(date);
   }
 }
-
-/** Underscore-form site default, kept next to the fallback that uses it. */
-const DEFAULT_LOCALE_FALLBACK = 'zh_CN' as const;

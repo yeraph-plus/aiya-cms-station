@@ -33,15 +33,14 @@ npm test                  # 单测（契约不变式 / i18n / SEO / 净化 / 门
 环境变量（服务端专用，经 `astro:env/server` 读取，绝不进入浏览器产物；完整
 注释以 `.env.example` 为准）：
 
-| 变量                         | 说明                                                                                                                                                                                                         |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `AIYA_SITE_URL`              | 前端站点自身 origin（canonical / sitemap / cookie Secure 全靠它；会话 cookie 的 Domain 属性亦由此自动反取可注册根域——`www.site.name` → `site.name`，子域应用共享登录态；localhost/IP 自动回落仅主机 cookie） |
-| `AIYA_WP_API_URL`            | WP 后端 origin（`/wp-json/aiya/core/v1/` 契约根由应用内部拼接，旧的全路径写法仍兼容）；**其 origin 必须与 WP 的 siteurl 一致**（见下方「媒体单源」铁律）                                                     |
-| `AIYA_API_TIMEOUT_MS`        | 上游超时，默认 8000                                                                                                                                                                                          |
-| `AIYA_ALLOW_LOCAL_HTTP`      | 仅 loopback 允许 HTTP 的开发开关，不进生产                                                                                                                                                                   |
-| `AIYA_PROXY_SECRET`          | 反代桥共享秘钥，须等于 wp-config 的 `AIYA_PROXY_SECRET` 常量                                                                                                                                                 |
-| `AIYA_CLIENT_IP_HEADER`      | 可选：信任的访客地址请求头（如 `X-Real-IP`），缺省 socket 地址                                                                                                                                               |
-| `AIYA_SESSION_COOKIE_DOMAIN` | 可选：显式指定 `aiya_session` 的 Domain 属性；缺省由 `AIYA_SITE_URL` 反取，畸形值 fail-closed                                                                                                                |
+| 变量                    | 说明                                                                                                                                                                                                         |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `AIYA_SITE_URL`         | 前端站点自身 origin（canonical / sitemap / cookie Secure 全靠它；会话 cookie 的 Domain 属性亦由此自动反取可注册根域——`www.site.name` → `site.name`，子域应用共享登录态；localhost/IP 自动回落仅主机 cookie） |
+| `AIYA_WP_API_URL`       | WP 后端 origin（`/wp-json/aiya/core/v1/` 契约根由应用内部拼接，旧的全路径写法仍兼容）；**其 origin 必须与 WP 的 siteurl 一致**（见下方「媒体单源」铁律）                                                     |
+| `AIYA_API_TIMEOUT_MS`   | 上游超时，默认 8000                                                                                                                                                                                          |
+| `AIYA_ALLOW_LOCAL_HTTP` | 仅 loopback 允许 HTTP 的开发开关，不进生产                                                                                                                                                                   |
+| `AIYA_PROXY_SECRET`     | 反代桥共享秘钥，须等于 wp-config 的 `AIYA_PROXY_SECRET` 常量                                                                                                                                                 |
+| `AIYA_CLIENT_IP_HEADER` | 可选：信任的访客地址请求头（如 `X-Real-IP`），缺省 socket 地址                                                                                                                                               |
 
 **无机器身份**：前台不做管理/预览能力，内容读全部匿名——`serverClient()` 不
 持有任何 WP 账号；浏览器端仅存访客各自的 Bearer（HttpOnly cookie）。

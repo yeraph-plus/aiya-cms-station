@@ -1,31 +1,18 @@
-import type { APIRoute } from 'astro';
-import { errorCode, errorRequestId, errorStatus, jsonResponse, visitorIp } from '@/lib/api-auth';
-import { authClient, serverClient } from '@/lib/core/server';
-import { readSessionToken } from '@/lib/core/session';
+import { defineProxy, jsonResponse } from '@/lib/api-auth';
 
 /**
  * POST /api/content/{id}/like/: public counter write. The session token
- * (when present) is forwarded so the backend dedupes logged-in visitors by
- * id instead of the IP+UA hash; guests stay anonymous. Frontend-origin IP
- * means one shared guest bucket — accepted until the trusted-proxy batch
- * lands.
+ * (when present) rides the wrapper's client so the backend dedupes
+ * logged-in visitors by id instead of the IP+UA hash; guests stay
+ * anonymous.
  */
-export const POST: APIRoute = async (Astro) => {
-  const ip = visitorIp(Astro.request, Astro.clientAddress);
-  const id = Number(Astro.params.id);
+export const POST = defineProxy({}, async ({ client, params }) => {
+  const id = Number(params.id);
   if (!Number.isInteger(id) || id < 1) return jsonResponse({ ok: false }, 400);
-  const token = readSessionToken(Astro.cookies);
-  try {
-    const result = token ? await authClient(token, ip).like(id) : await serverClient(ip).like(id);
-    return jsonResponse({
-      ok: true,
-      likes: result.data.likes,
-      already: result.data.already,
-    });
-  } catch (error) {
-    return jsonResponse(
-      { ok: false, code: errorCode(error), requestId: errorRequestId(error) },
-      errorStatus(error),
-    );
-  }
-};
+  const result = await client.like(id);
+  return jsonResponse({
+    ok: true,
+    likes: result.data.likes,
+    already: result.data.already,
+  });
+});

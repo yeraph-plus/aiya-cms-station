@@ -1,15 +1,5 @@
-import type { APIRoute } from 'astro';
+import { defineProxy, jsonResponse, readJsonBody } from '@/lib/api-auth';
 import { cloakPostDetail } from '@/lib/detail';
-import {
-  errorCode,
-  errorRequestId,
-  errorStatus,
-  jsonResponse,
-  readJsonBody,
-  visitorIp,
-} from '@/lib/api-auth';
-import { authClient, serverClient } from '@/lib/core/server';
-import { readSessionToken } from '@/lib/core/session';
 
 /**
  * POST /api/content/{id}/unlock/: password gate write. The backend plants
@@ -19,23 +9,13 @@ import { readSessionToken } from '@/lib/core/session';
  * cloakPostDetail boundary here: swapped content never passed through SSR,
  * so the browser bundle cannot know the upstream host.
  */
-export const POST: APIRoute = async (Astro) => {
-  const ip = visitorIp(Astro.request, Astro.clientAddress);
-  const id = Number(Astro.params.id);
+export const POST = defineProxy({}, async ({ client, params, request }) => {
+  const id = Number(params.id);
   if (!Number.isInteger(id) || id < 1) return jsonResponse({ ok: false }, 400);
-  const body = (await readJsonBody(Astro.request)) as { password?: unknown } | null;
+  const body = (await readJsonBody(request)) as { password?: unknown } | null;
   if (!body || typeof body.password !== 'string' || body.password === '') {
     return jsonResponse({ ok: false }, 400);
   }
-  const token = readSessionToken(Astro.cookies);
-  try {
-    const client = token ? authClient(token, ip) : serverClient(ip);
-    const result = await client.unlockPost(id, body.password);
-    return jsonResponse({ ok: true, post: cloakPostDetail(result.data) });
-  } catch (error) {
-    return jsonResponse(
-      { ok: false, code: errorCode(error), requestId: errorRequestId(error) },
-      errorStatus(error),
-    );
-  }
-};
+  const result = await client.unlockPost(id, body.password);
+  return jsonResponse({ ok: true, post: cloakPostDetail(result.data) });
+});

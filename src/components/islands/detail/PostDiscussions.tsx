@@ -29,14 +29,11 @@ import { toastApiError } from '@/lib/feedback';
 import { t, type Locale } from '@/lib/i18n';
 import { displayDate } from '@/lib/format';
 import type { FeedThread } from '@/lib/community';
+import type { Pagination } from '@/lib/core/contracts';
+import { htmlHasContent } from '@/lib/content';
+import { uploadImage } from '@/lib/upload';
 
-interface PageMeta {
-  page: number;
-  totalPages: number;
-  totalItems: number;
-  hasNext: boolean;
-  hasPrevious: boolean;
-}
+type PageMeta = Pick<Pagination, 'page' | 'totalPages' | 'totalItems' | 'hasNext' | 'hasPrevious'>;
 
 /** How many bound threads the sidebar shows (matches the SSR fetch). */
 const SIDEBAR_LIMIT = 5;
@@ -53,22 +50,6 @@ export interface PostDiscussionsProps {
   canPost: boolean;
   locale: Locale;
   timezone?: string;
-}
-
-/** Same upload path as the community feed composer: same-origin proxy in,
- *  cloaked /media/ URL out (null on failure). */
-async function uploadImageFile(file: File): Promise<string | null> {
-  try {
-    const form = new FormData();
-    form.set('image', file);
-    const response = await fetch('/api/uploads/image/', { method: 'POST', body: form });
-    const json = (await response.json().catch(() => null)) as { ok?: boolean; url?: string } | null;
-    return json?.ok && json.url ? json.url : null;
-  } catch {
-    // Network-level rejection still counts as a failed upload: the callers'
-    // busy flags reset in the .then below and must run.
-    return null;
-  }
 }
 
 /**
@@ -106,8 +87,7 @@ export default function PostDiscussions({
   const [template, setTemplate] = useState('');
   /** Target board; defaults to the first board like the feed composer. */
   const [board, setBoard] = useState(boards[0]?.slug ?? '');
-  const hasDraft =
-    images.length > 0 || /<img/.test(draftHtml) || draftHtml.replace(/<[^>]*>/g, '').trim() !== '';
+  const hasDraft = images.length > 0 || htmlHasContent(draftHtml);
 
   const templates = [
     { value: 'none', label: community.templateNone, body: '' },
@@ -139,7 +119,7 @@ export default function PostDiscussions({
 
   const onPickImage = (file: File) => {
     setUploading(true);
-    void uploadImageFile(file).then((url) => {
+    void uploadImage(file).then((url) => {
       if (url) setImages((prev) => [...prev, url]);
       else toastApiError(null, locale);
       setUploading(false);

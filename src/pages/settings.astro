@@ -6,7 +6,7 @@
 import AppShell from '@/components/layout/AppShell.astro';
 import SettingsPanel from '@/components/islands/user-center/SettingsPanel';
 import { rewriteMediaUrl } from '@/lib/media';
-import { LOCALE_OPTIONS, t } from '@/lib/i18n';
+import { LOCALE_OPTIONS, settingsCopy, t } from '@/lib/i18n';
 import { loadPage } from '@/lib/page.server';
 import { setCrumbs } from '@/lib/breadcrumbs';
 import { currentUser, readSessionToken } from '@/lib/core/session';
@@ -25,7 +25,6 @@ if (!page.ok) Astro.response.status = page.error.status;
 const copy = t(page.locale);
 if (page.ok) setCrumbs(Astro.locals, page.locale, [{ label: copy.settings.title }]);
 const user = page.ok ? page.value.data : null;
-const localeOptions = LOCALE_OPTIONS;
 ---
 
 <AppShell
@@ -41,7 +40,7 @@ const localeOptions = LOCALE_OPTIONS;
       <SettingsPanel
         client:load
         locale={page.locale}
-        localeOptions={localeOptions}
+        localeOptions={LOCALE_OPTIONS}
         user={{
           nickname: user.nickname,
           email: user.email,
@@ -51,31 +50,7 @@ const localeOptions = LOCALE_OPTIONS;
           showNsfw: user.showNsfw,
           avatarUrl: user.avatar.url ? rewriteMediaUrl(user.avatar.url) : null,
         }}
-        copy={{
-          avatarTitle: copy.settings.avatarTitle,
-          changeAvatar: copy.settings.changeAvatar,
-          removeAvatar: copy.settings.removeAvatar,
-          avatarRemoveConfirm: copy.settings.avatarRemoveConfirm,
-          cancel: copy.settings.cancel,
-          profileTitle: copy.settings.profileTitle,
-          nicknameLabel: copy.shell.nicknameLabel,
-          descriptionLabel: copy.settings.descriptionLabel,
-          urlLabel: copy.settings.urlLabel,
-          localeLabel: copy.settings.localeLabel,
-          emailLabel: copy.shell.emailLabel,
-          currentPasswordLabel: copy.settings.currentPasswordLabel,
-          currentPasswordHint: copy.settings.currentPasswordHint,
-          accountTitle: copy.settings.accountTitle,
-          newPasswordLabel: copy.settings.newPasswordLabel,
-          newPasswordHint: copy.settings.newPasswordHint,
-          alwaysShowNsfw: copy.settings.alwaysShowNsfw,
-          alwaysShowNsfwHint: copy.settings.alwaysShowNsfwHint,
-          passwordConfirmLabel: copy.shell.passwordConfirmLabel,
-          save: copy.settings.save,
-          saved: copy.settings.saved,
-          passwordSaved: copy.settings.passwordSaved,
-          authFailed: copy.shell.authFailed,
-        }}
+        copy={settingsCopy(copy)}
       />
     )
   }

@@ -13,10 +13,12 @@ import { iconInner } from '@/lib/icons';
 import { t } from '@/lib/i18n';
 import { loadPage } from '@/lib/page.server';
 import { setCrumbs } from '@/lib/breadcrumbs';
+import { canonicalQuery, chipHref, isFiltered, parseListFilters } from '@/lib/filters';
 
-const q = (Astro.url.searchParams.get('q') ?? '').slice(0, 100);
-const category = (Astro.url.searchParams.get('category') ?? '').slice(0, 200);
-const sort = Astro.url.searchParams.get('sort') === 'oldest' ? 'oldest' : 'newest';
+// Pages carry one category vocabulary (no tag) — same parse contract as the
+// other two sections minus the tag key.
+const filters = parseListFilters(Astro.url, false);
+const { q, category, sort } = filters;
 const page = await loadPage(
   async (client) => {
     const [pages, terms] = await Promise.all([
@@ -35,7 +37,7 @@ const page = await loadPage(
 if (!page.ok) Astro.response.status = page.error.status;
 const copy = t(page.locale);
 if (page.ok) setCrumbs(Astro.locals, page.locale, [{ label: copy.pages.title }]);
-const filtered = q !== '' || category !== '';
+const filtered = isFiltered(filters);
 const listTitle = q !== '' ? copy.posts.searchTitle(q) : copy.pages.title;
 // Same chip contract as /posts/: the query state the island itself produces
 // (the crawlable page-category archive is /categories/{slug}/).
@@ -56,22 +58,18 @@ const chips = [
         name: term.name,
         count: term.count,
         icon: term.icon ? iconInner(term.icon) : null,
-        href: `/pages/?category=${encodeURIComponent(term.slug)}`,
+        href: chipHref('/pages/', filters, term.slug),
       }))
     : []),
 ];
 // Filters (not the sort preference) make the canonical.
-const canonicalParams = new URLSearchParams();
-if (q !== '') canonicalParams.set('q', q);
-if (category !== '') canonicalParams.set('category', category);
-const canonicalQuery = canonicalParams.toString();
 ---
 
 <AppShell
   page={page}
   title={listTitle}
   description={copy.pages.description}
-  canonicalPath={filtered ? `/pages/?${canonicalQuery}` : '/pages/'}
+  canonicalPath={filtered ? `/pages/?${canonicalQuery(filters)}` : '/pages/'}
   noindex={filtered}
 >
   <h1 class="sr-only">{listTitle}</h1>
