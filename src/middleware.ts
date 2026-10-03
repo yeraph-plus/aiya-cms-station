@@ -5,6 +5,23 @@ import { gateResponse } from '@/lib/gate';
 import { normalizeLocale, t } from '@/lib/i18n';
 import { proxyMedia } from '@/lib/media-proxy';
 
+/** The security-header baseline every response carries — pages, redirects,
+ *  gate pages and media alike (redirects have no body, but a uniform header
+ *  face keeps the audit simple and future-proofs new exit points). */
+function stampSecurityHeaders(response: Response): Response {
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  response.headers.set('X-Frame-Options', 'SAMEORIGIN');
+  // Defense-in-depth base trio (no script-src yet: the pre-paint theme
+  // script is inline; a nonce pipeline is its own batch). The sanitize-html
+  // boundary stays the first line for content HTML.
+  response.headers.set(
+    'Content-Security-Policy',
+    "object-src 'none'; frame-ancestors 'self'; base-uri 'none'",
+  );
+  return response;
+}
+
 export const onRequest = defineMiddleware(async (context, next) => {
   // Resolve the visitor address once per request; every SSR read threads it
   // into its client so the backend sees the real visitor, not this server's
@@ -19,10 +36,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   // 404 file-like paths (no trailing slash) before any route could match.
   if (context.url.pathname.startsWith('/media/')) {
     const response = await proxyMedia(context.url.pathname, context.request);
-    response.headers.set('X-Content-Type-Options', 'nosniff');
-    response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-    response.headers.set('X-Frame-Options', 'SAMEORIGIN');
-    return response;
+    return stampSecurityHeaders(response);
   }
 
   // Canonical URL shape (astro.config keeps trailingSlash 'ignore' so the
@@ -35,14 +49,14 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const safeMethod = context.request.method === 'GET' || context.request.method === 'HEAD';
   if (safeMethod && pathname.startsWith('//')) {
     pathname = pathname.replace(/^\/+/, '/');
-    return context.redirect(pathname + context.url.search, 308);
+    return stampSecurityHeaders(context.redirect(pathname + context.url.search, 308));
   }
   const lastSegment = pathname.split('/').filter(Boolean).pop() ?? '';
 
   // Retired routes: the membership page folded into the account hub
   // (wallet bubble + membership modal on /profile/me/).
   if (safeMethod && (pathname === '/membership' || pathname === '/membership/')) {
-    return context.redirect('/profile/me/' + context.url.search, 308);
+    return stampSecurityHeaders(context.redirect('/profile/me/' + context.url.search, 308));
   }
   if (
     safeMethod &&
@@ -51,7 +65,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     !pathname.startsWith('/api/') &&
     !lastSegment.includes('.')
   ) {
-    return context.redirect(pathname + '/' + context.url.search, 308);
+    return stampSecurityHeaders(context.redirect(pathname + '/' + context.url.search, 308));
   }
 
   // Site gate: every page request asks the content service before anything
@@ -64,7 +78,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     if (!(await backend.isReachable())) {
       const preferred = context.request.headers.get('accept-language')?.split(',')[0] ?? null;
       const locale = normalizeLocale(preferred);
-      return gateResponse(locale, t(locale), pathname + context.url.search);
+      return stampSecurityHeaders(gateResponse(locale, t(locale), pathname + context.url.search));
     }
   }
 
@@ -86,15 +100,5 @@ export const onRequest = defineMiddleware(async (context, next) => {
   } else {
     response.headers.set('Cache-Control', 'private, no-store');
   }
-  response.headers.set('X-Content-Type-Options', 'nosniff');
-  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-  response.headers.set('X-Frame-Options', 'SAMEORIGIN');
-  // Defense-in-depth base trio (no script-src yet: the pre-paint theme
-  // script is inline; a nonce pipeline is its own batch). The sanitize-html
-  // boundary stays the first line for content HTML.
-  response.headers.set(
-    'Content-Security-Policy',
-    "object-src 'none'; frame-ancestors 'self'; base-uri 'none'",
-  );
-  return response;
+  return stampSecurityHeaders(response);
 });

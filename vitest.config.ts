@@ -10,6 +10,11 @@ export default defineConfig({
       'astro:env/server': fileURLToPath(
         new URL('./tests/stubs/astro-env-server.ts', import.meta.url),
       ),
+      // Same for the middleware namespace: the identity helper is all the
+      // middleware test needs to drive the real handler directly.
+      'astro:middleware': fileURLToPath(
+        new URL('./tests/stubs/astro-middleware.ts', import.meta.url),
+      ),
     },
   },
   test: {

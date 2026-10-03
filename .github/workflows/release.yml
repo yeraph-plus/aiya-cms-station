@@ -32,6 +32,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # A semver image tag is minted from the git tag name alone (metadata-
+      # action), so a tag drifting from package.json would publish a
+      # mislabelled release — fail before anything is built or pushed.
+      - name: Assert the v* tag matches package.json version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          version="$(node -p "require('./package.json').version")"
+          if [ "$tag" != "$version" ]; then
+            echo "::error::git tag v$tag does not match package.json version $version"
+            exit 1
+          fi
       - uses: actions/setup-node@v4
         with:
           node-version: 24
