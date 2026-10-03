@@ -53,6 +53,7 @@ import { displayDate } from '@/lib/format';
 import Avatar from '@/components/islands/Avatar';
 import EmptyNote from '@/components/islands/EmptyNote';
 import { t, type Locale } from '@/lib/i18n';
+import { apiErrorCopy } from '@/lib/feedback';
 import type {
   Comment,
   FileEntry,
@@ -1412,10 +1413,10 @@ export function DownloadPanel({
                                   {failure === 'login'
                                     ? copy.loginToDownload
                                     : failure === 'limited'
-                                      ? t(locale).errors.aiya_rate_limited
+                                      ? apiErrorCopy('aiya_rate_limited', locale)
                                       : failure === 'credits'
                                         ? copy.creditsShort
-                                        : copy.downloadFailed}
+                                        : apiErrorCopy(null, locale)}
                                 </span>
                               )}
                             </span>

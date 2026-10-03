@@ -1,6 +1,7 @@
 ---
 import Icon from '@/components/layout/Icon.astro';
 import { displayDate } from '@/lib/format';
+import { htmlToText } from '@/lib/content';
 import type { Discussion } from '@/lib/core/contracts';
 import { t, type Locale } from '@/lib/i18n';
 
@@ -22,12 +23,7 @@ const statusDot: Record<Discussion['status'], string> = {
 };
 const activity = discussion.lastReplyAt || discussion.publishedAt;
 // Untitled threads fall back to a plain-text excerpt of the body.
-const excerpt =
-  discussion.contentHtml
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, 80) || '…';
+const excerpt = htmlToText(discussion.contentHtml, 80) || '…';
 ---
 
 <article

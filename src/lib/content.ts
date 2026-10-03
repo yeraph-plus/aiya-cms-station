@@ -32,6 +32,20 @@ export function htmlHasContent(html: string): boolean {
   return /<img/.test(html) || html.replace(/<[^>]*>/g, '').trim() !== '';
 }
 
+/**
+ * Plain-text projection of backend HTML for excerpt slots: strip tags and
+ * collapse whitespace. Escaping stays the renderer's job (Astro text
+ * interpolation); this only removes markup — the discussion cards hand-copied
+ * the regex before.
+ */
+export function htmlToText(html: string, max = 0): string {
+  const text = html
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return max > 0 ? text.slice(0, max) : text;
+}
+
 function refHref(attribs: Record<string, string>): string | undefined {
   switch (attribs['data-aiya-ref']) {
     case 'post':
@@ -43,9 +57,15 @@ function refHref(attribs: Record<string, string>): string | undefined {
         ? `/profile/${encodeURIComponent(attribs['data-aiya-nicename'])}/`
         : undefined;
     case 'term':
-      return attribs['data-aiya-slug'] !== ''
-        ? `/categories/${encodeURIComponent(attribs['data-aiya-slug'])}/`
-        : undefined;
+      // Tags have no archive route (the standing decision keeps tag
+      // filtering on the list pages): a tag marker lands on the posts
+      // list's tag filter state. The marker carries the taxonomy; a
+      // marker without one is treated as a category.
+      if (attribs['data-aiya-slug'] === '') return undefined;
+      return attribs['data-aiya-taxonomy'] !== undefined &&
+        attribs['data-aiya-taxonomy'] !== 'category'
+        ? `/posts/?tag=${encodeURIComponent(attribs['data-aiya-slug'])}`
+        : `/categories/${encodeURIComponent(attribs['data-aiya-slug'])}/`;
     case 'search':
       return attribs['data-aiya-q'] !== ''
         ? `/search/${encodeURIComponent(attribs['data-aiya-q'])}/`

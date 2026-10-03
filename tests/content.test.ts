@@ -165,6 +165,17 @@ describe('reference markers (zero-routing)', () => {
     );
     expect(term).toContain('href="/categories/%E5%A3%81%E7%BA%B8/"');
 
+    // Tags have no archive route (the tag hub was retired): a tag marker
+    // lands on the posts list's tag filter state.
+    const tag = sanitizeDiscussionHtml(
+      '<a data-aiya-ref="term" data-aiya-taxonomy="resource_content" data-aiya-slug="教程">教程</a>',
+    );
+    expect(tag).toContain(`href="/posts/?tag=${encodeURIComponent('教程')}"`);
+
+    // A marker without a taxonomy attribute degrades to the category route.
+    const bare = sanitizeDiscussionHtml('<a data-aiya-ref="term" data-aiya-slug="news">news</a>');
+    expect(bare).toContain('href="/categories/news/"');
+
     const search = safeContent('<a data-aiya-ref="search" data-aiya-q="测试关键词">测试关键词</a>');
     expect(search).toContain('/search/');
     expect(search).toContain(encodeURIComponent('测试关键词'));

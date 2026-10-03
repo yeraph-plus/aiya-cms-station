@@ -12,7 +12,6 @@ import { categoryArchivePaths } from '@/lib/routes';
 
 export interface TermArchiveProps {
   type: 'posts' | 'resources' | 'pages';
-  taxonomy: 'category' | 'tag';
   slug: string;
   page: number;
   /** Mounted-route URL base (categoryArchivePaths) — canonical, pagination
@@ -43,7 +42,7 @@ export interface TermArchiveView {
   pagePattern: string;
   feed: string;
   /** Feed query minus pagination keys (the island adds those itself). */
-  filter: { category?: string; tag?: string; sort: 'newest' | 'oldest' };
+  filter: { category: string; sort: 'newest' | 'oldest' };
   title: string;
   /** The term's own description ('' when unset) — downstream description
       registration; the renderer falls back to the site default. */
@@ -57,32 +56,25 @@ export interface TermArchiveView {
 
 // Static per-type wiring: which section root (breadcrumb link only — the
 // archive URL base lives in categoryArchivePaths), which feed proxy and
-// which /terms arguments resolve the term name ('all' sweeps the five
-// resource tag vocabularies). pages has no tag vocabulary — never mounted.
+// which /terms arguments resolve the term name. Tag archives were removed
+// with the tag-hub page (standing decision): tag filtering lives on the
+// list pages' ?tag= state, so every archive resolves the category
+// vocabulary only.
 const CONFIG = {
   posts: {
     base: '/posts/',
     feed: '/api/feed/posts/',
-    terms: {
-      category: ['category', 'post'],
-      tag: ['tag', 'post'],
-    },
+    terms: { category: ['category', 'post'] },
   },
   resources: {
     base: '/resources/',
     feed: '/api/feed/resources/',
-    terms: {
-      category: ['category', 'resource'],
-      tag: ['all', 'resource'],
-    },
+    terms: { category: ['category', 'resource'] },
   },
   pages: {
     base: '/pages/',
     feed: '/api/feed/pages/',
-    terms: {
-      category: ['category', 'page'],
-      tag: null,
-    },
+    terms: { category: ['category', 'page'] },
   },
 } as const;
 
@@ -180,7 +172,7 @@ export async function loadCategoryHub(
       archiveBase: paths.base,
       pagePattern: paths.pagePattern,
       feed: '',
-      filter: { sort: 'newest' },
+      filter: { category: '', sort: 'newest' },
       title: page.error.title,
       description: '',
       cover: null,
@@ -227,7 +219,6 @@ export async function loadCategoryHub(
   }
   return loadTermArchive(astro.response, astro.url, astro.cookies, astro.locals, {
     type: resolved,
-    taxonomy: 'category',
     slug: props.slug,
     page: props.page,
     archiveBase: paths.base,
@@ -248,15 +239,14 @@ export async function loadTermArchive(
   locals: { breadcrumbs?: Crumb[]; visitorIp?: string | null },
   props: TermArchiveProps,
 ): Promise<TermArchiveView> {
-  const { type, taxonomy, slug, page: pageNumber, archiveBase } = props;
+  const { type, slug, page: pageNumber, archiveBase } = props;
   const config = CONFIG[type];
   const sort = url.searchParams.get('sort') === 'oldest' ? 'oldest' : 'newest';
 
   const page = await loadPage<TermArchiveValue>(
     async (client) => {
-      const filter = taxonomy === 'category' ? { category: slug } : { tag: slug };
-      // pages+tag is never mounted; fall back to the category vocabulary
-      const [termsTaxonomy, termsType] = config.terms[taxonomy] ?? config.terms.category;
+      const filter = { category: slug };
+      const [termsTaxonomy, termsType] = config.terms.category;
       const [list, terms] = await Promise.all([
         // The list rides the factory's NSFW flag (the loop is a human
         // surface); the term lookup resolves from the FULL vocabulary so a
@@ -268,7 +258,7 @@ export async function loadTermArchive(
             : client.pages({ ...filter, page: pageNumber, sort }),
         client.terms(termsTaxonomy, termsType, { excludeNsfw: false, hideEmpty: false }),
       ]);
-      const term = terms.data.find((entry) => entry.slug === slug && entry.taxonomy === taxonomy);
+      const term = terms.data.find((entry) => entry.slug === slug);
       if (!term) throw new AiyaApiError('http', 404, undefined, 'aiya_not_found');
       return {
         items: list.data,
@@ -293,22 +283,14 @@ export async function loadTermArchive(
   const copyFor = {
     posts: {
       section: copy.posts.title,
-      title: page.ok
-        ? taxonomy === 'category'
-          ? copy.posts.categoryTitle(page.value.name)
-          : copy.posts.tagTitle(page.value.name)
-        : '',
-      empty: taxonomy === 'category' ? copy.posts.categoryEmpty : copy.posts.tagEmpty,
+      title: page.ok ? copy.posts.categoryTitle(page.value.name) : '',
+      empty: copy.posts.categoryEmpty,
       pageOf: copy.posts.pageOf,
     },
     resources: {
       section: copy.resources.title,
-      title: page.ok
-        ? taxonomy === 'category'
-          ? copy.resources.categoryTitle(page.value.name)
-          : copy.resources.tagTitle(page.value.name)
-        : '',
-      empty: taxonomy === 'category' ? copy.resources.categoryEmpty : copy.resources.tagEmpty,
+      title: page.ok ? copy.resources.categoryTitle(page.value.name) : '',
+      empty: copy.resources.categoryEmpty,
       pageOf: copy.resources.pageOf,
     },
     pages: {
@@ -333,7 +315,7 @@ export async function loadTermArchive(
     archiveBase,
     pagePattern: `${archiveBase}page/{page}/`,
     feed: config.feed,
-    filter: { ...(taxonomy === 'category' ? { category: slug } : { tag: slug }), sort },
+    filter: { category: slug, sort },
     title,
     description: page.ok ? page.value.description : '',
     cover: page.ok ? page.value.cover : null,

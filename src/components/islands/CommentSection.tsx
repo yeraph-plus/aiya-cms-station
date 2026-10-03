@@ -20,6 +20,7 @@ import type { Comment, Pagination as WirePagination, SiteComments } from '@/lib/
 import { displayDate } from '@/lib/format';
 import { rewriteMediaUrl } from '@/lib/media';
 import { t, type Locale } from '@/lib/i18n';
+import { apiErrorCopy } from '@/lib/feedback';
 import { uploadImage } from '@/lib/upload';
 
 type Pagination = Pick<WirePagination, 'page' | 'totalPages' | 'hasNext'>;
@@ -226,10 +227,12 @@ export default function CommentSection({
       } else if (json?.code === 'aiya_comments_closed') {
         setError(copy.closed);
       } else {
-        setError(copy.failed);
+        // Contextual special cases above; the fallback rides the shared
+        // dictionary exit (generic when the code is unknown).
+        setError(apiErrorCopy(json?.code ?? null, locale));
       }
     } catch {
-      setError(copy.failed);
+      setError(apiErrorCopy(null, locale));
     } finally {
       setBusy(false);
     }

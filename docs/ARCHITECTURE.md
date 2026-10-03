@@ -31,7 +31,10 @@ lib/core/         contracts.ts（zod 线上契约，后端 PHP DTO 的逐字段�
                   WP 实体解码——HTML 载荷字段与讨论 #标签# 刻意不解）→
                   client.ts（唯一 transport：基址校验、超时、写路由白名单、
                   响应全量 safeParse、错误只透出 status+requestId+aiya_* 码）→
-                  server.ts（环境变量唯一入口；island/browser 导入即构建失败）→
+                  server.ts（secret 类环境变量唯一入口；island/browser 导入
+                  即构建失败。WP origin 是登记过的第二入口：lib/wp-env.ts
+                  直读 process.env——media 链被岛引用、浏览器 bundle 无
+                  process，文件内自带守卫）→
                   session.ts（Bearer → HttpOnly cookie，失败降级游客）→
                   errors.ts（错误分类，从不携带上游正文）。health.ts（进程级
                   熔断器，503 门禁的探活核心）与 contracts.snapshot*.json
@@ -107,8 +110,10 @@ part-button`），剪贴板零件由正文零件的 effect 绑定复制按钮；
   dropdown-menu/empty/field/input-group/input/label/pagination/popover/
   radio-group/select/separator/sonner/switch/tabs/textarea（tooltip 曾装已摘、
   slider 零消费方已删，需要时 `npx shadcn@latest add` 回装）。
-  约定：零件只允许 islands/ 导入；sonner 主题读壳的
-  `html.dark`，`<Toaster />` 用 `client:only="react"` 挂载；以后加件
+  约定：零件只允许 islands/ 导入（唯一破例 = AppShell 挂载的
+  `<Toaster />`，ui/sonner——吐司是全局单例，壳层挂载、`client:only`
+  渲染）；sonner 主题读壳的
+  `html.dark`；以后加件
   `npx shadcn@latest add <name> --yes`。
 - **装/卸依赖后必须重启 dev**（Vite 依赖预打包换 hash，不重启岛水合会静默
   504）。重启后仍失效（岛水合静默死亡、`/node_modules/.vite/deps/*` 全
@@ -131,7 +136,10 @@ part-button`），剪贴板零件由正文零件的 effect 绑定复制按钮；
   出口；后端 message 永不透出。错误码字典在 `lib/i18n/dictionaries/*`，新增
   后端错误码时四个字典同步补齐（`tests/i18n.test.ts` 执法）。
 - **SEO**：后端不可达时整站失败闭锁（robots 全禁、sitemap 空 urlset、门禁页
-  noindex）；筛选/搜索态 noindex，tag 归档恒 noindex，分类归档可索引；
+  noindex）；筛选/搜索态 noindex，分类归档可索引。标签无独立归档路由——
+  标签云页取消的拍板把标签过滤落在列表页 `?tag=` 参数态（同为筛选态
+  noindex），`refHref(term)` 按标记的 taxonomy 分流：category →
+  `/categories/{slug}/`、tag 词汇 → `/posts/?tag={slug}`；
   canonical 由 href 构造器生成；结构化数据经 `lib/seo.ts`。
 - **保留 slug**：首段 `page`、`me`（`/profile/me/`，显式 404）、`board` 为
   路由保留字——内容 slug 撞上时永远落到兜底重定向而非内容。
@@ -156,6 +164,10 @@ part-button`），剪贴板零件由正文零件的 effect 绑定复制按钮；
    SSR——query 参数会被静态文件吞掉，严禁把筛选放 query。
 3. **浏览器只接触 Astro 域名**（单源架构）：
    - 计数端点（like/view/rating）走 `/api` 代理，浏览器不直连 WP。
+   - **aria2 推送例外（唯一不经 /api 的 fetch）**：下载面板的 RPC 推送
+     直连访客本机的 aria2（`http://localhost:6800/jsonrpc`，用户需开
+     `--rpc-allow-origin-all`）——推送目标是用户自己的机器，代理不了，
+     也无需代理。
    - **反代桥**：wp-config 定义 `AIYA_PROXY_SECRET` 常量后，aiya-core
      `TrustedProxy` 模块在请求携带匹配 `X-Aiya-Proxy-Secret` 头时把
      `X-Forwarded-For` 首段采信为访客 IP（限流/计数哈希/评论 IP 三处共用；
@@ -182,7 +194,8 @@ part-button`），剪贴板零件由正文零件的 effect 绑定复制按钮；
    模板 100% 前台自建。消费基础设施在 `lib/content.ts`：`refHref` 按六种
    `data-aiya-ref` 句柄解析路由（post→`/{posts|pages|resources}/{slug}/`、
    comment→父文路由 `#comment-{id}` 深链、user→`/profile/{nicename}/`、
-   term→`/categories/{slug}/`、search→`/search/{q}/`、thread→
+   term→`/categories/{slug}/`（标记带 taxonomy：tag 词汇分流到
+   `/posts/?tag={slug}` 过滤态）、search→`/search/{q}/`、thread→
    `/community/board/{board}/`），经共享 `anchorTransform` 挂在三个 sanitize
    边界（`safeContent`/`sanitizeDiscussionHtml`/`sanitizeCommentHtml`）——
    解析成功补 href、传输用 data 属性即剥（前台 HTML 洁净），句柄不可用降级

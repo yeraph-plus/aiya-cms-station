@@ -39,6 +39,7 @@ import { t, type Locale } from '@/lib/i18n';
 import type { FeedThread, FeedReply } from '@/lib/community';
 import type { Pagination } from '@/lib/core/contracts';
 import { htmlHasContent } from '@/lib/content';
+import { displayDate } from '@/lib/format';
 import { useInfiniteScroll } from '@/lib/use-infinite-scroll';
 import { uploadImage } from '@/lib/upload';
 
@@ -60,6 +61,8 @@ interface Props {
   /** Signed-in visitor (name + avatar) for the reply composer identity. */
   user: { name: string; avatarUrl: string | null } | null;
   locale: Locale;
+  /** Site calendar timezone (from /site); displayDate renders dates in it. */
+  timezone?: string;
 }
 
 type Sort = 'last_activity' | 'newest';
@@ -189,6 +192,7 @@ function CommunityFeedInner({
   canPost,
   user,
   locale,
+  timezone,
 }: Props) {
   const copy = t(locale).community;
   const [threads, setThreads] = useState(initialThreads);
@@ -749,7 +753,7 @@ function CommunityFeedInner({
                         {thread.board.name}
                       </span>
                     )}
-                    <span>{thread.publishedAt.slice(0, 10)}</span>
+                    <span>{displayDate(thread.publishedAt, locale, timezone)}</span>
                   </div>
                 </div>
               </div>
@@ -880,7 +884,7 @@ function CommunityFeedInner({
                                   <span className="font-medium text-foreground">
                                     {reply.author.name}
                                   </span>
-                                  <span>{reply.publishedAt.slice(0, 10)}</span>
+                                  <span>{displayDate(reply.publishedAt, locale, timezone)}</span>
                                   {reply.canDelete && (
                                     <ConfirmPopover
                                       text={copy.deleteConfirmDesc}

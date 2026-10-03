@@ -111,13 +111,16 @@ describe('shell islands render on the server', () => {
 });
 
 /**
- * Static nets for the same mistake, scanned over the island sources. The
- * render test above is the reliable one — these are heuristics with a named
- * escape hatch: an island that needs browser state must be handed it as a
- * prop (shells resolve cookies server-side, e.g. user.softNsfw), because
- * islands never render on the client alone.
+ * Static nets for the same mistake, scanned over the island sources AND the
+ * shadcn ui/ parts (the Toaster in ui/sonner reads `document` in its render
+ * path — legally, behind a `typeof` guard — which is exactly the kind of
+ * thing the islands-only walk could not see). The render test above is the
+ * reliable one — these are heuristics with a named escape hatch: an island
+ * that needs browser state must be handed it as a prop (shells resolve
+ * cookies server-side, e.g. user.softNsfw), because islands never render on
+ * the client alone.
  *
- *  1. No cookie reads in an island at all. The outage read sat in a helper
+ *  1. No cookie reads in a component at all. The outage read sat in a helper
  *     called from a useState initializer, so a rule that only looked at the
  *     initializer itself missed it; cookies are server state and the shell
  *     is the one place that reads them (lib/nsfw.ts).
@@ -130,6 +133,7 @@ const LAZY_INITIALIZER_WITH_BROWSER_GLOBAL =
 
 const ROOT = join(import.meta.dirname, '..');
 const ISLANDS = join(ROOT, 'src/components/islands');
+const UI_PARTS = join(ROOT, 'src/components/ui');
 
 /** Comments (including this file's own prose about cookies) must not trip a
     scan that greps source text. Only whole comment lines are dropped, so a
@@ -152,33 +156,38 @@ function walk(dir: string): string[] {
   return out;
 }
 
-function islandSources(): Array<[string, string]> {
-  return walk(ISLANDS).map((file) => [
+function componentSources(): Array<[string, string]> {
+  return [...walk(ISLANDS), ...walk(UI_PARTS)].map((file) => [
     relative(ROOT, file).split(sep).join('/'),
     withoutComments(readFileSync(file, 'utf-8')),
   ]);
 }
 
-describe('islands keep browser state out of the render path', () => {
+describe('islands and ui parts keep browser state out of the render path', () => {
   it('never reads a cookie (the shell resolves it and passes a prop)', () => {
-    const hits = islandSources()
+    const hits = componentSources()
       .filter(([, text]) => COOKIE_READ.test(text))
       .map(([file]) => file);
     expect(hits).toEqual([]);
   });
 
-  it('never reads navigator in an island (SSR throws; locales ride props)', () => {
+  it('never sniffs the environment in a component (SSR throws; locales ride props)', () => {
     // The 2026-09-28 outage shape: `localeTag || navigator.language` is a
     // hydration/SSR crash the moment one caller passes an empty string.
-    // Locales are props; the guard keeps the fallback out of the tree.
-    const hits = islandSources()
-      .filter(([, text]) => /navigator\s*\./.test(text))
+    // The rule targets environment reads (locale/agent/geolocation), not
+    // API calls like navigator.clipboard inside event handlers. History:
+    // the pre-2026-10-03 regex carried a stray literal backspace and never
+    // matched anything — a silently dead guard this rewrite revived.
+    const hits = componentSources()
+      .filter(([, text]) =>
+        /navigator\s*\.\s*(languages?|userAgent|platform|geolocation)\b/.test(text),
+      )
       .map(([file]) => file);
     expect(hits).toEqual([]);
   });
 
   it('never reaches a browser global from a useState lazy initializer', () => {
-    const hits = islandSources()
+    const hits = componentSources()
       .filter(([, text]) => LAZY_INITIALIZER_WITH_BROWSER_GLOBAL.test(text))
       .map(([file]) => file);
     expect(hits).toEqual([]);
