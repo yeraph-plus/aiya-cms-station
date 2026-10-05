@@ -118,7 +118,7 @@ export default function SearchBox({
           placeholder={copy.search.placeholder}
           aria-label={copy.search.placeholder}
         />
-        <InputGroupAddon align="inline-end" className="pr-2">
+        <InputGroupAddon align="inline-end">
           {/* A real submit button, not a decorative icon: the Select's
               hidden native field counts as a second form control, which
               suppresses the browser's implicit Enter submission. */}

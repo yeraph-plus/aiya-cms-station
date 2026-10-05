@@ -41,9 +41,20 @@
 - **命名容器**：`--container-shell: 1510px`（AppShell/Footer 的
   `max-w-shell`）与 `--container-dialog-sm: 380px`；新增任意 `max-w-[…]`
   禁止，一律走命名容器。
-- **动效**：`--duration-fast/base/slow`（120/200/300ms 语义）+
-  `--ease-standard`；`prefers-reduced-motion: reduce` 全局豁免已入
-  tokens.css（含返回顶部 JS 顺从）；存量偏差沿「随触摸归一」政策。
+- **动效**：`--transition-duration-fast/base/slow`（120/200/300ms 语义：
+  微交互 / 弹出层 / 页面级；Tailwind v4 duration 命名空间，生成
+  `duration-fast/base/slow` 工具类，壳层 CSS 以 `var(--transition-duration-*)`
+  读取）+ `--ease-standard`；组件层时长一律走令牌工具类，字面时长守卫
+  禁止。一次性确认脉冲 = `animate-pop`（tokens.css 令牌，动作成功态
+  翻转时触发一次，微交互档）。
+  视图过渡：侧栏与双壳顶栏/底栏以 `transition:name` 持久匹配（导航时
+  壳保持原位，内容区走 shell.css `::view-transition-*` 的方向性淡移，
+  降级浏览器回落路由器自带 crossfade）；Toaster 以 `transition:persist`
+  跨导航存活。列表入场动画只给客户端追加项（fade-up、页面级档），
+  SSR 首屏与翻页/筛选的内容替换不做入场动画。
+  `prefers-reduced-motion: reduce` 全局豁免已入 tokens.css（视图过渡由
+  路由器自行豁免、含返回顶部 JS 顺从）；存量偏差沿「随触摸归一」政策
+  （现余路由进度条循环周期一项）。
 - **断点词汇表**：壳层双壳切换唯一断点 **992px**（`min-[992px]:` /
   `max-[991px]:`）；岛内自适应用标准 `sm:`(640) / `lg:`(1024) / `2xl:`(1536)。
   两条实测禁令：禁用 `lg:` 做壳切换（992–1023px 区间双壳全隐）；禁用
@@ -54,11 +65,12 @@
 
 ## 3. 防回潮守卫
 
-`tests/style-guard.test.ts` 十条 vitest 常驻执法，是本契约的可执行形态：
+`tests/style-guard.test.ts` 十一条 vitest 常驻执法，是本契约的可执行形态：
 rounded-xl 限 ui/、禁 `min-[1440px]`、vh 上限禁用（一律 svh）、命名容器
 强制、islands 遮罩字面量清零、hex 白名单（gate/500/theme/page.server 的
 零依赖兜底页豁免）、字母头像单方（共享 `islands/Avatar.tsx`）、错误码出口
 唯一（`lib/feedback`）、lucide-static 服务端独占（岛内图标走
-props/termIconMap）、裸输入 label 钉扎。
+props/termIconMap）、裸输入 label 钉扎、组件层字面时长禁止（时长走
+`duration-fast/base/slow` 令牌工具类）。
 
 **新增系统性约定时优先落成守卫用例，而不是口头规范。**

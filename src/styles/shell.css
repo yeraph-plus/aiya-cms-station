@@ -32,7 +32,8 @@
   outline-offset: 2px;
 }
 
-/* Route-change progress bar, driven by ClientRouter events. */
+/* Route-change progress bar, driven by ClientRouter events. The 1s here is
+   the indeterminate loop period, not a motion-token duration. */
 #route-progress {
   position: fixed;
   inset-inline: 0;
@@ -60,6 +61,51 @@
 @keyframes route-progress {
   to {
     transform: translateX(350%);
+  }
+}
+
+/* View-transition direction (DESIGN.md §2 动效): the content area — every
+   group outside the named shell elements — slides+fades one step toward the
+   navigation direction at the page-level duration; back navigations mirror
+   it. The named shell groups (sidebar / headers / tab bar) keep Astro's
+   in-place crossfade, which between pixel-identical shells reads as "the
+   shell never moves". Browsers without the View Transitions API fall back
+   to the router's own crossfade; reduced-motion is honored by the router
+   (transitions are skipped entirely). */
+html[data-astro-transition='forward']::view-transition-old(root) {
+  animation: vt-out-forward var(--transition-duration-slow) var(--ease-standard) both;
+}
+html[data-astro-transition='forward']::view-transition-new(root) {
+  animation: vt-in-forward var(--transition-duration-slow) var(--ease-standard) both;
+}
+html[data-astro-transition='back']::view-transition-old(root) {
+  animation: vt-out-back var(--transition-duration-slow) var(--ease-standard) both;
+}
+html[data-astro-transition='back']::view-transition-new(root) {
+  animation: vt-in-back var(--transition-duration-slow) var(--ease-standard) both;
+}
+@keyframes vt-out-forward {
+  to {
+    opacity: 0;
+    transform: translateX(-1rem);
+  }
+}
+@keyframes vt-in-forward {
+  from {
+    opacity: 0;
+    transform: translateX(1rem);
+  }
+}
+@keyframes vt-out-back {
+  to {
+    opacity: 0;
+    transform: translateX(1rem);
+  }
+}
+@keyframes vt-in-back {
+  from {
+    opacity: 0;
+    transform: translateX(-1rem);
   }
 }
 
@@ -97,9 +143,9 @@
 #global-sidebar nav a,
 #global-sidebar nav summary {
   transition:
-    color 0.2s ease,
-    background-color 0.2s ease,
-    padding-inline 0.2s ease;
+    color var(--transition-duration-base) var(--ease-standard),
+    background-color var(--transition-duration-base) var(--ease-standard),
+    padding-inline var(--transition-duration-base) var(--ease-standard);
 }
 
 /* Desktop header is not sticky: it and the banner underlaying it scroll
@@ -146,9 +192,9 @@
   pointer-events: none;
   visibility: hidden;
   transition:
-    opacity 0.25s ease,
-    transform 0.25s ease,
-    background-color 0.2s ease;
+    opacity var(--transition-duration-base) var(--ease-standard),
+    transform var(--transition-duration-base) var(--ease-standard),
+    background-color var(--transition-duration-base) var(--ease-standard);
 }
 [data-back-to-top][data-visible] {
   opacity: 1;
@@ -250,7 +296,7 @@ a[data-aiya-ref] .aiya-ref-avatar {
   color: transparent;
   border-radius: 2px;
   cursor: pointer;
-  transition: color 0.15s ease;
+  transition: color var(--transition-duration-fast) var(--ease-standard);
 }
 .prose-community span[data-spoiler]:hover,
 .prose-community span[data-spoiler]:focus,
@@ -430,8 +476,8 @@ a[data-aiya-ref] .aiya-ref-avatar {
   padding: 0.25rem 0.5rem;
   cursor: pointer;
   transition:
-    color 0.15s ease,
-    border-color 0.15s ease;
+    color var(--transition-duration-fast) var(--ease-standard),
+    border-color var(--transition-duration-fast) var(--ease-standard);
 }
 .clipboard-copy-btn:hover {
   color: var(--foreground);

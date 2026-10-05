@@ -61,7 +61,7 @@ export default function AdSpace({ slots }: { slots: AdSlot[] }) {
               // has twice served stale utility CSS for this island, and
               // the ratio is the one property the design cannot lose.
               style={{ aspectRatio: AD_RATIO }}
-              className="block w-full object-cover object-center transition-transform duration-500 group-hover:scale-[1.03]"
+              className="block w-full object-cover object-center transition-transform duration-slow group-hover:scale-[1.03]"
               loading="lazy"
               decoding="async"
             />

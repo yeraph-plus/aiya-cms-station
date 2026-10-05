@@ -28,7 +28,10 @@ const siteName = site.name;
 const seed = searchSeed(Astro.url.pathname, Astro.url.searchParams.get('type') ?? '');
 ---
 
-<header class="sticky top-0 z-30 border-b border-border bg-surface min-[992px]:hidden">
+<header
+  transition:name="aiya-shell-topbar"
+  class="sticky top-0 z-30 border-b border-border bg-surface min-[992px]:hidden"
+>
   <div class="flex h-14 items-center justify-between gap-2 px-4">
     <a
       href="/"

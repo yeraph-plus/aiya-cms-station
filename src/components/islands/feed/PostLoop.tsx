@@ -418,22 +418,30 @@ function FilterPill({
  * four per-breakpoint thumb sizes (120 / 160 / 200 / 240 / 288px) so the
  * image never overwhelms small screens, and the text column stretches
  * top-aligned with the meta row pinned to the card bottom. Card view locks
- * its height by reserving the text rows (see CardInfo).
+ * its height by reserving the text rows (see CardInfo). `enter` rides only
+ * on client-appended items (infinite scroll) — SSR HTML never carries it,
+ * so first paint never plays an entrance.
  */
 function FeedCard({
   item,
   vertical,
   locale,
+  enter = false,
 }: {
   item: PostSummary;
   vertical: boolean;
   locale: Locale;
+  enter?: boolean;
 }) {
   // The backend always resolves a card image (default placeholder included)
   // — the front end adds no fallback of its own.
   const thumbUrl = item.thumbnail?.url ?? null;
   return (
-    <Card className="group overflow-hidden rounded-md transition-colors hover:border-body-muted">
+    <Card
+      className={`group overflow-hidden rounded-md transition-colors hover:border-body-muted ${
+        enter ? 'animate-in fade-in slide-in-from-bottom-2 duration-slow' : ''
+      }`}
+    >
       <a
         href={postRoute(item.type, item.slug)}
         className={
@@ -510,6 +518,14 @@ export default function PostLoop({
   // SSR and the first client render agree on defaultView; the stored
   // choice (if any) lands in an effect — no hydration mismatch.
   const [view, setView] = useState<LoopView>(defaultView);
+  // Incremented on every explicit view toggle: keys the list container so
+  // the layout switch replays a one-shot fade (never on initial mount —
+  // epoch 0 renders without the animation class).
+  const [viewEpoch, setViewEpoch] = useState(0);
+  // Length of the non-appended prefix of state.items: indexes from here on
+  // entered through infinite scroll and ride the entrance animation.
+  // Replacements (filter / sort / pager) reset it to the new list length.
+  const [enterBaseline, setEnterBaseline] = useState(items.length);
   // Optimistic chip highlight; SSR props win again after any router swap.
   const [activeCategories, setActiveCategories] = useState<string[] | null>(null);
   // Tag panel: open/closed is session-local; the selected tag set mirrors
@@ -523,6 +539,7 @@ export default function PostLoop({
   }, [defaultView, stickyView]);
   const toggleView = (next: LoopView) => {
     setView(next);
+    setViewEpoch((epoch) => epoch + 1);
     try {
       localStorage.setItem(VIEW_KEY, next);
     } catch {
@@ -587,6 +604,9 @@ export default function PostLoop({
             query: next.query,
             route: next.route,
           });
+          // A replacement list carries no appended tail — every item is
+          // "already there" and must not play the entrance animation.
+          setEnterBaseline(json.items.length);
           // Clone the ClientRouter's history state so router-owned
           // back/forward keeps working for this entry.
           window.history.pushState(history.state, '', historyUrl);
@@ -772,10 +792,11 @@ export default function PostLoop({
   const chipActive = (slug: string) =>
     slug === '' ? categorySet.length === 0 : categorySet.includes(slug);
   // Literal classes only — Tailwind's scanner cannot see interpolated names.
-  // Card view never drops below two columns: on phones the single-column
-  // grid degenerated into a wall of aspect-video images with no scan grid.
+  // Card view never drops below two columns (through sm): on phones the
+  // single-column grid degenerated into a wall of aspect-video images with
+  // no scan grid.
   const listClass = vertical
-    ? 'grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6'
+    ? 'grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'
     : 'flex flex-col gap-3';
   return (
     <div aria-busy={loading}>
@@ -927,7 +948,7 @@ export default function PostLoop({
         )}
       </div>
       {panelOpen && hasTags && (
-        <div className="mb-3 border-y border-border py-2.5">
+        <div className="mb-3 animate-in fade-in slide-in-from-top-2 border-y border-border py-2.5 duration-base">
           <div className="space-y-1.5">
             {/* Sort row: moved out of the chips nav into the panel. */}
             <div className="flex flex-wrap items-center gap-1.5">
@@ -978,12 +999,21 @@ export default function PostLoop({
       )}
       {state.items.length > 0 ? (
         <div
+          key={viewEpoch}
           className={
-            listClass + (loading ? ' opacity-60 transition-opacity' : ' transition-opacity')
+            listClass +
+            (viewEpoch > 0 ? ' animate-in fade-in duration-base' : '') +
+            (loading ? ' opacity-60 transition-opacity' : ' transition-opacity')
           }
         >
-          {state.items.map((item) => (
-            <FeedCard key={item.id} item={item} vertical={vertical} locale={locale} />
+          {state.items.map((item, index) => (
+            <FeedCard
+              key={item.id}
+              item={item}
+              vertical={vertical}
+              locale={locale}
+              enter={index >= enterBaseline}
+            />
           ))}
         </div>
       ) : autoLoad ? null : (

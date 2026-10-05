@@ -36,7 +36,7 @@ const subLinkClass = MENU_SUBLINK_TOUCH;
     data-drawer-overlay
     inert
     aria-hidden="true"
-    class="pointer-events-none fixed inset-0 z-20 bg-scrim-modal opacity-0 transition-opacity duration-200 group-data-[open]:pointer-events-auto group-data-[open]:opacity-100"
+    class="pointer-events-none fixed inset-0 z-20 bg-scrim-modal opacity-0 transition-opacity duration-base group-data-[open]:pointer-events-auto group-data-[open]:opacity-100"
   >
   </div>
   <aside
@@ -44,7 +44,7 @@ const subLinkClass = MENU_SUBLINK_TOUCH;
     inert
     tabindex="-1"
     aria-label={siteName}
-    class="fixed inset-y-0 left-0 z-[25] flex w-[280px] max-w-[85vw] -translate-x-full flex-col border-r border-border bg-surface pt-[4.5rem] transition-transform duration-200 group-data-[open]:translate-x-0"
+    class="fixed inset-y-0 left-0 z-[25] flex w-[280px] max-w-[85vw] -translate-x-full flex-col border-r border-border bg-surface pt-[4.5rem] transition-transform duration-base group-data-[open]:translate-x-0"
   >
     <nav aria-label={siteName} class="flex-1 overflow-y-auto px-3 pb-4">
       <ul class="flex flex-col">
@@ -65,7 +65,7 @@ const subLinkClass = MENU_SUBLINK_TOUCH;
                       name="chevronRight"
                       size={16}
                       strokeWidth={1.8}
-                      class="ml-auto transition-transform duration-200 group-open/details:rotate-90"
+                      class="ml-auto transition-transform duration-base group-open/details:rotate-90"
                     />
                   </summary>
                   <ul class="flex flex-col pl-4">

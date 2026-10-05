@@ -45,6 +45,9 @@ export default function FavoriteButton({
 }: FavoriteButtonProps) {
   const [favorited, setFavorited] = useState(initialFavorited);
   const [busy, setBusy] = useState(false);
+  // One-shot confirm pulse (DESIGN.md §2 animate-pop): armed only when the
+  // favorite turns ON — removing stays quiet; cleared on animationend.
+  const [pop, setPop] = useState(false);
 
   const toggle = async () => {
     if (busy) return;
@@ -68,6 +71,7 @@ export default function FavoriteButton({
       } | null;
       if (json?.ok && typeof json.favorited === 'boolean') {
         setFavorited(json.favorited);
+        if (json.favorited) setPop(true);
         toast.success(json.favorited ? labels.favorited : labels.removed);
       } else {
         toastApiError(json?.code ?? null, locale);
@@ -91,9 +95,10 @@ export default function FavoriteButton({
         <LoaderCircleIcon className="size-4 animate-spin" aria-hidden="true" />
       ) : (
         <BookmarkIcon
-          className="size-4 text-orange-500"
+          className={`size-4 text-orange-500 ${pop ? 'animate-pop' : ''}`}
           fill={favorited ? 'currentColor' : 'none'}
           aria-hidden="true"
+          onAnimationEnd={() => setPop(false)}
         />
       )}
       {favorited ? labels.favorited : labels.favorite}

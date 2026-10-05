@@ -140,4 +140,26 @@ describe('style guard', () => {
     );
     expect(rich).toContain('aria-label={labels.title}');
   });
+
+  it('durations ride the named motion tokens (ui/ keeps shadcn upstream)', () => {
+    // Component layer: semantic duration-* utilities only — numeric scales
+    // (duration-200) drift off the fast/base/slow vocabulary and arbitrary
+    // values (duration-[…]) bypass it entirely.
+    const comp = new Map(
+      [...scan(SRC, TS_ASTRO)].filter(([f]) => !f.startsWith('src/components/ui/')),
+    );
+    expect(
+      violations(
+        comp,
+        /[^a-z-]duration-\d|duration-\[\d|\[transition-duration:|\[animation-duration:/,
+      ),
+    ).toEqual([]);
+    // Shell CSS: transition declarations read the --transition-duration-*
+    // vars; the route-progress loop period (an animation shorthand, not a
+    // motion-token duration) is the one documented exception (DESIGN.md §2 动效).
+    const css = new Map(
+      [...scan(['src/styles'], ['.css'])].filter(([f]) => f !== 'src/styles/tokens.css'),
+    );
+    expect(violations(css, /(?:^|[^-])transition[^;:]*:[^;]*\d+\.?\d*m?s/)).toEqual([]);
+  });
 });

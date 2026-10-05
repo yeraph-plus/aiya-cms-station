@@ -206,7 +206,11 @@ const showBanner = bannerUrl !== null && isHome;
       menu={page.menu.items}
       pathname={Astro.url.pathname}
     />
-    <Toaster client:only="react" />
+    {
+      /* transition:persist keeps the toaster (and its in-flight toasts)
+        alive across ClientRouter swaps instead of being re-mounted. */
+    }
+    <Toaster client:only="react" transition:persist="toaster" />
     <button
       type="button"
       data-back-to-top

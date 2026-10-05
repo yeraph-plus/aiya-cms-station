@@ -23,13 +23,14 @@ const subLinkClass = MENU_SUBLINK_COMPACT;
 <aside
   id="global-sidebar"
   data-scroll-region
+  transition:name="aiya-shell-sidebar"
   class="group sticky top-0 hidden h-dvh w-[190px] shrink-0 flex-col overflow-y-auto border-r border-sidebar-border bg-surface px-3 py-5 min-[992px]:flex data-[collapsed]:w-[76px]"
 >
   <div class="mb-6">
     <a
       href="/"
       title={site.name}
-      class="flex h-10 items-center gap-2 whitespace-nowrap px-2 text-primary transition-[padding] duration-200 group-data-[collapsed]:justify-center group-data-[collapsed]:px-0"
+      class="flex h-10 items-center gap-2 whitespace-nowrap px-2 text-primary transition-[padding] duration-base group-data-[collapsed]:justify-center group-data-[collapsed]:px-0"
     >
       {
         site.favicon ? (
@@ -75,7 +76,7 @@ const subLinkClass = MENU_SUBLINK_COMPACT;
                     name="chevronRight"
                     size={16}
                     strokeWidth={1.8}
-                    class="ml-auto transition-transform duration-200 group-open/details:rotate-90"
+                    class="ml-auto transition-transform duration-base group-open/details:rotate-90"
                   />
                 </summary>
                 <ul class="flex flex-col pl-4">

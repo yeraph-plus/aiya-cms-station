@@ -47,6 +47,9 @@ export default function LikeButton({
   const [likes, setLikes] = useState(initialLikes);
   const [liked, setLiked] = useState(initialLiked);
   const [busy, setBusy] = useState(false);
+  // One-shot confirm pulse (DESIGN.md §2 animate-pop): armed when the like
+  // commits, cleared on animationend so the class can re-arm later mounts.
+  const [pop, setPop] = useState(false);
 
   const like = async () => {
     if (busy || liked) return;
@@ -66,6 +69,7 @@ export default function LikeButton({
       if (json?.ok && typeof json.likes === 'number') {
         setLikes(json.likes);
         setLiked(true);
+        setPop(true);
         toast.success(labels.success);
       } else {
         toastApiError(json?.code ?? null, locale);
@@ -91,7 +95,12 @@ export default function LikeButton({
       {busy ? (
         <LoaderCircleIcon className="size-4 animate-spin" aria-hidden="true" />
       ) : (
-        <HeartIcon className="size-4" fill={liked ? 'currentColor' : 'none'} aria-hidden="true" />
+        <HeartIcon
+          className={`size-4 ${pop ? 'animate-pop' : ''}`}
+          fill={liked ? 'currentColor' : 'none'}
+          aria-hidden="true"
+          onAnimationEnd={() => setPop(false)}
+        />
       )}
       <span aria-hidden="true">+{likes}</span>
     </Button>

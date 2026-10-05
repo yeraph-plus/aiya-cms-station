@@ -113,11 +113,23 @@
 @theme {
   --container-shell: 1510px;
   --container-dialog-sm: 380px;
-  /* Motion vocabulary (§4): micro-interaction / popover / page-level. */
-  --duration-fast: 120ms;
-  --duration-base: 200ms;
-  --duration-slow: 300ms;
+  /* Motion vocabulary (§4): micro-interaction / popover / page-level. The
+     --transition-duration-* keys are Tailwind v4's duration namespace —
+     they generate the duration-fast/base/slow utilities AND land on :root
+     for the shell CSS var() reads. --duration-* would generate nothing. */
+  --transition-duration-fast: 120ms;
+  --transition-duration-base: 200ms;
+  --transition-duration-slow: 300ms;
   --ease-standard: ease;
+  /* One-shot confirm pulse (§4 micro-interaction): applied on the moment a
+     success state flips on (like / favorite), never on mount — SSR HTML
+     never carries it. */
+  --animate-pop: pop var(--transition-duration-base) var(--ease-standard);
+  @keyframes pop {
+    50% {
+      transform: scale(1.15);
+    }
+  }
 }
 /* Dark palette: provisional neutral sheet on the prototype's ink hue;
    refinement follows the (future) dark-mode design spec. The brand
