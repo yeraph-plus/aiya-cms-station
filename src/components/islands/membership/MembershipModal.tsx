@@ -38,7 +38,7 @@ export function MembershipModal({
     setFailed(false);
     void (async () => {
       try {
-        const response = await fetch('/api/sponsorship/plans/');
+        const response = await fetch('/api/membership/plans/');
         const json = (await response.json().catch(() => null)) as {
           ok?: boolean;
           tiers?: TiersPayload;

@@ -351,13 +351,13 @@ const en_US: Dictionary = {
     resetDone: 'Password reset — you can now sign in with the new password.',
   },
   membership: {
-    sponsorTitle: 'Sponsor',
+    sponsorTitle: 'Membership',
     tierReset: (days: number) => `resets every ${days} days`,
     tierPriceLine: (price: string, cycles: number) => `¥${price}/cycle, ${cycles} cycles total`,
     channelEmpty: 'No payment channel is available yet.',
     title: 'Membership & credits',
     modalDescription:
-      'Pick a tier to become a sponsor, or activate with a code / Afdian order number.',
+      'Pick a tier to become a member, or activate with a code / Afdian order number.',
     modalLoading: 'Loading tiers…',
     walletTitle: 'Credit balance',
     balanceUnit: 'credits',

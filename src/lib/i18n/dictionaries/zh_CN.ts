@@ -350,12 +350,12 @@ const zh_CN = {
     resetDone: '密码已重置，现在可以用新密码登录了。',
   },
   membership: {
-    sponsorTitle: '赞助',
+    sponsorTitle: '会员',
     tierReset: (days: number) => `每 ${days} 天重置`,
     tierPriceLine: (price: string, cycles: number) => `¥${price}/期，共 ${cycles} 期`,
     channelEmpty: '支付渠道暂未开放。',
     title: '会员与积分',
-    modalDescription: '选择档位开通赞助会员，或使用激活码 / 爱发电订单号激活。',
+    modalDescription: '选择档位开通会员，或使用激活码 / 爱发电订单号激活。',
     modalLoading: '档位加载中…',
     walletTitle: '积分余额',
     balanceUnit: '积分',
@@ -454,13 +454,13 @@ const zh_CN = {
     aiya_invalid_parent: '要回复的评论不存在。',
     aiya_duplicate_comment: '评论内容重复，请勿重复提交。',
     aiya_comment_rejected: '评论未能发布，请稍后重试。',
-    // sponsorship
+    // membership
     aiya_channel_unavailable: '该支付渠道暂不可用。',
     aiya_afdian_unavailable: '爱发电服务暂不可用，请联系站长。',
     aiya_code_used: '该订单或兑换码已被使用。',
     aiya_code_invalid: '兑换码无效，请核对后重试。',
-    aiya_code_activation_failed: '激活失败，可能存在重叠的赞助有效期。',
-    // sponsorship & credits
+    aiya_code_activation_failed: '激活失败，可能存在重叠的会员有效期。',
+    // membership & credits
     aiya_credit_checkin_done: '今天已经签到过了。',
     aiya_credit_checkin_disabled: '签到暂未开放。',
     aiya_plan_unbound: '该档位尚未绑定爱发电方案。',

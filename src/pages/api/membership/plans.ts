@@ -1,7 +1,7 @@
 import { defineProxy, jsonResponse } from '@/lib/api-auth';
 
 /**
- * GET /api/sponsorship/plans: the public tier list for the membership modal.
+ * GET /api/membership/plans: the public tier list for the membership modal.
  * The backend publishes it anonymously, so this rides the anonymous read
  * client — no session required, purchasable filtering stays the island's job.
  */

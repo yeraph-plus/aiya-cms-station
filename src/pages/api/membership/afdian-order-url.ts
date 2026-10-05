@@ -1,7 +1,7 @@
 import { defineProxy, jsonResponse } from '@/lib/api-auth';
 
 /**
- * GET /api/sponsorship/afdian-order-url?tierKey=X: the personalised Afdian
+ * GET /api/membership/afdian-order-url?tierKey=X: the personalised Afdian
  * deep link. The tier's configured cycles pre-select on the platform page;
  * activation rides Afdian's own webhook, so nothing is queued here.
  */

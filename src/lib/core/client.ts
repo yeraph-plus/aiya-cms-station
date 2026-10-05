@@ -142,7 +142,7 @@ const WRITE_ALLOWLIST: ReadonlyArray<{ method: WriteMethod; pattern: RegExp }> =
   { method: 'POST', pattern: /^discussions\/\d+\/replies$/ },
   { method: 'POST', pattern: /^discussions\/\d+\/like$/ },
   { method: 'DELETE', pattern: /^discussions\/\d+\/like$/ },
-  { method: 'POST', pattern: /^sponsorship\/orders$/ },
+  { method: 'POST', pattern: /^membership\/orders$/ },
   { method: 'POST', pattern: /^credits\/(checkin|redeem)$/ },
   { method: 'POST', pattern: /^users\/me\/following\/\d+$/ },
   { method: 'PATCH', pattern: /^users\/me\/profile$/ },
@@ -558,11 +558,11 @@ export function createAiyaClient(options: ClientOptions) {
       return request('DELETE', `discussions/${id}/replies/${replyId}`, deletedResponseSchema);
     },
 
-    // ---- sponsorship / credits ----
-    myMembership: () => request('GET', 'sponsorship/membership', membershipResponseSchema),
-    tiers: () => request('GET', 'sponsorship/plans', tiersResponseSchema),
+    // ---- membership / credits ----
+    myMembership: () => request('GET', 'membership/mine', membershipResponseSchema),
+    tiers: () => request('GET', 'membership/plans', tiersResponseSchema),
     createOrder: (input: OrderCreate) =>
-      request('POST', 'sponsorship/orders', orderCreatedResponseSchema, {
+      request('POST', 'membership/orders', orderCreatedResponseSchema, {
         body: orderCreateSchema.parse(input),
       }),
     redeemCode: (code: string, channel: 'redeem' | 'afdian' = 'redeem') =>
@@ -577,7 +577,7 @@ export function createAiyaClient(options: ClientOptions) {
       }),
     /** Afdian deep link; the tier's configured cycles pre-select there. */
     afdianOrderUrl: (tierKey: string) =>
-      request('GET', 'sponsorship/afdian/order-url', afdianOrderUrlResponseSchema, {
+      request('GET', 'membership/afdian/order-url', afdianOrderUrlResponseSchema, {
         query: { tierKey },
       }),
     creditsBalance: () => request('GET', 'credits/balance', creditBalanceResponseSchema),

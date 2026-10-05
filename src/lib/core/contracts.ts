@@ -621,7 +621,7 @@ export const profileSchema = z.object({
 });
 
 // ---------------------------------------------------------------------------
-// Sponsorship / membership tiers (Domain/Sponsorship, 0.50.0 tier model)
+// Membership tiers (Domain/Membership, 0.50.0 tier model)
 // ---------------------------------------------------------------------------
 
 export const tierSchema = z.object({

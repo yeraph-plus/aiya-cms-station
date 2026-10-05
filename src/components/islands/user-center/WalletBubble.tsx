@@ -20,7 +20,7 @@ const checkinMarker = (): string => `aiya-checkin-${new Date().toISOString().sli
  * Credit wallet bubble, the third shell bubble next to notifications and the
  * user menu. The trigger shows the live balance; the popover pairs the
  * balance with the currently effective plan, then the daily check-in. The
- * sponsorship entry (opening the purchase modal) is NOT inside the popover —
+ * membership entry (opening the purchase modal) is NOT inside the popover —
  * it is a header button right next to the credits chip, reading the same
  * membership fetch: active sponsors see their tier name on the button, everyone
  * else the plain 赞助 label. Renders only for signed-in visitors (UserCenter).
@@ -111,7 +111,7 @@ export function WalletBubble({ locale, timezone }: { locale: Locale; timezone?: 
 
   const fetchWallet = async (): Promise<MembershipState | null> => {
     try {
-      const response = await fetch('/api/sponsorship/');
+      const response = await fetch('/api/membership/');
       const json = (await response.json().catch(() => null)) as {
         ok?: boolean;
         membership?: MembershipState;
@@ -180,7 +180,7 @@ export function WalletBubble({ locale, timezone }: { locale: Locale; timezone?: 
        as a flex item it would blockify and stack the two flex-container
        buttons vertically without it. */
     <span ref={rootRef} className="inline-flex items-center gap-1">
-      {/* The sponsorship entry, OUTSIDE the popover: crowned header button
+      {/* The membership entry, OUTSIDE the popover: crowned header button
           next to the credits chip — active sponsors see their tier name. */}
       <button
         type="button"

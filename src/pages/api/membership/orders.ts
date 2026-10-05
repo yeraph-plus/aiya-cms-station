@@ -2,7 +2,7 @@ import { defineProxy, jsonResponse, readJsonBody } from '@/lib/api-auth';
 import { siteOrigin } from '@/lib/core/server';
 
 /**
- * POST /api/sponsorship/orders: open the cashier for one tier. Returns the
+ * POST /api/membership/orders: open the cashier for one tier. Returns the
  * gateway `submitUrl` the browser must be sent to — the payment itself never
  * passes through this front end.
  */

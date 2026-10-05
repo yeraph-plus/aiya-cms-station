@@ -82,7 +82,7 @@ function PlanCard({
     setError(null);
     try {
       const response = await fetch(
-        `/api/sponsorship/afdian-order-url/?tierKey=${encodeURIComponent(tier.key)}`,
+        `/api/membership/afdian-order-url/?tierKey=${encodeURIComponent(tier.key)}`,
       );
       const json = (await response.json().catch(() => null)) as {
         ok?: boolean;
@@ -176,7 +176,7 @@ function PlanCard({
 }
 
 /**
- * The purchase surface inside the sponsorship modal: plan cards plus the
+ * The purchase surface inside the membership modal: plan cards plus the
  * standalone activation form (redeem code or Afdian order number). It
  * renders only for signed-in visitors — the wallet bubble is the one host.
  */
@@ -204,7 +204,7 @@ export function MembershipPlans({
     try {
       // The payer returns to the page that opened the modal: the front end
       // derives the landing address from its own location.
-      const response = await fetch('/api/sponsorship/orders/', {
+      const response = await fetch('/api/membership/orders/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tierKey, channel, returnUrl: window.location.href }),
