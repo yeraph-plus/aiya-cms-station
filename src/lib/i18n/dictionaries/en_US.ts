@@ -465,6 +465,7 @@ const en_US: Dictionary = {
     aiya_credit_checkin_disabled: 'Check-in is not available right now.',
     aiya_plan_unbound: 'This tier is not linked to an Afdian plan yet.',
     aiya_tier_disabled: 'This tier is no longer for sale.',
+    aiya_invalid_cycles: 'Cycles must be a whole number between 1 and 12.',
     aiya_afdian_rejected: 'Afdian did not accept this order.',
     aiya_duplicate_order: 'This order has already been activated.',
     aiya_order_bound: 'This order is bound to another account.',

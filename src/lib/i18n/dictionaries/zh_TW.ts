@@ -458,6 +458,7 @@ const zh_TW: Dictionary = {
     aiya_credit_checkin_disabled: '簽到暫未開放。',
     aiya_plan_unbound: '該檔位尚未綁定愛發電方案。',
     aiya_tier_disabled: '該檔位已停售。',
+    aiya_invalid_cycles: '購買週期需為 1–12 的整數。',
     aiya_afdian_rejected: '愛發電未接受該訂單。',
     aiya_duplicate_order: '該訂單已經啟用過了。',
     aiya_order_bound: '該訂單已綁定到其他帳號。',

@@ -468,6 +468,7 @@ const zh_CN = {
     aiya_credit_checkin_disabled: '签到暂未开放。',
     aiya_plan_unbound: '该档位尚未绑定爱发电方案。',
     aiya_tier_disabled: '该档位已停售。',
+    aiya_invalid_cycles: '购买周期需为 1–12 的整数。',
     aiya_afdian_rejected: '爱发电未接受该订单。',
     aiya_duplicate_order: '该订单已经激活过了。',
     aiya_order_bound: '该订单已绑定到其他账号。',
