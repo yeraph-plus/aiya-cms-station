@@ -676,6 +676,9 @@ export const planChannelsSchema = z.object({
   epay: z.boolean(),
   /** Platform-push gateway: activation rides webhooks, not the cashier. */
   afdian: z.boolean(),
+  /** The one tier the Afdian channel rides — the purchase UI offers the
+      channel on that tier's card alone ('' while unbound). */
+  afdianTierKey: z.string(),
   /** Enabled channels as a list; new gateways extend without reshaping.
       .catch([]): a gateway the frontend cannot render yet hides the epay
       channel row entirely — no buttons, no 503 — until support ships. */

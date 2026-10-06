@@ -826,6 +826,11 @@
         "nullable": false
       },
       {
+        "name": "afdianTierKey",
+        "type": "string",
+        "nullable": false
+      },
+      {
         "name": "methods",
         "type": "array",
         "nullable": false

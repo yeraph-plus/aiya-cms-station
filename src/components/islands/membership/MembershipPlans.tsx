@@ -40,6 +40,9 @@ export type MembershipCopy = ReturnType<typeof t>['membership'];
 export interface Channels {
   epay: boolean;
   afdian: boolean;
+  /** The one tier the Afdian channel rides — the button shows on that
+      tier's card alone ('' while unbound). */
+  afdianTierKey: string;
   methods: ('alipay' | 'wxpay' | 'usdt')[];
 }
 
@@ -153,7 +156,7 @@ function PlanCard({
         >
           {copy.buyAction}
         </Button>
-        {channels.afdian && (
+        {channels.afdian && tier.key === channels.afdianTierKey && (
           <Button
             type="button"
             variant="outline"
