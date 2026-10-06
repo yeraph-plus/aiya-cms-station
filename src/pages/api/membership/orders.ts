@@ -1,4 +1,5 @@
 import { defineProxy, jsonResponse, readJsonBody } from '@/lib/api-auth';
+import { orderCreateSchema } from '@/lib/core/contracts';
 import { siteOrigin } from '@/lib/core/server';
 
 /**
@@ -9,7 +10,12 @@ import { siteOrigin } from '@/lib/core/server';
 export const POST = defineProxy({ auth: 'required' }, async ({ client, request }) => {
   const body = await readJsonBody(request);
   if (body === null || typeof body !== 'object') return jsonResponse({ ok: false }, 400);
-  const payload = body as { tierKey?: unknown; channel?: unknown; returnUrl?: unknown };
+  const payload = body as {
+    tierKey?: unknown;
+    channel?: unknown;
+    cycles?: unknown;
+    returnUrl?: unknown;
+  };
   // The landing address is ours to pick: the client may ask for the page it
   // opened the modal on, but only same-origin — an arbitrary returnUrl would
   // have the gateway drop the payer on any host after payment (an open
@@ -27,10 +33,14 @@ export const POST = defineProxy({ auth: 'required' }, async ({ client, request }
       /* non-URL input keeps the default */
     }
   }
-  const result = await client.createOrder({
+  // The buyer's cycle count rides through parsed; the backend re-validates
+  // it as the order gate (the zod default 1 covers an absent field).
+  const parsed = orderCreateSchema.parse({
     tierKey: String(payload.tierKey ?? ''),
-    channel: payload.channel as 'alipay' | 'wxpay' | 'usdt',
+    channel: payload.channel,
     returnUrl,
+    cycles: typeof payload.cycles === 'number' ? payload.cycles : undefined,
   });
+  const result = await client.createOrder(parsed);
   return jsonResponse({ ok: true, order: result.data });
 });

@@ -354,6 +354,8 @@ const en_US: Dictionary = {
     sponsorTitle: 'Membership',
     tierReset: (days: number) => `resets every ${days} days`,
     tierPriceLine: (price: string, cycles: number) => `¥${price}/cycle, ${cycles} cycles total`,
+    cyclesLabel: 'Cycles',
+    cyclesOption: (n: number) => `${n} ${n === 1 ? 'cycle' : 'cycles'}`,
     channelEmpty: 'No payment channel is available yet.',
     title: 'Membership & credits',
     modalDescription:

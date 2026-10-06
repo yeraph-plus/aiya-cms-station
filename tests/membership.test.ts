@@ -10,7 +10,6 @@ describe('tier selection', () => {
     cycleDays: 31,
     creditsPerCycle: 5,
     enabled,
-    cycles: 3,
     description: '',
   });
 

@@ -353,6 +353,8 @@ const zh_CN = {
     sponsorTitle: '会员',
     tierReset: (days: number) => `每 ${days} 天重置`,
     tierPriceLine: (price: string, cycles: number) => `¥${price}/期，共 ${cycles} 期`,
+    cyclesLabel: '购买周期',
+    cyclesOption: (n: number) => `${n} 期`,
     channelEmpty: '支付渠道暂未开放。',
     title: '会员与积分',
     modalDescription: '选择档位开通会员，或使用激活码 / 爱发电订单号激活。',

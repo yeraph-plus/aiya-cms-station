@@ -632,8 +632,6 @@ export const tierSchema = z.object({
   creditsPerCycle: count,
   /** False = not purchasable; the front end drops it from buy lists. */
   enabled: z.boolean(),
-  /** Fixed cycle count of one purchase; there is no front-end picker. */
-  cycles: z.number().int().min(1),
   /** Plan-card blurb the membership settings page configures. */
   description: wpText(z.string()),
 });
@@ -999,9 +997,11 @@ export const orderCreateSchema = z.object({
   tierKey: z.string().min(1).max(32),
   channel: z.enum(['alipay', 'wxpay', 'usdt']),
   /** Where the payer's browser lands after paying; the front end derives it
-      from its own origin (the page that initiated the checkout). The cycle
-      count is the tier's own configuration, not a buyer choice. */
+      from its own origin (the page that initiated the checkout). */
   returnUrl: httpUrlSchema.optional(),
+  /** The buyer's cycle count — validated again server-side (default 1,
+      positive whole number, ceiling 12). */
+  cycles: z.number().int().min(1).max(12).default(1),
 });
 export const favoriteCreateSchema = z.object({ postId: id });
 

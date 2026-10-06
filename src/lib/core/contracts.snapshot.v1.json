@@ -1497,11 +1497,6 @@
         "nullable": false
       },
       {
-        "name": "cycles",
-        "type": "int",
-        "nullable": false
-      },
-      {
         "name": "description",
         "type": "string",
         "nullable": false

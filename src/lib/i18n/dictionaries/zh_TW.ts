@@ -350,6 +350,8 @@ const zh_TW: Dictionary = {
     sponsorTitle: '會員',
     tierReset: (days: number) => `每 ${days} 天重置`,
     tierPriceLine: (price: string, cycles: number) => `¥${price}/期，共 ${cycles} 期`,
+    cyclesLabel: '購買週期',
+    cyclesOption: (n: number) => `${n} 期`,
     channelEmpty: '支付渠道暫未開放。',
     title: '會員與積分',
     modalDescription: '選擇檔位開通會員，或使用啟用碼 / 愛發電訂單號啟用。',

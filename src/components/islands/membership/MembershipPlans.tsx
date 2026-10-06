@@ -53,8 +53,8 @@ function money(price: number): string {
 /**
  * One plan card: the (backend-configured) pricing facts up top, a separator,
  * then the interactive half — the payment channel radio and the buy actions.
- * The cycle count is the tier's own configuration; the buyer picks nothing
- * but how to pay.
+ * The buyer picks the cycle count (1-12, default 1 — the backend
+ * re-validates at order time) and how to pay.
  */
 function PlanCard({
   tier,
@@ -67,10 +67,16 @@ function PlanCard({
   channels: Channels;
   copy: MembershipCopy;
   message: (code?: string | null) => string;
-  onOrder: (tierKey: string, channel: string, onFail: (code?: string) => void) => void;
+  onOrder: (
+    tierKey: string,
+    channel: string,
+    cycles: number,
+    onFail: (code?: string) => void,
+  ) => void;
 }) {
   const methods = paymentMethods(channels);
   const [method, setMethod] = useState<string>(methods[0] ?? '');
+  const [cycles, setCycles] = useState(1);
   const [afdianBusy, setAfdianBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -113,11 +119,11 @@ function PlanCard({
         <CardTitle className="text-base">{tier.name}</CardTitle>
         <div className="flex items-baseline gap-x-2">
           <p className="text-3xl font-semibold tracking-tight">
-            {copy.tierPrice(money(tier.price * tier.cycles))}
+            {copy.tierPrice(money(tier.price * cycles))}
           </p>
           <span className="text-xs text-body-muted">{copy.tierReset(tier.cycleDays)}</span>
         </div>
-        <CardDescription>{copy.tierPriceLine(money(tier.price), tier.cycles)}</CardDescription>
+        <CardDescription>{copy.tierPriceLine(money(tier.price), cycles)}</CardDescription>
         {tier.description !== '' && (
           <CardDescription className="mt-4 leading-relaxed">{tier.description}</CardDescription>
         )}
@@ -145,13 +151,27 @@ function PlanCard({
         )}
       </CardContent>
       <CardFooter className="flex-col gap-2 pb-6">
+        <label className="flex w-full items-center justify-between gap-2 text-sm">
+          <span>{copy.cyclesLabel}</span>
+          <select
+            value={cycles}
+            onChange={(event) => setCycles(Number(event.target.value))}
+            className="h-9 rounded-md border border-border bg-background px-2"
+          >
+            {Array.from({ length: 12 }, (_v, i) => i + 1).map((n) => (
+              <option key={n} value={n}>
+                {copy.cyclesOption(n)}
+              </option>
+            ))}
+          </select>
+        </label>
         <Button
           type="button"
           className="w-full"
           disabled={methods.length === 0}
           onClick={() => {
             setError(null);
-            onOrder(tier.key, method, (code) => setError(message(code)));
+            onOrder(tier.key, method, cycles, (code) => setError(message(code)));
           }}
         >
           {copy.buyAction}
@@ -203,14 +223,19 @@ export function MembershipPlans({
 
   const tiers = purchasableTiers(items);
 
-  const startOrder = async (tierKey: string, channel: string, onFail: (code?: string) => void) => {
+  const startOrder = async (
+    tierKey: string,
+    channel: string,
+    cycles: number,
+    onFail: (code?: string) => void,
+  ) => {
     try {
       // The payer returns to the page that opened the modal: the front end
       // derives the landing address from its own location.
       const response = await fetch('/api/membership/orders/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tierKey, channel, returnUrl: window.location.href }),
+        body: JSON.stringify({ tierKey, channel, cycles, returnUrl: window.location.href }),
       });
       const json = (await response.json().catch(() => null)) as {
         ok?: boolean;
@@ -288,7 +313,9 @@ export function MembershipPlans({
                 channels={channels}
                 copy={copy}
                 message={message}
-                onOrder={(tierKey, channel, onFail) => void startOrder(tierKey, channel, onFail)}
+                onOrder={(tierKey, channel, cycles, onFail) =>
+                  void startOrder(tierKey, channel, cycles, onFail)
+                }
               />
             ))}
           </div>
