@@ -244,11 +244,19 @@ export function MembershipPlans({
       });
       const json = (await response.json().catch(() => null)) as {
         ok?: boolean;
-        grant?: { tierName: string; cycles: number };
+        grant?:
+          | { tierName: string; cycles: number }
+          | { granted: number; balance: number; expiresAt: string };
         code?: string;
       } | null;
       if (json?.ok && json.grant) {
-        setRedeemNotice(copy.redeemGranted(json.grant.tierName, json.grant.cycles));
+        // The backend answers by code kind — membership grants name the
+        // queued tier, credit grants carry the balance they just created.
+        if ('tierName' in json.grant) {
+          setRedeemNotice(copy.redeemGranted(json.grant.tierName, json.grant.cycles));
+        } else {
+          setRedeemNotice(copy.redeemCredits(json.grant.granted));
+        }
         form.reset();
       } else {
         setRedeemError(message(json?.code));

@@ -1,9 +1,11 @@
 import { defineProxy, jsonResponse, readJsonBody } from '@/lib/api-auth';
 
 /**
- * POST /api/credits/redeem: redeem a membership code (`channel: 'redeem'`) or
- * activate an Afdian order number (`channel: 'afdian'`). Both queue a tier
- * rather than granting credits, so the island re-reads membership state.
+ * POST /api/credits/redeem: redeem a code (`channel: 'redeem'`) or
+ * activate an Afdian order number (`channel: 'afdian'`). A membership code
+ * queues the tier (the island re-reads membership state); a credit code
+ * grants the balance straight away — the island reads the grant kind off
+ * the returned shape.
  */
 export const POST = defineProxy({ auth: 'required' }, async ({ client, request }) => {
   const body = await readJsonBody(request);

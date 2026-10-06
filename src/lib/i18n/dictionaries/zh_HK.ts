@@ -383,6 +383,7 @@ const zh_HK: Dictionary = {
     redeemAfdianPlaceholder: '請輸入愛發電訂單號',
     redeemAction: '兌換',
     redeemGranted: (tier: string, cycles: number) => `已兌換「${tier}」，${cycles} 個週期已入隊。`,
+    redeemCredits: (credits: number) => `已到帳 ${credits} 積分。`,
     tiersEmpty: '站長還沒有開放任何檔位。',
     tierPrice: (price: string) => `¥${price}`,
     channelLabel: '付款方式',

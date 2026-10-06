@@ -728,6 +728,13 @@ export const membershipCodeGrantSchema = z.object({
   tierName: z.string(),
   cycles: count,
 });
+/**
+ * The redeem endpoint answers by code kind and the wire carries no tag:
+ * a membership code queues the tier (MembershipCodeGrant), a credit code
+ * grants the balance straight away (CreditGrant — the check-in shape).
+ * The two shapes share no keys, so field presence discriminates.
+ */
+export const codeRedeemGrantSchema = z.union([membershipCodeGrantSchema, creditGrantSchema]);
 export const creditsQuerySchema = z.object({
   page: z.number().int().min(1).default(1),
   /** Optional — page size is the backend's call; only pass a number when a
@@ -816,7 +823,7 @@ export const ratingResponseSchema = itemEnvelope(ratingResultSchema);
 export const creditBalanceResponseSchema = itemEnvelope(creditBalanceSchema);
 export const creditEntriesResponseSchema = listEnvelope(creditEntrySchema);
 export const creditCheckinResponseSchema = itemEnvelope(creditGrantSchema);
-export const creditRedeemResponseSchema = itemEnvelope(membershipCodeGrantSchema);
+export const creditRedeemResponseSchema = itemEnvelope(codeRedeemGrantSchema);
 
 // ---------------------------------------------------------------------------
 // Query schemas (list filters; every value must survive URL round-trips)
@@ -1050,4 +1057,5 @@ export type CreditBalance = z.infer<typeof creditBalanceSchema>;
 export type CreditEntry = z.infer<typeof creditEntrySchema>;
 export type CreditGrant = z.infer<typeof creditGrantSchema>;
 export type MembershipCodeGrant = z.infer<typeof membershipCodeGrantSchema>;
+export type CodeRedeemGrant = z.infer<typeof codeRedeemGrantSchema>;
 export type CreditsQuery = z.infer<typeof creditsQuerySchema>;

@@ -388,6 +388,7 @@ const en_US: Dictionary = {
     redeemAction: 'Redeem',
     redeemGranted: (tier: string, cycles: number) =>
       `“${tier}” redeemed — ${cycles} cycles queued.`,
+    redeemCredits: (credits: number) => `${credits} credits granted to your balance.`,
     tiersEmpty: 'No tier is on sale yet.',
     tierPrice: (price: string) => `¥${price}`,
     channelLabel: 'Payment method',

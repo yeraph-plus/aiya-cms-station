@@ -385,6 +385,7 @@ const zh_CN = {
     redeemAfdianPlaceholder: '请输入爱发电订单号',
     redeemAction: '兑换',
     redeemGranted: (tier: string, cycles: number) => `已兑换「${tier}」，${cycles} 个周期已入队。`,
+    redeemCredits: (credits: number) => `已到账 ${credits} 积分。`,
     tiersEmpty: '站长还没有开放任何档位。',
     tierPrice: (price: string) => `¥${price}`,
     channelLabel: '支付方式',
