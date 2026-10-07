@@ -98,6 +98,65 @@
         "nullable": false
       }
     ],
+    "ChannelPost": [
+      {
+        "name": "id",
+        "type": "int",
+        "nullable": false
+      },
+      {
+        "name": "kind",
+        "type": "string",
+        "nullable": false
+      },
+      {
+        "name": "text",
+        "type": "string",
+        "nullable": false
+      },
+      {
+        "name": "media",
+        "type": "array",
+        "nullable": false
+      },
+      {
+        "name": "tgLink",
+        "type": "string",
+        "nullable": false
+      },
+      {
+        "name": "mediaGroupId",
+        "type": "string",
+        "nullable": true
+      },
+      {
+        "name": "postedAt",
+        "type": "string",
+        "nullable": false
+      }
+    ],
+    "ChatMessage": [
+      {
+        "name": "id",
+        "type": "int",
+        "nullable": false
+      },
+      {
+        "name": "sender",
+        "type": "string",
+        "nullable": false
+      },
+      {
+        "name": "body",
+        "type": "string",
+        "nullable": false
+      },
+      {
+        "name": "createdAt",
+        "type": "string",
+        "nullable": false
+      }
+    ],
     "CheckinPolicy": [
       {
         "name": "enabled",

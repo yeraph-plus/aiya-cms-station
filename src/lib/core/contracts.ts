@@ -512,6 +512,42 @@ export const notificationSchema = z.object({
 export const notificationsResponseSchema = listEnvelope(notificationSchema);
 
 // ---------------------------------------------------------------------------
+// Telegram domain (Api/Rest/ChannelController, Api/Rest/ChatController)
+// ---------------------------------------------------------------------------
+
+/** One mirrored channel-post row: the channel is the single source of
+    truth, rows are immutable from the site side, and an album arrives as
+    several rows sharing mediaGroupId (the feed groups consecutive ones).
+    `text` is the backend-sanitized plain text — TG entities are not
+    converted, so it renders as text, never HTML. */
+export const channelPostMediaSchema = z.object({
+  url: httpUrlSchema,
+  width: count,
+  height: count,
+});
+export const channelPostSchema = z.object({
+  id,
+  kind: z.enum(['text', 'photo', 'media']),
+  text: z.string(),
+  media: z.array(channelPostMediaSchema),
+  tgLink: httpUrlSchema,
+  mediaGroupId: z.string().min(1).nullable(),
+  postedAt: isoSchema,
+});
+export const channelFeedResponseSchema = listEnvelope(channelPostSchema);
+
+/** One support-chat row (v1 login-only: one conversation per account,
+    derived server-side — the visitor never names the session). Immutable
+    once written, no read state; sender names the side that wrote it. */
+export const chatMessageSchema = z.object({
+  id,
+  sender: z.enum(['visitor', 'staff']),
+  body: z.string(),
+  createdAt: isoSchema,
+});
+export const chatMessagesResponseSchema = listEnvelope(chatMessageSchema);
+
+// ---------------------------------------------------------------------------
 // Comments (Api/Rest/CommentsController; classic wp_new_comment pipeline)
 // ---------------------------------------------------------------------------
 
@@ -1032,6 +1068,8 @@ export type FileEntry = z.infer<typeof fileEntrySchema>;
 export type FileList = z.infer<typeof fileListSchema>;
 export type FileDownload = z.infer<typeof fileDownloadSchema>;
 export type Notification = z.infer<typeof notificationSchema>;
+export type ChannelPost = z.infer<typeof channelPostSchema>;
+export type ChatMessage = z.infer<typeof chatMessageSchema>;
 export type Comment = z.infer<typeof commentSchema>;
 export type AvatarImage = z.infer<typeof avatarImageSchema>;
 export type User = z.infer<typeof userSchema>;
