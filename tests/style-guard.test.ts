@@ -164,4 +164,26 @@ describe('style guard', () => {
     );
     expect(violations(css, /(?:^|[^-])transition[^;:]*:[^;]*\d+\.?\d*m?s/)).toEqual([]);
   });
+
+  it('font stacks ride the tokens, MiSans opens display and body (DESIGN.md §2 字体栈)', () => {
+    // Handwritten font-family literals drift off the single webfont stack;
+    // tokens.css is the only source, gate/500 keep their inline
+    // dependency-free stacks (the hex-allowlist zero-dep pages minus the
+    // two that carry no fonts).
+    const files = new Map(
+      [...scan(SRC, TS_ASTRO)].filter(
+        ([f]) =>
+          f !== 'src/styles/tokens.css' && f !== 'src/lib/gate.ts' && f !== 'src/pages/500.astro',
+      ),
+    );
+    expect(violations(files, /font-family|font-\[/)).toEqual([]);
+    // The webfont decision itself: self-hosted MiSans must stay the first
+    // family of both text stacks (AppShell imports Regular + Medium css).
+    const tokens = readFileSync(join(ROOT, 'src/styles/tokens.css'), 'utf-8');
+    for (const token of ['--font-display', '--font-body']) {
+      const line = tokens.split('\n').find((candidate) => candidate.trim().startsWith(`${token}:`));
+      expect(line?.includes(`'MiSans',`)).toBe(true);
+      expect(line?.indexOf(`'MiSans'`)).toBeLessThan(line?.indexOf(`'PingFang SC'`) ?? NaN);
+    }
+  });
 });

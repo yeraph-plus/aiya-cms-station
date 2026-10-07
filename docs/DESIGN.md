@@ -35,6 +35,14 @@
   `ui/card` 出厂默认已本地化为站点配方（`gap-0 rounded-lg py-0`、去 shadow）。
 - **字号阶梯**：xs（元信息）/ sm（正文默认）/ base（详情正文）/ lg（页头
   标题）；xl 以上仅限首页 banner 与详情 h1。
+- **字体栈**：站点字形 = 自托管 MiSans（小米；npm `misans` 包的 woff2 分片，
+  unicode-range 按需加载）。`--font-display` / `--font-body` 唯一字栈为
+  `'MiSans', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif`，
+  Regular（400）正文、Medium（500）标题强调，两档字重 css 由 AppShell
+  引入；`--font-mono` 不走 MiSans。零依赖兜底页（gate/500）内联同栈，
+  web 字体不达时自然回落系统黑体。手写层禁止新增 `font-family` 字面量
+  与 `font-[…]` 任意值，字体一律走令牌；页脚保留「MiSans by Xiaomi」
+  来源注明（小米授权的注明义务）。
 - **遮罩两档**：`--scrim-modal`（模态遮罩，dialog/alert-dialog 消费）与
   `--scrim-immersive`（沉浸遮罩：灯箱、全屏编辑器）。封面文字保障的英雄
   渐变 = `shell.css` 的 `.hero-scrim`（沉浸遮罩同色相的定档透明度），
@@ -66,12 +74,14 @@
 
 ## 3. 防回潮守卫
 
-`tests/style-guard.test.ts` 十一条 vitest 常驻执法，是本契约的可执行形态：
+`tests/style-guard.test.ts` 十二条 vitest 常驻执法，是本契约的可执行形态：
 rounded-xl 限 ui/、禁 `min-[1440px]`、vh 上限禁用（一律 svh）、命名容器
 强制、islands 遮罩字面量清零、hex 白名单（gate/500/theme/page.server 的
 零依赖兜底页豁免）、字母头像单方（共享 `islands/Avatar.tsx`）、错误码出口
 唯一（`lib/feedback`）、lucide-static 服务端独占（岛内图标走
 props/termIconMap）、裸输入 label 钉扎、组件层字面时长禁止（时长走
-`duration-fast/base/slow` 令牌工具类）。
+`duration-fast/base/slow` 令牌工具类）、字体栈唯一（`font-family` 字面量
+只许 tokens.css 与 gate/500 内联豁免，`--font-display`/`--font-body`
+栈首必须 MiSans）。
 
 **新增系统性约定时优先落成守卫用例，而不是口头规范。**

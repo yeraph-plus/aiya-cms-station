@@ -17,6 +17,11 @@ import { brandThemeStyle } from '@/lib/theme';
 import { Toaster } from '@/components/ui/sonner';
 import type { PageResult } from '@/lib/page.server';
 import '@/styles/tokens.css';
+// Self-hosted MiSans (DESIGN.md §2 字体栈): exactly two static weights —
+// Vite bundles only the slices these css files reference; the other eight
+// weights and the VF variants in the package stay untouched.
+import 'misans/lib/Normal/MiSans-Regular.min.css';
+import 'misans/lib/Normal/MiSans-Medium.min.css';
 import '@/styles/shell.css';
 
 interface Props {

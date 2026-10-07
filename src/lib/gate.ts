@@ -53,7 +53,7 @@ export function renderGateDocument(locale: Locale, copy: Dictionary, retryPath: 
     <meta name="robots" content="noindex" />
     <title>${title}</title>
   </head>
-  <body style="margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #f6f6f8; color: #303039; font-family: Arial, 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;">
+  <body style="margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #f6f6f8; color: #303039; font-family: 'MiSans', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;">
     <main style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.5rem; padding: 3.5rem 1.5rem; text-align: center; border: 1px dashed #bbb6c4; border-radius: 0.5rem; background: #ffffff; max-width: 26rem;">
       <div aria-hidden="true" style="display: flex; width: 2.5rem; height: 2.5rem; align-items: center; justify-content: center; border-radius: 0.5rem; background: #f0f0f3; color: #b30000;">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${GATE_ICON}</svg>

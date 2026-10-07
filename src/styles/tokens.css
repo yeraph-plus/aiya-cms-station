@@ -166,8 +166,8 @@
   --error: #ff7373;
 }
 @theme {
-  --font-display: Arial, 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
-  --font-body: Arial, 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  --font-display: 'MiSans', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  --font-body: 'MiSans', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
   --font-mono: 'SFMono-Regular', Consolas, monospace;
   --radius-media: 0.375rem;
 }
