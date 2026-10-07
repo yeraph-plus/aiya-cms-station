@@ -36,8 +36,9 @@
 - **字号阶梯**：xs（元信息）/ sm（正文默认）/ base（详情正文）/ lg（页头
   标题）；xl 以上仅限首页 banner 与详情 h1。
 - **遮罩两档**：`--scrim-modal`（模态遮罩，dialog/alert-dialog 消费）与
-  `--scrim-immersive`（沉浸遮罩：灯箱、全屏编辑器）。手写层禁止 `bg-black/*`
-  遮罩字面量。
+  `--scrim-immersive`（沉浸遮罩：灯箱、全屏编辑器）。封面文字保障的英雄
+  渐变 = `shell.css` 的 `.hero-scrim`（沉浸遮罩同色相的定档透明度），
+  详情头图与分类卡共用。手写层禁止 `bg-black/*` 与渐变遮罩字面量。
 - **命名容器**：`--container-shell: 1510px`（AppShell/Footer 的
   `max-w-shell`）与 `--container-dialog-sm: 380px`；新增任意 `max-w-[…]`
   禁止，一律走命名容器。

@@ -1,8 +1,0 @@
----
-// Page-number-less shape: permanent normalization to the profile root,
-// and the active sort query rides along.
-const slug = Astro.params.slug ?? '';
-// Astro params arrive decoded; re-encode the segment (a raw CJK slug
-// would break the Location header).
-return Astro.redirect(`/profile/${encodeURIComponent(slug)}/${Astro.url.search}`, 308);
----

@@ -56,10 +56,7 @@ export function CategoryCard({ card, defaultCover, href }: CardProps) {
           <div className="aspect-[3/1] max-h-64 w-full bg-secondary" aria-hidden="true" />
         )}
         {/* Dark fade: text legibility over any cover */}
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent"
-        />
+        <div className="hero-scrim absolute inset-0" aria-hidden="true" />
         <div className="absolute inset-x-0 bottom-0 flex flex-col gap-1 p-3">
           <div className="flex min-w-0 items-center justify-between gap-2">
             <span className="flex min-w-0 items-center gap-2">

@@ -1,4 +1,4 @@
-import { errorCode, errorRequestId, errorStatus, defineProxy, jsonResponse } from '@/lib/api-auth';
+import { defineProxy, jsonResponse } from '@/lib/api-auth';
 import { postsQuerySchema, resourcesQuerySchema } from '@/lib/core/contracts';
 import { cloakPostSummaryMedia } from '@/lib/media';
 import { isSearchScope, loadSearchPage, normalizeKeyword, type SearchScope } from '@/lib/search';

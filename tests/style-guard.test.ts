@@ -89,7 +89,9 @@ describe('style guard', () => {
         ([f]) => !COLOR_LITERAL_ALLOWLIST.has(f),
       ),
     );
-    expect(violations(files, /bg-black\/|rgba\(15,\s*15,\s*20/)).toEqual([]);
+    expect(violations(files, /bg-black\/|from-black\/|via-black\/|rgba\(15,\s*15,\s*20/)).toEqual(
+      [],
+    );
   });
 
   it('hex colors stay on the dependency-free whitelist (brand colors ride tokens)', () => {

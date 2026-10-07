@@ -8,6 +8,7 @@
 import AppShell from '@/components/layout/AppShell.astro';
 import CategoryCards, { type CategoryCardData } from '@/components/islands/CategoryCards';
 import { loadCategoriesIndex } from '@/lib/archive';
+import { contentTypeLabels } from '@/lib/content';
 import { iconInner } from '@/lib/icons';
 import { rewriteMediaUrl } from '@/lib/media';
 import { t } from '@/lib/i18n';
@@ -17,11 +18,7 @@ const { page, title } = await loadCategoriesIndex(Astro);
 if (!page.ok) Astro.response.status = page.error.status;
 const copy = t(page.locale);
 if (page.ok) setCrumbs(Astro.locals, page.locale, [{ label: title }]);
-const typeLabel = {
-  posts: copy.posts.title,
-  resources: copy.resources.title,
-  pages: copy.pages.title,
-};
+const typeLabel = contentTypeLabels(copy);
 const defaultCover = page.site.defaults.thumb
   ? {
       ...page.site.defaults.thumb,

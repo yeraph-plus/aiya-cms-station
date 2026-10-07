@@ -62,7 +62,16 @@ export function WalletBubble({ locale, timezone }: { locale: Locale; timezone?: 
   const [done, setDone] = useState(false);
   const rootRef = useRef<HTMLSpanElement>(null);
 
-  const claimCheckin = async (): Promise<'granted' | 'done' | 'failed' | null> => {
+  /**
+   * One check-in attempt serving two attention contexts (UX.md §1): the
+   * automatic page-load attempt fires while the visitor may be anywhere —
+   * it toasts on top of the inline notice; a manual click happens with the
+   * bubble open and its notice in view, so the toast would only double the
+   * line the visitor is already reading.
+   */
+  const claimCheckin = async (
+    channel: 'auto' | 'manual',
+  ): Promise<'granted' | 'done' | 'failed' | null> => {
     setCheckinBusy(true);
     setNotice(null);
     try {
@@ -82,21 +91,21 @@ export function WalletBubble({ locale, timezone }: { locale: Locale; timezone?: 
         setBalance(json.grant.balance);
         setDone(true);
         setNotice(copy.checkinGranted(json.grant.granted));
-        toast.success(copy.checkinGranted(json.grant.granted));
+        if (channel === 'auto') toast.success(copy.checkinGranted(json.grant.granted));
         return 'granted';
       }
       if (json?.code === 'aiya_credit_checkin_done') {
         setDone(true);
         setNotice(copy.checkinDone);
-        toast.info(copy.checkinDone);
+        if (channel === 'auto') toast.info(copy.checkinDone);
         return 'done';
       }
       setNotice(apiErrorCopy(json?.code, locale));
-      toast.error(apiErrorCopy(json?.code, locale));
+      if (channel === 'auto') toast.error(apiErrorCopy(json?.code, locale));
       return 'failed';
     } catch {
       setNotice(dict.errors.generic);
-      toast.error(dict.errors.generic);
+      if (channel === 'auto') toast.error(dict.errors.generic);
       return 'failed';
     } finally {
       setCheckinBusy(false);
@@ -140,7 +149,7 @@ export function WalletBubble({ locale, timezone }: { locale: Locale; timezone?: 
       const next = await fetchWallet();
       if (next !== null && next.active && next.checkin.enabled && !readCheckinMarker()) {
         setOpen(true);
-        const result = await claimCheckin();
+        const result = await claimCheckin('auto');
         // Mark only after the backend settled the day (grant or 409): a
         // network blip must not burn the day's only automatic attempt — the
         // backend dedups anyway, so erring toward another attempt is safe.
@@ -159,7 +168,7 @@ export function WalletBubble({ locale, timezone }: { locale: Locale; timezone?: 
   };
 
   const runCheckin = async () => {
-    const result = await claimCheckin();
+    const result = await claimCheckin('manual');
     // A manual click shares the auto path's daily marker only when the
     // backend settled the day (granted or 409); failures stay re-clickable.
     if (result === 'granted' || result === 'done') writeCheckinMarker();

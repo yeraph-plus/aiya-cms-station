@@ -1,8 +1,8 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 
 import Lightbox from 'yet-another-react-lightbox';
-import { Counter, Zoom } from 'yet-another-react-lightbox/plugins';
-import 'yet-another-react-lightbox/styles.css';
+
+import { lightboxChrome, lightboxPlugins } from '@/lib/lightbox';
 
 import {
   ArrowDownIcon,
@@ -331,10 +331,7 @@ export function ArticleHeader({
               className="h-auto min-h-40 w-full object-cover"
               decoding="async"
             />
-            <div
-              className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent"
-              aria-hidden="true"
-            />
+            <div className="hero-scrim absolute inset-0" aria-hidden="true" />
           </>
         )}
         <div
@@ -451,11 +448,8 @@ export function ArticleBody({ post, locale }: { post: PostDetail; locale: Locale
         index={gallery.index}
         slides={gallery.slides}
         close={closeGallery}
-        plugins={gallery.slides.length > 1 ? [Counter, Zoom] : [Zoom]}
-        animation={{ zoom: 300 }}
-        controller={{ closeOnBackdropClick: true }}
-        carousel={{ padding: '4%' }}
-        styles={{ container: { backgroundColor: 'var(--scrim-immersive)' } }}
+        plugins={lightboxPlugins(gallery.slides.length)}
+        {...lightboxChrome}
       />
     </>
   );

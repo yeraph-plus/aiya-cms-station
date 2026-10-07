@@ -46,6 +46,23 @@ export function htmlToText(html: string, max = 0): string {
   return max > 0 ? text.slice(0, max) : text;
 }
 
+/**
+ * The localized display name of one content kind: the categories hub cards
+ * and the category archive header share this one map (both pages used to
+ * hand-roll identical literals).
+ */
+export function contentTypeLabels(copy: {
+  posts: { title: string };
+  resources: { title: string };
+  pages: { title: string };
+}): Record<'posts' | 'resources' | 'pages', string> {
+  return {
+    posts: copy.posts.title,
+    resources: copy.resources.title,
+    pages: copy.pages.title,
+  };
+}
+
 function refHref(attribs: Record<string, string>): string | undefined {
   switch (attribs['data-aiya-ref']) {
     case 'post':

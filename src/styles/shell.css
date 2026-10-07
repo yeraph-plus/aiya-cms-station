@@ -554,3 +554,16 @@ a[data-aiya-ref] .aiya-ref-avatar {
 .w-dialog-sm {
   width: min(92vw, var(--container-dialog-sm));
 }
+
+/* Hero scrim (DESIGN.md §2 遮罩): the bottom-heavy legibility gradient over
+   cover imagery — the detail hero and the category cards share this one
+   recipe. Stops ride the scrim family's fixed ink hue (mode-independent
+   like the --scrim-* tokens); islands never hand-roll gradient literals. */
+.hero-scrim {
+  background-image: linear-gradient(
+    to top,
+    rgb(15 15 20 / 0.75),
+    rgb(15 15 20 / 0.25),
+    transparent
+  );
+}

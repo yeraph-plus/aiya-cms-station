@@ -12,9 +12,8 @@ import {
 } from 'lucide-react';
 
 import Lightbox from 'yet-another-react-lightbox';
-import { Counter, Zoom } from 'yet-another-react-lightbox/plugins';
-import 'yet-another-react-lightbox/styles.css';
-import 'yet-another-react-lightbox/plugins/counter.css';
+
+import { lightboxChrome, lightboxPlugins } from '@/lib/lightbox';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -1086,11 +1085,8 @@ function CommunityFeedInner({
         index={lightbox.index}
         slides={lightbox.images}
         close={() => setLightbox((prev) => ({ ...prev, open: false }))}
-        plugins={lightbox.images.length > 1 ? [Zoom, Counter] : [Zoom]}
-        animation={{ zoom: 300 }}
-        controller={{ closeOnBackdropClick: true }}
-        carousel={{ padding: '4%' }}
-        styles={{ container: { backgroundColor: 'var(--scrim-immersive)' } }}
+        plugins={lightboxPlugins(lightbox.images.length)}
+        {...lightboxChrome}
       />
     </div>
   );

@@ -8,6 +8,7 @@
 import TermArchive from '@/components/content/TermArchive.astro';
 import { CategoryCard } from '@/components/islands/CategoryCards';
 import { loadCategoryHub } from '@/lib/archive';
+import { contentTypeLabels } from '@/lib/content';
 import { rewriteMediaUrl } from '@/lib/media';
 import { t } from '@/lib/i18n';
 
@@ -15,11 +16,7 @@ const slug = Astro.params.slug ?? '';
 const view = await loadCategoryHub(Astro, { slug, page: 1 });
 if (!view.page.ok) Astro.response.status = view.page.error.status;
 const copy = t(view.page.locale);
-const typeLabel = {
-  posts: copy.posts.title,
-  resources: copy.resources.title,
-  pages: copy.pages.title,
-}[view.type];
+const typeLabel = contentTypeLabels(copy)[view.type];
 ---
 
 <TermArchive view={view}>

@@ -1,9 +1,0 @@
----
-// Page-number-less shape: permanent normalization to the search root.
-// The keyword is normalized like the results route — whitespace-only
-// shapes go home instead of encoding into the path.
-import { normalizeKeyword, searchPath } from '@/lib/search';
-
-const key = normalizeKeyword(Astro.params.key ?? '');
-return Astro.redirect(key === '' ? '/' : `${searchPath(key)}${Astro.url.search}`, 308);
----

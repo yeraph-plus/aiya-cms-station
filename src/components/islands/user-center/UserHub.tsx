@@ -1,5 +1,3 @@
-import { useState } from 'react';
-
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import SettingsPanel from './SettingsPanel';
 import WalletPanel from './WalletPanel';
@@ -77,8 +75,7 @@ export default function UserHub({
   tabSettings,
   initialTab = 'favorites',
 }: Props) {
-  const [avatarUrl] = useState<string | null>(settings.user.avatarUrl);
-  const settingsUser = { ...settings.user, avatarUrl };
+  const settingsUser = settings.user;
 
   return (
     <Tabs defaultValue={initialTab} className="gap-6">
