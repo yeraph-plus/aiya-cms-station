@@ -59,7 +59,22 @@ export function MembershipModal({
       <DialogContent className="max-h-[85svh] overflow-y-auto sm:max-w-4xl">
         <DialogHeader>
           <DialogTitle>{copy.sponsorTitle}</DialogTitle>
-          <DialogDescription>{copy.modalDescription}</DialogDescription>
+          <DialogDescription>
+            {copy.modalDescription}{' '}
+            {/* Consultation handoff: closes this modal and opens the
+                support-chat dialog through its bridge (one dialog at a
+                time — the portals would otherwise stack in open order). */}
+            <button
+              type="button"
+              onClick={() => {
+                onOpenChange(false);
+                window.dispatchEvent(new CustomEvent('aiya:open-chat'));
+              }}
+              className="text-focus-blue underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-focus-blue"
+            >
+              {copy.contactSupport}
+            </button>
+          </DialogDescription>
         </DialogHeader>
         {failed && (
           <p role="alert" className="text-sm text-body-muted">

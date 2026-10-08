@@ -1,0 +1,53 @@
+---
+/** Telegram channel mirror: the one auto-loading wall at /channels/. Astro
+    fetches and shapes page 1 (album groups + cloaked media); the island
+    renders the masonry cards and pulls further pages from the same-origin
+    /api/channels proxy. The wall shows every received message — the
+    NSFW soft switch does not exclude rows here, it decides whether
+    sensitive channel media renders blurred (island-side cover). */
+import AppShell from '@/components/layout/AppShell.astro';
+import ChannelFeed from '@/components/islands/channels/ChannelFeed';
+import { setCrumbs } from '@/lib/breadcrumbs';
+import { cloakChannelGroups } from '@/lib/channels.server';
+import { groupChannelRows } from '@/lib/channels';
+import { t } from '@/lib/i18n';
+import { softShowNsfw } from '@/lib/nsfw';
+import { loadPage } from '@/lib/page.server';
+
+const page = await loadPage(
+  async (client) => {
+    const feed = await client.channelFeed({ excludeNsfw: false });
+    return {
+      groups: cloakChannelGroups(groupChannelRows(feed.data)),
+      pagination: feed.meta.pagination,
+    };
+  },
+  Astro.cookies,
+  Astro.locals.visitorIp,
+);
+if (!page.ok) Astro.response.status = page.error.status;
+const copy = t(page.locale);
+if (page.ok) setCrumbs(Astro.locals, page.locale, [{ label: copy.channels.title }]);
+---
+
+<AppShell
+  page={page}
+  title={copy.channels.title}
+  description={page.site.description}
+  canonicalPath="/channels/"
+  noindex={!page.ok}
+>
+  <h1 class="sr-only">{copy.channels.title}</h1>
+  {
+    page.ok && (
+      <ChannelFeed
+        client:load
+        initialGroups={page.value.groups}
+        initialPagination={page.value.pagination}
+        locale={page.locale}
+        timezone={page.site.timezone}
+        showNsfw={softShowNsfw(Astro.cookies)}
+      />
+    )
+  }
+</AppShell>

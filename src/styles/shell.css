@@ -287,11 +287,13 @@ a[data-aiya-ref] .aiya-ref-avatar {
 }
 
 /* Spoiler mark: black-on-black until hovered/focused. The tiptap editor,
-   the rendered thread bodies and the comment bodies share this rule pair;
-   the token pair is mode-independent so the canonical reveal look survives
-   both color modes. */
+   the rendered thread bodies, the comment bodies and the /channels/ TG
+   mirror spans (.spoiler) share this rule pair; the token pair is
+   mode-independent so the canonical reveal look survives both color
+   modes. */
 .prose-community span[data-spoiler],
-.aiya-comment-body span[data-spoiler] {
+.aiya-comment-body span[data-spoiler],
+.spoiler {
   background: var(--spoiler-bg);
   color: transparent;
   border-radius: 2px;
@@ -301,7 +303,9 @@ a[data-aiya-ref] .aiya-ref-avatar {
 .prose-community span[data-spoiler]:hover,
 .prose-community span[data-spoiler]:focus,
 .aiya-comment-body span[data-spoiler]:hover,
-.aiya-comment-body span[data-spoiler]:focus {
+.aiya-comment-body span[data-spoiler]:focus,
+.spoiler:hover,
+.spoiler:focus {
   color: var(--spoiler-fg);
 }
 

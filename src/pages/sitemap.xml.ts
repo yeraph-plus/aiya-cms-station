@@ -3,7 +3,15 @@ import { postRoute } from '@/lib/content';
 import { serverClient, siteOrigin } from '@/lib/core/server';
 import { PROFILE_SLUG_PATTERN } from '@/lib/core/contracts';
 
-const STATIC_PATHS = ['/', '/posts/', '/resources/', '/pages/', '/categories/', '/community/'];
+const STATIC_PATHS = [
+  '/',
+  '/posts/',
+  '/resources/',
+  '/pages/',
+  '/categories/',
+  '/community/',
+  '/channels/',
+];
 /** Runaway guard: at most 50 × 100 items per type. */
 const MAX_PAGES = 50;
 

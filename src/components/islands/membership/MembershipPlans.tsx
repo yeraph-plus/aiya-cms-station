@@ -50,6 +50,9 @@ function money(price: number): string {
   return Number.isInteger(price) ? String(price) : price.toFixed(2);
 }
 
+/** Purchase-cycle presets: three radio tiers instead of a 1-12 select. */
+const CYCLE_CHOICES: readonly number[] = [1, 3, 12];
+
 /**
  * One plan card: the (backend-configured) pricing facts up top, a separator,
  * then the interactive half — the payment channel radio and the buy actions.
@@ -113,19 +116,21 @@ function PlanCard({
   return (
     <Card>
       <CardHeader className="pt-6 pb-5">
-        {/* The pricing facts, four rows: name / total price + reset cadence /
-            per-cycle small print / the configured blurb — no rule between
-            them, one blank line's worth of air before the blurb. */}
+        {/* The pricing facts: name / the big cycle-inclusive total with the
+            per-cycle small print beside it / the reset cadence on its own
+            line / the configured blurb (line breaks preserved). */}
         <CardTitle className="text-base">{tier.name}</CardTitle>
         <div className="flex items-baseline gap-x-2">
           <p className="text-3xl font-semibold tracking-tight">
             {copy.tierPrice(money(tier.price * cycles))}
           </p>
-          <span className="text-xs text-body-muted">{copy.tierReset(tier.cycleDays)}</span>
+          <span className="text-xs text-body-muted">{copy.tierPricePer(money(tier.price))}</span>
         </div>
-        <CardDescription>{copy.tierPriceLine(money(tier.price), cycles)}</CardDescription>
+        <CardDescription>{copy.tierReset(tier.cycleDays)}</CardDescription>
         {tier.description !== '' && (
-          <CardDescription className="mt-4 leading-relaxed">{tier.description}</CardDescription>
+          <CardDescription className="mt-4 leading-relaxed whitespace-pre-line">
+            {tier.description}
+          </CardDescription>
         )}
       </CardHeader>
       <Separator />
@@ -151,20 +156,27 @@ function PlanCard({
         )}
       </CardContent>
       <CardFooter className="flex-col gap-2 pb-6">
-        <label className="flex w-full items-center justify-between gap-2 text-sm">
-          <span>{copy.cyclesLabel}</span>
-          <select
-            value={cycles}
-            onChange={(event) => setCycles(Number(event.target.value))}
-            className="h-9 rounded-md border border-border bg-background px-2"
+        <div className="w-full">
+          <p className="text-sm">{copy.cyclesLabel}</p>
+          {/* Compact text pills — the radio dot is sr-only (a card column is
+              ~15rem wide; three dotted pills would wrap). The checked state
+              reads through the primary border/tint/weight instead. */}
+          <RadioGroup
+            value={String(cycles)}
+            onValueChange={(value) => setCycles(Number(value))}
+            className="mt-1.5 flex flex-row flex-wrap gap-1.5"
           >
-            {Array.from({ length: 12 }, (_v, i) => i + 1).map((n) => (
-              <option key={n} value={n}>
+            {CYCLE_CHOICES.map((n) => (
+              <Label
+                key={n}
+                className="flex cursor-pointer items-center rounded-md border border-border px-2 py-1.5 text-sm font-normal transition-colors has-[button[data-state=checked]]:border-primary has-[button[data-state=checked]]:bg-primary/10 has-[button[data-state=checked]]:font-medium has-[button[data-state=checked]]:text-primary"
+              >
+                <RadioGroupItem value={String(n)} className="sr-only" />
                 {copy.cyclesOption(n)}
-              </option>
+              </Label>
             ))}
-          </select>
-        </label>
+          </RadioGroup>
+        </div>
         <Button
           type="button"
           className="w-full"
