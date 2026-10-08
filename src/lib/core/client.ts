@@ -10,6 +10,9 @@ import {
   creditEntriesResponseSchema,
   creditRedeemResponseSchema,
   creditsQuerySchema,
+  channelFeedResponseSchema,
+  chatMessagesResponseSchema,
+  chatSendResponseSchema,
   deletedResponseSchema,
   discussionCreateSchema,
   discussionReplyCreateSchema,
@@ -142,6 +145,7 @@ const WRITE_ALLOWLIST: ReadonlyArray<{ method: WriteMethod; pattern: RegExp }> =
   { method: 'POST', pattern: /^discussions\/\d+\/replies$/ },
   { method: 'POST', pattern: /^discussions\/\d+\/like$/ },
   { method: 'DELETE', pattern: /^discussions\/\d+\/like$/ },
+  { method: 'POST', pattern: /^chat\/messages$/ },
   { method: 'POST', pattern: /^membership\/orders$/ },
   { method: 'POST', pattern: /^credits\/(checkin|redeem)$/ },
   { method: 'POST', pattern: /^users\/me\/following\/\d+$/ },
@@ -418,6 +422,53 @@ export function createAiyaClient(options: ClientOptions) {
         },
       });
     },
+    /** Mirrored Telegram channel feed (anonymous read; the channel is the
+        single source of truth and rows are immutable site-side). Same
+        clamp window the notifications reader uses — the client stays the
+        second gate rather than trusting every caller. */
+    channelFeed: (
+      query: {
+        page?: number;
+        perPage?: number;
+        channelId?: number;
+        search?: string;
+        excludeNsfw?: boolean;
+      } = {},
+    ) =>
+      request('GET', 'channel/feed', channelFeedResponseSchema, {
+        query: {
+          // The content reads' NSFW flag rides the same factory switch;
+          // a per-call value wins over it.
+          ...nsfwQuery,
+          ...(query.page !== undefined && query.page > 1 ? { page: query.page } : {}),
+          ...(query.perPage !== undefined && query.perPage >= 1
+            ? { perPage: Math.min(50, Math.floor(query.perPage)) }
+            : {}),
+          // Source-channel filter (the mirror aggregates several channels)
+          // and a plain substring search — both optional.
+          ...(query.channelId !== undefined ? { channelId: Math.trunc(query.channelId) } : {}),
+          ...(query.search !== undefined && query.search.trim() !== ''
+            ? { search: query.search.trim().slice(0, 100) }
+            : {}),
+          ...(query.excludeNsfw !== undefined ? { excludeNsfw: query.excludeNsfw } : {}),
+        },
+      }),
+    /** Support chat (v1 login-only relay into the owner's Telegram): reads
+        are the one per-account thread, newest first; sends store first and
+        relay second, rate-limited backend-side (10/60s → aiya_rate_limited). */
+    chatMessages: (query: { page?: number; perPage?: number } = {}) =>
+      request('GET', 'chat/messages', chatMessagesResponseSchema, {
+        query: {
+          ...(query.page !== undefined && query.page > 1 ? { page: query.page } : {}),
+          ...(query.perPage !== undefined && query.perPage >= 1
+            ? { perPage: Math.min(50, Math.floor(query.perPage)) }
+            : {}),
+        },
+      }),
+    chatSend: (body: string) =>
+      request('POST', 'chat/messages', chatSendResponseSchema, {
+        body: { body },
+      }),
     notifications: (query: { page?: number; perPage?: number } = {}) =>
       request('GET', 'notifications', notificationsResponseSchema, {
         // Same clamp window the /api proxy enforces; the client stays the

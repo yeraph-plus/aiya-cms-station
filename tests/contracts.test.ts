@@ -349,7 +349,12 @@ describe('telegram contract shapes (0.118/0.119)', () => {
   const channelPost = {
     id: 9,
     kind: 'photo',
-    text: 'hello',
+    text: 'styled words',
+    entities: [
+      { type: 'bold', offset: 0, length: 6, url: null },
+      { type: 'link', offset: 7, length: 5, url: 'https://a.test/x' },
+      { type: 'mention', offset: 7, length: 5, url: null },
+    ],
     media: [
       {
         url: 'https://aiya.test/wp-content/aiya_upload_pics/telegram/2026/10/tg-1.jpg',
@@ -357,20 +362,41 @@ describe('telegram contract shapes (0.118/0.119)', () => {
         height: 720,
       },
     ],
+    channel: { id: -1001234567890, title: 'My Channel', username: 'mychan', nsfw: false },
     tgLink: 'https://t.me/mychan/55',
     mediaGroupId: null,
     postedAt: '2026-10-07T12:00:00+08:00',
   };
 
   it('accepts the channel-mirror row shape', () => {
+    expect(
+      channelPostSchema.safeParse({
+        ...channelPost,
+        channel: { id: -100999, title: 'X', username: null, nsfw: true },
+      }).success,
+    ).toBe(true); // private channels carry no username
+
     expect(channelPostSchema.safeParse(channelPost).success).toBe(true);
-    expect(channelPostSchema.safeParse({ ...channelPost, kind: 'text', media: [] }).success).toBe(
-      true,
-    );
+    expect(
+      channelPostSchema.safeParse({ ...channelPost, kind: 'text', media: [], entities: [] })
+        .success,
+    ).toBe(true);
   });
 
-  it('rejects unknown kinds, relative tg links and non-ISO stamps', () => {
+  it('rejects unknown kinds, unknown spans, relative tg links and non-ISO stamps', () => {
     expect(channelPostSchema.safeParse({ ...channelPost, kind: 'album' }).success).toBe(false);
+    expect(
+      channelPostSchema.safeParse({
+        ...channelPost,
+        entities: [{ type: 'custom_emoji', offset: 0, length: 1, url: null }],
+      }).success,
+    ).toBe(false);
+    expect(
+      channelPostSchema.safeParse({
+        ...channelPost,
+        entities: [{ type: 'link', offset: 0, length: 1, url: 'javascript:alert(1)' }],
+      }).success,
+    ).toBe(false);
     expect(channelPostSchema.safeParse({ ...channelPost, tgLink: '/t/me/55' }).success).toBe(false);
     expect(
       channelPostSchema.safeParse({ ...channelPost, postedAt: '2024-10-04 00:00:00' }).success,

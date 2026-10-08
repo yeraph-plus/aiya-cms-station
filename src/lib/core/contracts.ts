@@ -518,18 +518,57 @@ export const notificationsResponseSchema = listEnvelope(notificationSchema);
 /** One mirrored channel-post row: the channel is the single source of
     truth, rows are immutable from the site side, and an album arrives as
     several rows sharing mediaGroupId (the feed groups consecutive ones).
-    `text` is the backend-sanitized plain text — TG entities are not
-    converted, so it renders as text, never HTML. */
+    `text` is the backend-sanitized plain text and `entities` carries the
+    styling spans — offsets are UTF-16 code units into `text`, so JS
+    slices natively; building the styled output is this front end's work,
+    no server-side HTML ships. */
 export const channelPostMediaSchema = z.object({
   url: httpUrlSchema,
   width: count,
   height: count,
 });
+/** One styling span over `text`. Types are contract names — the backend
+    maps Telegram's platform names onto them (text_link → 'link',
+    text_mention → 'mention') and drops custom_emoji and non-web link
+    payloads before this ever parses; `url` only rides on 'link' spans. */
+export const channelTextEntitySchema = z.object({
+  type: z.enum([
+    'bold',
+    'italic',
+    'underline',
+    'strikethrough',
+    'spoiler',
+    'blockquote',
+    'code',
+    'pre',
+    'link',
+    'mention',
+    'url',
+    'hashtag',
+  ]),
+  offset: count,
+  length: count,
+  url: httpUrlSchema.nullable(),
+});
+/** The source channel's identity snapshot: several channels can mirror
+    into one feed, so each row names where it came from — `id` is the
+    filtering key, `username` builds channel links (null on private
+    channels), `title` is the display name (the operator's configured
+    name wins over the channel's own), and `nsfw` is the operator's
+    per-channel mark riding every row of that channel. */
+export const channelIdentitySchema = z.object({
+  id: z.number().int(),
+  title: z.string(),
+  username: z.string().min(1).nullable(),
+  nsfw: z.boolean(),
+});
 export const channelPostSchema = z.object({
   id,
   kind: z.enum(['text', 'photo', 'media']),
   text: z.string(),
+  entities: z.array(channelTextEntitySchema),
   media: z.array(channelPostMediaSchema),
+  channel: channelIdentitySchema,
   tgLink: httpUrlSchema,
   mediaGroupId: z.string().min(1).nullable(),
   postedAt: isoSchema,
@@ -546,6 +585,7 @@ export const chatMessageSchema = z.object({
   createdAt: isoSchema,
 });
 export const chatMessagesResponseSchema = listEnvelope(chatMessageSchema);
+export const chatSendResponseSchema = itemEnvelope(chatMessageSchema);
 
 // ---------------------------------------------------------------------------
 // Comments (Api/Rest/CommentsController; classic wp_new_comment pipeline)
@@ -1069,6 +1109,7 @@ export type FileList = z.infer<typeof fileListSchema>;
 export type FileDownload = z.infer<typeof fileDownloadSchema>;
 export type Notification = z.infer<typeof notificationSchema>;
 export type ChannelPost = z.infer<typeof channelPostSchema>;
+export type ChannelIdentity = z.infer<typeof channelIdentitySchema>;
 export type ChatMessage = z.infer<typeof chatMessageSchema>;
 export type Comment = z.infer<typeof commentSchema>;
 export type AvatarImage = z.infer<typeof avatarImageSchema>;

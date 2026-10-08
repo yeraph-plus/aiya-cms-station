@@ -115,8 +115,18 @@
         "nullable": false
       },
       {
+        "name": "entities",
+        "type": "array",
+        "nullable": false
+      },
+      {
         "name": "media",
         "type": "array",
+        "nullable": false
+      },
+      {
+        "name": "channel",
+        "type": "object",
         "nullable": false
       },
       {
