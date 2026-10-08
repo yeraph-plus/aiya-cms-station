@@ -58,6 +58,12 @@ const seed = searchSeed(Astro.url.pathname, Astro.url.searchParams.get('type') ?
     <div class="flex shrink-0 items-center">
       <MobileSearch client:load locale={locale} value={seed.keyword} scope={seed.scope} />
       <NotificationPopover client:load copy={authCopy} localeTag={localeTag} timezone={timezone} />
+      {
+        /* No support-chat button here by contract: the top bar stays lean and
+          the avatar dropdown's 联系客服 entry (aiya:open-chat bridge) opens
+          the dialog — it portals to the body, so the fact that the owning
+          island sits in the CSS-hidden desktop header doesn't matter. */
+      }
       <UserCenter
         client:load
         variant="mobile"

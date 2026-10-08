@@ -6,10 +6,10 @@ import Footer from '@/components/layout/Footer.astro';
 import MobileTopBar from '@/components/layout/mobile/MobileTopBar.astro';
 import MobileMenuDrawer from '@/components/layout/mobile/MobileMenuDrawer.astro';
 import TabBar from '@/components/layout/mobile/TabBar.astro';
-import Icon from '@/components/layout/Icon.astro';
 import PageState from '@/components/layout/PageState.astro';
 import Breadcrumb from '@/components/layout/Breadcrumb.astro';
 import AdSpace from '@/components/islands/AdSpace';
+import BackToTop from '@/components/islands/BackToTop';
 import { t, toBcp47 } from '@/lib/i18n';
 import { cssUrl, rewriteMediaUrl } from '@/lib/media';
 import { softShowNsfw } from '@/lib/nsfw';
@@ -74,7 +74,9 @@ const authCopy = {
   favorites: copy.shell.favorites,
   followingTitle: copy.profile.followingTitle,
   wallet: copy.membership.walletLedgerLink,
+  membership: copy.membership.sponsorTitle,
   accountSettings: copy.profile.accountSettings,
+  chatSupport: copy.shell.chatSupport,
   emailLabel: copy.shell.emailLabel,
   passwordLabel: copy.shell.passwordLabel,
   passwordConfirmLabel: copy.shell.passwordConfirmLabel,
@@ -216,15 +218,7 @@ const showBanner = bannerUrl !== null && isHome;
         alive across ClientRouter swaps instead of being re-mounted. */
     }
     <Toaster client:only="react" transition:persist="toaster" />
-    <button
-      type="button"
-      data-back-to-top
-      aria-label={copy.shell.backToTop}
-      title={copy.shell.backToTop}
-      class="fixed right-5 bottom-24 z-40 flex size-10 items-center justify-center rounded-full border border-border bg-surface text-foreground shadow-md hover:bg-secondary focus-visible:outline-2 focus-visible:outline-focus-blue min-[992px]:right-6 min-[992px]:bottom-6"
-    >
-      <Icon name="chevronUp" size={18} />
-    </button>
+    <BackToTop client:load label={copy.shell.backToTop} />
   </body>
 </html>
 
@@ -254,27 +248,14 @@ const showBanner = bannerUrl !== null && isHome;
     });
   });
 
-  // Back-to-top: slides in past 100px of scroll, hidden at the top.
-  // Document-level listeners survive ClientRouter swaps; the button element
-  // is re-queried after each swap.
-  let button = document.querySelector('[data-back-to-top]');
-  const update = () => button?.toggleAttribute('data-visible', window.scrollY > 100);
-  document.addEventListener('scroll', () => update(), { passive: true });
-  document.addEventListener('astro:after-swap', () => {
-    button = document.querySelector('[data-back-to-top]');
-    update();
-  });
-  update();
-  document.addEventListener('click', (event) => {
-    if (!(event.target instanceof Element)) return;
-    if (!event.target.closest('[data-back-to-top]')) return;
-    const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    window.scrollTo({ top: 0, behavior: calm ? 'auto' : 'smooth' });
-  });
+  // Back-to-top moved into islands/BackToTop (a React island owns the
+  // scroll listener and the click now); the `data-back-to-top` attribute
+  // survives purely as the shell.css visibility-styling hook.
 
-  // Color mode toggle: both shells carry a [data-color-toggle] button
-  // (desktop header + mobile top bar), so the listener lives here — exactly
-  // one per page, delegated, surviving ClientRouter swaps.
+  // Color mode toggle: the MOBILE top bar still carries a [data-color-toggle]
+  // button driven here — delegated, one listener per page, surviving
+  // ClientRouter swaps. The desktop toggle is an island (ColorModeToggle)
+  // and deliberately does not carry the attribute.
   document.addEventListener('click', (event) => {
     if (!(event.target instanceof Element)) return;
     if (!event.target.closest('[data-color-toggle]')) return;

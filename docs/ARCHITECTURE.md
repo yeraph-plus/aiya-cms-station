@@ -22,8 +22,9 @@ components/layout/  双壳（全 Astro，零水合，992px 断点切换）：
                   委托式原生 <script>（document 级监听，ClientRouter 换页后
                   天然存活；共享触发点如暗色切换的监听只挂一份，归 AppShell）；
                   ClientRouter 提供 SPA 导航
-components/islands/  React 岛：UserCenter（登录窗/注册窗/通知气泡/用户菜单/
-                  钱包气泡/会员弹窗，shadcn 零件组装）、PostLoop、
+components/islands/  React 岛：UserCenter（登录窗/注册窗/客服按钮/用户菜单/
+                  钱包气泡/会员弹窗，shadcn 零件组装；通知气泡在壳层独立
+                  挂载）、BackToTop、ColorModeToggle、PostLoop、
                   CommunityFeed、CommentSection、详情三壳岛等，按需增补
 components/ui/      shadcn 控件，只服务 islands/，壳不导入
 lib/core/         contracts.ts（zod 线上契约，后端 PHP DTO 的逐字段镜像，
@@ -57,17 +58,19 @@ SEO）、路由与请求器（pages/ → loadPage → HTTP 状态）全归 Astro
 由页面 frontmatter 调用（组件级 `Astro.response.status` 赋值会被静默忽略）；
 岛的 props 只传可序列化数据（函数会静默丢失，Astro 侧预格式化为字符串）。
 
-| 路由                                                           | 主体实现                                                                                                                                                                                                                                                                       |
-| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `/posts/` `/resources/` `/pages/`（列表/分类/标签/分页）       | `PostLoop` 岛（筛选面板/排序/多选/排队请求）                                                                                                                                                                                                                                   |
-| `/posts/{slug}/` `/resources/{slug}/` `/pages/{slug}/` 详情    | 正文 SSR（净化 HTML + 灯箱 class 注入）+ 交互岛：`LikeButton`、`RatingRow`（resource）、`FavoriteButton`、`CommentSection`（关闭态内置）、`UnlockGate`、`PostDiscussions`；上下篇仅 post；相关文章 SSR 列表；文件下载面板（`/api/content/{id}/downloads`）；可见性门禁占位面板 |
-| `/categories/` `/categories/{slug}/`                           | `CategoryCards` 岛（汇总网格 + 详情页头复用）                                                                                                                                                                                                                                  |
-| `/search/{key}/`（+`page/[n]/`）                               | 顶栏 `SearchBox` 岛提交目标；结果是 `PostLoop` 岛；范围 `?type=`（全部=三类型并集轮转读，见 `lib/search.ts`）                                                                                                                                                                  |
-| `/community/`（板块/首页）                                     | `CommunityFeed` + 社区表单岛                                                                                                                                                                                                                                                   |
-| `/notifications/`                                              | `NotificationFeed` 岛（头部铃铛的全量列表页：同源代理 + 前端本地已读态，无会话门，恒 noindex）                                                                                                                                                                                 |
-| `/profile/{slug}/` `/profile/me` `/settings` `/reset-password` | `UserCenter` / `SettingsPanel` / `ResetPasswordPanel` 等账号岛                                                                                                                                                                                                                 |
-| 会员/积分（无独立路由）                                        | 钱包气泡 `WalletBubble` + 会员弹窗 `MembershipModal`（档位定价/兑换/收银台与签到/账本），挂于 `UserCenter`                                                                                                                                                                     |
-| 旧 `/category/` `/tag/` 形态                                   | 已整树删除（404）——分类统一入口 `/categories/`，标签过滤为列表页 `?tag=` 参数态                                                                                                                                                                                                |
+| 路由                                                           | 主体实现                                                                                                                                                                                                                                                                                                            |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/posts/` `/resources/` `/pages/`（列表/分类/标签/分页）       | `PostLoop` 岛（筛选面板/排序/多选/排队请求）                                                                                                                                                                                                                                                                        |
+| `/posts/{slug}/` `/resources/{slug}/` `/pages/{slug}/` 详情    | 正文 SSR（净化 HTML + 灯箱 class 注入）+ 交互岛：`LikeButton`、`RatingRow`（resource）、`FavoriteButton`、`CommentSection`（关闭态内置）、`UnlockGate`、`PostDiscussions`；上下篇仅 post；相关文章 SSR 列表；文件下载面板（`/api/content/{id}/downloads`）；可见性门禁占位面板                                      |
+| `/categories/` `/categories/{slug}/`                           | `CategoryCards` 岛（汇总网格 + 详情页头复用）                                                                                                                                                                                                                                                                       |
+| `/search/{key}/`（+`page/[n]/`）                               | 顶栏 `SearchBox` 岛提交目标；结果是 `PostLoop` 岛；范围 `?type=`（全部=三类型并集轮转读，见 `lib/search.ts`）                                                                                                                                                                                                       |
+| `/community/`（板块/首页）                                     | `CommunityFeed` + 社区表单岛                                                                                                                                                                                                                                                                                        |
+| `/channels/`                                                   | `ChannelFeed` 岛（TG 频道镜像：Astro 取第 1 页并做相册分组与媒体 cloak，岛屿渲染瀑布流卡片墙 + 哨兵自动加载，后续页走同源 `/api/channels` 代理；相册按 `mediaGroupId` 相邻分组、`entities` 样式段解析归 `lib/channels`，行不可变；顶部工具行提供频道筛选 `channelId` 与关键词搜索 `search`，同经代理）              |
+| `/notifications/`                                              | `NotificationFeed` 岛（头部铃铛的全量列表页：同源代理 + 前端本地已读态，无会话门，恒 noindex）                                                                                                                                                                                                                      |
+| `/profile/{slug}/` `/profile/me` `/settings` `/reset-password` | `UserCenter` / `SettingsPanel` / `ResetPasswordPanel` 等账号岛                                                                                                                                                                                                                                                      |
+| 会员/积分（无独立路由）                                        | 钱包气泡 `WalletBubble` + 会员弹窗 `MembershipModal`（档位定价/兑换/收银台与签到/账本），挂于 `UserCenter`                                                                                                                                                                                                          |
+| 客服（无独立路由）                                             | `SupportChat` 岛（全页唯一实例，挂于桌面 `UserCenter` 动作簇=积分/会员之后、头像之前；移动顶栏不设按钮，移动端走头像下拉的 `aiya:open-chat` 桥唤起——Dialog portal 到 body，不依赖触发器所在岛的显隐；打开期 20s 轮询，发送乐观插入；登录限定，走同源 `/api/chat/messages` 代理——后端中继站长 Telegram，无未读徽标） |
+| 旧 `/category/` `/tag/` 形态                                   | 已整树删除（404）——分类统一入口 `/categories/`，标签过滤为列表页 `?tag=` 参数态                                                                                                                                                                                                                                     |
 
 ### 详情页约定
 
@@ -101,20 +104,26 @@ part-button`），剪贴板零件由正文零件的 effect 绑定复制按钮；
 
 ## UI 基建
 
-- **壳 = ClientRouter + 纯 vanilla**：布局交互不值得水合。侧栏折叠、配色
-  切换、路由进度条全部委托式原生脚本。**例外即 UserCenter 岛**
-  （`client:load`，双壳各挂一实例，须做可见性去重）；提交走同源代理
-  `/api/auth/*`，错误只出前端文案，成功 reload 让 SSR 壳接新会话。通知未读
-  点是契约约定的前端本地 last-seen（localStorage）。
+- **壳 = ClientRouter + 近 vanilla**：布局交互不值得水合。侧栏折叠、移动
+  顶栏的暗色切换、路由进度条走委托式原生脚本（document 级监听，换页存活；
+  共享触发点如暗色切换只挂一份，归 AppShell）；**岛屿化的壳件 = UserCenter
+  **（`client:load`，双壳各挂一实例，须做可见性去重）与 `BackToTop` /
+  `ColorModeToggle`（桌面单实例，滚动可见性与点击行为归岛，Tooltip 承载
+  命名）；提交走同源代理 `/api/auth/*`，错误只出前端文案，成功 reload 让
+  SSR 壳接新会话。通知未读点是契约约定的前端本地 last-seen（localStorage）。
 - **shadcn/ui 零件**：已装 alert-dialog/badge/button/card/checkbox/dialog/
   dropdown-menu/empty/field/input-group/input/label/pagination/popover/
-  radio-group/select/separator/sonner/switch/tabs/textarea（tooltip 曾装已摘、
-  slider 零消费方已删，需要时 `npx shadcn@latest add` 回装）。
+  radio-group/select/separator/sonner/switch/tabs/textarea/tooltip
+  （slider 零消费方已删，需要时 `npx shadcn@latest add` 回装）。
   约定：零件只允许 islands/ 导入（唯一破例 = AppShell 挂载的
   `<Toaster />`，ui/sonner——吐司是全局单例，壳层挂载、`client:only`
   渲染）；sonner 主题读壳的
   `html.dark`；以后加件
   `npx shadcn@latest add <name> --yes`。
+- **@shadcn/react**：headless 原语运行时（Message Scroller 等 chat 原语的
+  底座，peer React ≥19），已装、当前零消费方。后续迭代引入带行为的交互
+  原语时经它取 headless 行为、ui/ 零件出样式包装（radix-ui 与它是同位的
+  两个运行时）；消费面与 radix-ui 相同——ui/ 与 islands/，壳层不导入。
 - **装/卸依赖后必须重启 dev**（Vite 依赖预打包换 hash，不重启岛水合会静默
   504）。重启后仍失效（岛水合静默死亡、`/node_modules/.vite/deps/*` 全
   404）时，删 `node_modules/.vite` 再重启——预打包缓存与模块图不一致是排障

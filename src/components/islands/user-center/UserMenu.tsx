@@ -1,6 +1,10 @@
 import {
+  BellIcon,
   BookmarkIcon,
+  ChevronDownIcon,
   CoinsIcon,
+  CrownIcon,
+  HeadsetIcon,
   LogOutIcon,
   SettingsIcon,
   UserRoundCheckIcon,
@@ -21,6 +25,7 @@ import { Switch } from '@/components/ui/switch';
 import Avatar from '@/components/islands/Avatar';
 import { flashToast } from '@/lib/feedback';
 import { NSFW_COOKIE, NSFW_COOKIE_MAX_AGE } from '@/lib/nsfw';
+import { NOTIFICATIONS_PAGE_PATH } from './NotificationPopover';
 import type { UserCenterCopy, UserCenterUser } from './types';
 
 /**
@@ -48,7 +53,15 @@ function writeNsfwCookie(on: boolean): void {
     : `${NSFW_COOKIE}=; path=/; max-age=0; samesite=lax${secure}`;
 }
 
-export function UserMenu({ user, copy }: { user: UserCenterUser; copy: UserCenterCopy }) {
+export function UserMenu({
+  user,
+  copy,
+  variant = 'desktop',
+}: {
+  user: UserCenterUser;
+  copy: UserCenterCopy;
+  variant?: 'desktop' | 'mobile';
+}) {
   // The hard switch wins: the backend ignores NSFW exclusions for this
   // account, so the soft switch renders permanently on and unclickable.
   const nsfwLocked = user.showNsfw;
@@ -78,13 +91,27 @@ export function UserMenu({ user, copy }: { user: UserCenterUser; copy: UserCente
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          aria-label={user.nickname}
-          className="flex size-8 cursor-pointer items-center justify-center rounded-full outline-none hover:bg-secondary focus-visible:outline-2 focus-visible:outline-focus-blue"
-        >
-          <Avatar url={user.avatarUrl} name={user.nickname} className="size-[26px] text-xs" />
-        </button>
+        {variant === 'desktop' ? (
+          /* Desktop trigger spells the account out: avatar + name + chevron
+             mark the whole pill as the menu handle (mobile stays
+             avatar-only per the mobile shell contract). */
+          <button
+            type="button"
+            className="flex h-8 max-w-48 cursor-pointer items-center gap-1.5 rounded-full pr-2 pl-0.5 outline-none hover:bg-secondary focus-visible:outline-2 focus-visible:outline-focus-blue"
+          >
+            <Avatar url={user.avatarUrl} name={user.nickname} className="size-[26px] text-xs" />
+            <span className="min-w-0 truncate text-sm font-medium">{user.nickname}</span>
+            <ChevronDownIcon className="size-3.5 shrink-0 text-body-muted" aria-hidden="true" />
+          </button>
+        ) : (
+          <button
+            type="button"
+            aria-label={user.nickname}
+            className="flex size-8 cursor-pointer items-center justify-center rounded-full outline-none hover:bg-secondary focus-visible:outline-2 focus-visible:outline-focus-blue"
+          >
+            <Avatar url={user.avatarUrl} name={user.nickname} className="size-[26px] text-xs" />
+          </button>
+        )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" sideOffset={8} className="w-64">
         <DropdownMenuLabel>
@@ -115,6 +142,21 @@ export function UserMenu({ user, copy }: { user: UserCenterUser; copy: UserCente
             {copy.wallet}
           </a>
         </DropdownMenuItem>
+        {/* Membership modal entry via the bridge — WalletBubble (same
+             desktop cluster) owns the modal and listens for it; mobile has
+             no wallet bubble, so the entry stays desktop-only until the
+             mobile shell grows its own access path. */}
+        {variant === 'desktop' && (
+          <DropdownMenuItem asChild>
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new CustomEvent('aiya:open-membership'))}
+            >
+              <CrownIcon aria-hidden="true" />
+              {copy.membership}
+            </button>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem asChild>
           <a href="/profile/me/?tab=following">
             <UserRoundCheckIcon aria-hidden="true" />
@@ -122,10 +164,27 @@ export function UserMenu({ user, copy }: { user: UserCenterUser; copy: UserCente
           </a>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
+          <a href={NOTIFICATIONS_PAGE_PATH}>
+            <BellIcon aria-hidden="true" />
+            {copy.notifications}
+          </a>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
           <a href="/profile/me/?tab=settings">
             <SettingsIcon aria-hidden="true" />
             {copy.accountSettings}
           </a>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          {/* Redundant entry: the header headset button is the primary one,
+              and its island (same header) owns the dialog. */}
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent('aiya:open-chat'))}
+          >
+            <HeadsetIcon aria-hidden="true" />
+            {copy.chatSupport}
+          </button>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         {/* The soft switch is a plain row (not a menu item): toggling must

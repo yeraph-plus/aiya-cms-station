@@ -29,7 +29,12 @@ export interface UserCenterCopy {
   followingTitle: string;
   /** /profile/me/?tab=wallet entry (credit ledger + membership orders). */
   wallet: string;
+  /** Membership purchase modal entry (dropdown; opens via the
+      `aiya:open-membership` bridge, WalletBubble owns the modal). */
+  membership: string;
   accountSettings: string;
+  /** Support-chat entry (dropdown); the header headset is the primary one. */
+  chatSupport: string;
   emailLabel: string;
   passwordLabel: string;
   passwordConfirmLabel: string;

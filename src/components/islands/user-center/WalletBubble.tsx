@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { MembershipModal } from '@/components/islands/membership/MembershipModal';
 import type { MembershipState } from '@/lib/core/contracts';
 import { apiErrorCopy } from '@/lib/feedback';
@@ -21,9 +22,11 @@ const checkinMarker = (): string => `aiya-checkin-${new Date().toISOString().sli
  * user menu. The trigger shows the live balance; the popover pairs the
  * balance with the currently effective plan, then the daily check-in. The
  * membership entry (opening the purchase modal) is NOT inside the popover —
- * it is a header button right next to the credits chip, reading the same
- * membership fetch: active sponsors see their tier name on the button, everyone
- * else the plain 赞助 label. Renders only for signed-in visitors (UserCenter).
+ * it is a header button right after the credits chip (desktop action row
+ * reads 积分 → 会员), reading the same membership fetch: active sponsors see
+ * their tier name on the button, everyone else the plain 会员 label. It is
+ * also reachable from the user dropdown through the `aiya:open-membership`
+ * bridge event. Renders only for signed-in visitors (UserCenter).
  *
  * "Already claimed today" stays the backend's call — a 409 settles it, the
  * island never guesses from the clock. Active sponsors additionally get the
@@ -167,6 +170,18 @@ export function WalletBubble({ locale, timezone }: { locale: Locale; timezone?: 
     void fetchWallet();
   };
 
+  // Dropdown bridge: UserMenu's membership entry dispatches this blind. The
+  // hidden-instance guard mirrors the auth bridge — a display:none twin
+  // (viewport cross-over) must not open a second modal on top.
+  useEffect(() => {
+    const open = () => {
+      if (rootRef.current && rootRef.current.getClientRects().length === 0) return;
+      setPlansOpen(true);
+    };
+    window.addEventListener('aiya:open-membership', open);
+    return () => window.removeEventListener('aiya:open-membership', open);
+  }, []);
+
   const runCheckin = async () => {
     const result = await claimCheckin('manual');
     // A manual click shares the auto path's daily marker only when the
@@ -185,34 +200,30 @@ export function WalletBubble({ locale, timezone }: { locale: Locale; timezone?: 
   );
 
   return (
-    /* inline-flex: the span carries TWO buttons now (sponsor + credits) —
+    /* inline-flex: the span carries TWO buttons now (credits + sponsor) —
        as a flex item it would blockify and stack the two flex-container
        buttons vertically without it. */
     <span ref={rootRef} className="inline-flex items-center gap-1">
-      {/* The membership entry, OUTSIDE the popover: crowned header button
-          next to the credits chip — active sponsors see their tier name. */}
-      <button
-        type="button"
-        onClick={() => setPlansOpen(true)}
-        aria-label={currentPlan ? currentPlan.tierName : copy.sponsorTitle}
-        title={currentPlan ? currentPlan.tierName : copy.sponsorTitle}
-        className="flex h-8 max-w-40 cursor-pointer items-center gap-1 rounded-md px-2 text-sm text-foreground outline-none hover:bg-secondary focus-visible:outline-2 focus-visible:outline-focus-blue"
-      >
-        <CrownIcon className="size-4 shrink-0" aria-hidden="true" />
-        <span className="truncate">{currentPlan ? currentPlan.tierName : copy.sponsorTitle}</span>
-      </button>
       <Popover open={open} onOpenChange={handleOpen}>
-        <PopoverTrigger asChild>
-          <button
-            type="button"
-            aria-label={copy.walletOpen}
-            title={copy.walletOpen}
-            className="flex h-8 cursor-pointer items-center gap-1 rounded-md px-2 text-sm text-foreground outline-none hover:bg-secondary focus-visible:outline-2 focus-visible:outline-focus-blue"
-          >
-            <CoinsIcon className="size-4" aria-hidden="true" />
-            {shown !== null && <span className="font-medium tabular-nums">{shown}</span>}
-          </button>
-        </PopoverTrigger>
+        {/* Tooltip context wraps from OUTSIDE the trigger chain: the two
+            Radix triggers must nest directly (PopoverTrigger >
+            TooltipTrigger > button) or the popover's click/ref dies in the
+            non-spreading Tooltip.Root. */}
+        <Tooltip>
+          <PopoverTrigger asChild>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                aria-label={copy.walletOpen}
+                className="flex h-8 cursor-pointer items-center gap-1 rounded-md px-2 text-sm text-foreground outline-none hover:bg-secondary focus-visible:outline-2 focus-visible:outline-focus-blue"
+              >
+                <CoinsIcon className="size-4" aria-hidden="true" />
+                {shown !== null && <span className="font-medium tabular-nums">{shown}</span>}
+              </button>
+            </TooltipTrigger>
+          </PopoverTrigger>
+          <TooltipContent>{copy.walletOpen}</TooltipContent>
+        </Tooltip>
         <PopoverContent align="end" sideOffset={8} className="w-80 overflow-hidden p-0">
           {/* Layer 1: the balance with its unit, the effective plan
               underneath. */}
@@ -280,6 +291,24 @@ export function WalletBubble({ locale, timezone }: { locale: Locale; timezone?: 
           </div>
         </PopoverContent>
       </Popover>
+      {/* The membership entry, AFTER the credits chip: crowned header
+          button — active sponsors see their tier name. */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            onClick={() => setPlansOpen(true)}
+            aria-label={currentPlan ? currentPlan.tierName : copy.sponsorTitle}
+            className="flex h-8 max-w-40 cursor-pointer items-center gap-1 rounded-md px-2 text-sm text-foreground outline-none hover:bg-secondary focus-visible:outline-2 focus-visible:outline-focus-blue"
+          >
+            <CrownIcon className="size-4 shrink-0" aria-hidden="true" />
+            <span className="truncate">
+              {currentPlan ? currentPlan.tierName : copy.sponsorTitle}
+            </span>
+          </button>
+        </TooltipTrigger>
+        <TooltipContent>{currentPlan ? currentPlan.tierName : copy.sponsorTitle}</TooltipContent>
+      </Tooltip>
       <MembershipModal open={plansOpen} onOpenChange={setPlansOpen} locale={locale} />
     </span>
   );

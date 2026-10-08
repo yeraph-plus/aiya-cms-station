@@ -1,5 +1,6 @@
 ---
 import UserCenter from '@/components/islands/UserCenter';
+import ColorModeToggle from '@/components/islands/ColorModeToggle';
 import { NotificationPopover } from '@/components/islands/user-center/NotificationPopover';
 import SearchBox from '@/components/islands/SearchBox';
 import type { UserCenterCopy, UserCenterUser } from '@/components/islands/user-center/types';
@@ -55,16 +56,13 @@ const seed = searchSeed(Astro.url.pathname, Astro.url.searchParams.get('type') ?
   </button>
   <SearchBox client:load locale={locale} value={seed.keyword} scope={seed.scope} />
   <div class="ml-auto flex shrink-0 items-center gap-1.5">
-    <button
-      type="button"
-      data-color-toggle
-      aria-label={colorModeLabel}
-      title={colorModeLabel}
-      class="flex size-8 items-center justify-center rounded-md text-foreground hover:bg-secondary focus-visible:outline-2 focus-visible:outline-focus-blue"
-    >
-      <Icon name="moon" size={18} class="dark:hidden" />
-      <Icon name="sun" size={18} class="hidden dark:block" />
-    </button>
+    {
+      /* Action row, left to right: color mode → notifications → the
+        user-center cluster (credits → membership → support → avatar).
+        The support button renders inside UserCenter so it can sit between
+        the wallet cluster and the avatar. */
+    }
+    <ColorModeToggle client:load label={colorModeLabel} />
     {
       /* The notification bubble sits OUTSIDE the session gate (0.96.0),
         next to the color-mode toggle: guests read guest-level broadcasts. */

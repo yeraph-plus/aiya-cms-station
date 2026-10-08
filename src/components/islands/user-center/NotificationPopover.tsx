@@ -4,6 +4,7 @@ import { BellIcon } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import Spinner from '@/components/islands/Spinner';
 import { notificationTime } from '@/lib/format';
 import { sanitizeNotificationHtml } from '@/lib/content';
@@ -79,20 +80,28 @@ export function NotificationPopover({
   return (
     <span ref={rootRef}>
       <Popover open={open} onOpenChange={handleOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label={copy.notifications}
-            title={copy.notifications}
-            className="relative text-foreground"
-          >
-            <BellIcon className="size-[18px]" />
-            {unread && (
-              <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-primary" />
-            )}
-          </Button>
-        </PopoverTrigger>
+        {/* Tooltip context wraps from OUTSIDE the trigger chain: the two
+            Radix triggers must nest directly (PopoverTrigger >
+            TooltipTrigger > button) or the popover's click/ref dies in the
+            non-spreading Tooltip.Root. */}
+        <Tooltip>
+          <PopoverTrigger asChild>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label={copy.notifications}
+                className="relative text-foreground"
+              >
+                <BellIcon className="size-[18px]" />
+                {unread && (
+                  <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-primary" />
+                )}
+              </Button>
+            </TooltipTrigger>
+          </PopoverTrigger>
+          <TooltipContent>{copy.notifications}</TooltipContent>
+        </Tooltip>
         <PopoverContent align="end" sideOffset={8} className="w-80 overflow-hidden p-0">
           <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
             <span className="text-sm font-semibold">{copy.notifications}</span>

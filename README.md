@@ -18,17 +18,26 @@ origin 下，WP 主机对浏览器隐身）。
 前后端均已部署上线。**架构分层、路由实现分布与实现契约见
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)**（改动前先读）；视觉规范见
 [`docs/DESIGN.md`](docs/DESIGN.md)；交互判据见 [`docs/UX.md`](docs/UX.md)；
-迭代史与已关闭台账见 [`docs/HISTORY.md`](docs/HISTORY.md)。
+迭代史与已关闭台账见 [`docs/HISTORY.md`](docs/HISTORY.md)；基建/零件对齐的
+批次规划见 [`docs/PLAN.md`](docs/PLAN.md)。
 
 ## 本地开发
 
 ```bash
 npm install
 cp .env.example .env      # 指向 WP 后端（无后端可达时站点进 503 门禁页）
-npm run dev               # 开发（需 WP 后端在线）
+npm run dev               # 开发（固定 4399，strictPort：被占即报错；需 WP 后端在线）
 npm run verify            # astro check + vitest + prettier + build（CI 同款门禁）
 npm test                  # 单测（契约不变式 / i18n / SEO / 净化 / 门禁与熔断 / 风格守卫 …）
 ```
+
+端口约定：dev 固定 **4399**，产物服务（`npm start`）固定 **4321**，两者可并行。
+4321 是部署文档与 prod-sim nginx 反代的既定目标，不可挪；`npm start` 起服前经
+`scripts/start-guard.mjs` 对 `127.0.0.1` 与 `::1` 双栈预检，任一被占即带原因拒绝
+启动（历史教训：残留的 dev 占半边栈时，node 适配器半绑定静默存活，表现为「页面
+一会儿有一会儿没有」）。`AIYA_SITE_URL` 带端口时是全局单值：dev 在 4399 期间，
+页面内 origin 输出（canonical / sitemap）仍按该值所指端口——本地无 SEO 影响，
+dev 需要精确 origin 时临时改 `.env` 的端口即可（见 `.env.example` 同一注释）。
 
 环境变量（服务端专用，经 `astro:env/server` 读取，绝不进入浏览器产物；完整
 注释以 `.env.example` 为准）：

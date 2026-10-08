@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { LogInIcon, UserPlusIcon, UserRoundIcon } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import SupportChat from '@/components/islands/chat/SupportChat';
 import { AuthDialog } from './user-center/AuthDialog';
 import { UserMenu } from './user-center/UserMenu';
 import { WalletBubble } from './user-center/WalletBubble';
@@ -29,11 +30,14 @@ export interface UserCenterProps {
 
 /**
  * Aggregated user-center island: logged-out = login entries plus the auth
- * dialogs; logged-in = wallet bubble + user menu bubble. The notification
- * bubble is NOT here anymore (0.96.0): it moved out of the session gate
- * next to the color-mode toggle, where guests read it too. All of the
- * interaction lives in React — the Astro shell renders this one island
- * (per shell) and keeps its own vanilla surface UI-only.
+ * dialogs; logged-in = wallet bubble + support-chat button + user menu
+ * bubble (the desktop action row reads 积分 → 会员 → 客服 → 头像 left to
+ * right — the support button lives here, not in the header, so it can sit
+ * between the wallet cluster and the avatar). The notification bubble is
+ * NOT here anymore (0.96.0): it moved out of the session gate next to the
+ * color-mode toggle, where guests read it too. All of the interaction
+ * lives in React — the Astro shell renders this one island (per shell) and
+ * keeps its own vanilla surface UI-only.
  *
  * Cross-island bridge: any island can dispatch the window event
  * `aiya:open-auth` to pop the login dialog (e.g. a guest hitting a
@@ -68,7 +72,8 @@ export default function UserCenter({
     return (
       <div ref={rootRef} className="flex items-center gap-1.5">
         {variant === 'desktop' && <WalletBubble locale={locale} timezone={timezone} />}
-        <UserMenu user={user} copy={copy} />
+        {variant === 'desktop' && <SupportChat user={user} locale={locale} timezone={timezone} />}
+        <UserMenu user={user} copy={copy} variant={variant} />
       </div>
     );
   }
@@ -100,6 +105,7 @@ export default function UserCenter({
 
   return (
     <div ref={rootRef} className="flex items-center gap-1.5">
+      <SupportChat user={null} locale={locale} timezone={timezone} />
       <Button variant="outline" size="sm" onClick={() => setDialogMode('login')}>
         <LogInIcon className="size-4" />
         {copy.login}
