@@ -117,14 +117,19 @@ const faviconHref = site.favicon ? rewriteMediaUrl(site.favicon.url) : '/favicon
         src={`https://www.googletagmanager.com/gtag/js?id=${site.defaults.gaId}`}
       />
       {/* prettier-ignore — the astro plugin cannot parse `arguments` inside
-          a define:vars inline script and hard-errors the whole check */}
-      <script is:inline define:vars={{ gaId: site.defaults.gaId }}>
+          an inline script and hard-errors the whole check */}
+      {/* The measurement id rides on a data attribute instead of
+          `define:vars`: the CSP hash is taken over the script body, so a
+          per-site value inlined into the body would make the hash change
+          with the setting. `document.currentScript` resolves here because
+          this is a classic inline script, not a module. */}
+      <script is:inline data-ga-id={site.defaults.gaId}>
         window.dataLayer = window.dataLayer || [];
         function gtag() {
           dataLayer.push(arguments);
         }
         gtag('js', new Date());
-        gtag('config', gaId);
+        gtag('config', document.currentScript.dataset.gaId);
       </script>
     </>
   )

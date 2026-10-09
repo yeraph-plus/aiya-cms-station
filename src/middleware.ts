@@ -12,11 +12,17 @@ function stampSecurityHeaders(response: Response): Response {
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   response.headers.set('X-Frame-Options', 'SAMEORIGIN');
-  // Defense-in-depth base trio (no script-src yet: the pre-paint theme
-  // script is inline; a nonce pipeline is its own batch). The sanitize-html
-  // boundary stays the first line for content HTML. A response that already
-  // carries a policy keeps it — the media proxy's SVG `sandbox` is the
-  // stronger containment for direct opens and must not be clobbered.
+  // Defense-in-depth base trio. The full policy — script-src, style-src and
+  // these three directives — is emitted by Astro itself for every page it
+  // renders (see `security.csp` in astro.config.mjs: hashes for the scripts it
+  // owns, hand-listed hashes for the two `<script is:inline>` blocks in
+  // BaseHead, `'unsafe-inline'` for styles because the theme colours and the
+  // view-transition rules only exist at request time). This branch therefore
+  // only covers responses that never pass through Astro: the media proxy, the
+  // gate page and the redirects. The sanitize-html boundary stays the first
+  // line for content HTML. A response that already carries a policy keeps it —
+  // the media proxy's SVG `sandbox` is the stronger containment for direct
+  // opens and must not be clobbered.
   if (!response.headers.has('Content-Security-Policy')) {
     response.headers.set(
       'Content-Security-Policy',

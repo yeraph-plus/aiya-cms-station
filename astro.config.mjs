@@ -45,6 +45,49 @@ export default defineConfig({
   // preflight this server never answers.
   security: {
     allowedDomains: [{}],
+    // Astro's own CSP: every script and style the build emits is hashed
+    // (SHA-256) and the policy ships on the response header, so `script-src`
+    // / `style-src` cover the bundled modules, the hydration scripts and the
+    // two inline `<script is:inline>` blocks in BaseHead (the pre-paint
+    // colour-mode swap and the gtag config) without a nonce pipeline. The
+    // three directives below are the rest of the baseline the middleware
+    // used to own on its own; they live here so the page carries one policy
+    // rather than two intersecting ones. The media proxy keeps its own
+    // stronger `sandbox` for direct SVG opens — its responses never pass
+    // through Astro, so nothing here touches them.
+    csp: {
+      directives: ["object-src 'none'", "frame-ancestors 'self'", "base-uri 'none'"],
+      // Setting `resources` replaces the implicit `'self'`, so it has to be
+      // spelled out. gtag.js is the only cross-origin script the site loads
+      // (BaseHead, production only, and only when a measurement id is set);
+      // its own collect calls are not restricted because no `default-src`
+      // fallback is declared.
+      scriptDirective: {
+        resources: ["'self'", 'https://www.googletagmanager.com'],
+        // Astro hashes the scripts it owns, but a `<script is:inline>` is
+        // the author's to vouch for, so these two are listed by hand:
+        //   - the pre-paint colour-mode swap in BaseHead (it must run
+        //     synchronously before first paint, so it cannot be bundled)
+        //   - the gtag config block in BaseHead (its id rides on a data
+        //     attribute precisely so the body — and this hash — stay put)
+        // Edit either body and the hash must be updated with it; the
+        // `inline script hashes` case in tests/csp-inline-hashes.test.ts
+        // fails loudly when the two drift apart.
+        hashes: [
+          'sha256-SvqhACN9/blyV175eywKTodB0BQ6+7BG84s2vKfW1Es=',
+          'sha256-GrC8nqWdndno/KFAtswkxx0bI075CnHpTjW8mgcAvmw=',
+        ],
+      },
+      // `'unsafe-inline'` on styles only, and on purpose: the theme colours
+      // are injected per request from the site settings and ClientRouter
+      // writes its own view-transition rules at runtime, so neither set of
+      // bytes exists at build time to hash. Supplying it also suppresses
+      // Astro's style hashes (a hash would override it per the CSP spec), so
+      // this directive is the whole story for styles. Scripts stay strict.
+      styleDirective: {
+        resources: ["'self'", "'unsafe-inline'"],
+      },
+    },
   },
   integrations: [react(), bundleSsrDepsForStandalone],
   vite: {
