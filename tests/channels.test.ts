@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   estimateChannelCardHeight,
   groupChannelRows,
+  mediaGridClass,
   mediaGridLayout,
   packColumns,
   resolveChannelBlocks,
@@ -62,13 +63,29 @@ describe('groupChannelRows', () => {
 
 describe('mediaGridLayout', () => {
   it('matches the album grid recipes cell-for-cell (render and estimator share it)', () => {
-    expect(mediaGridLayout(1)).toEqual({ cols: 1, rows: 1 });
-    expect(mediaGridLayout(2)).toEqual({ cols: 2, rows: 1 });
-    expect(mediaGridLayout(4)).toEqual({ cols: 2, rows: 2 });
-    expect(mediaGridLayout(5)).toEqual({ cols: 6, rows: 2 }); // the 3+2 span recipe
-    expect(mediaGridLayout(7)).toEqual({ cols: 4, rows: 2 });
-    expect(mediaGridLayout(9)).toEqual({ cols: 3, rows: 3 });
-    expect(mediaGridLayout(10)).toEqual({ cols: 3, rows: 4 });
+    expect(mediaGridLayout(1)).toEqual({ cols: 1, rows: 1, leadSpan: false, shown: 1 });
+    expect(mediaGridLayout(2)).toEqual({ cols: 2, rows: 1, leadSpan: false, shown: 2 });
+    expect(mediaGridLayout(3)).toEqual({ cols: 2, rows: 2, leadSpan: true, shown: 3 });
+    expect(mediaGridLayout(4)).toEqual({ cols: 2, rows: 2, leadSpan: false, shown: 4 });
+    expect(mediaGridLayout(5)).toEqual({ cols: 3, rows: 2, leadSpan: false, shown: 5 });
+    expect(mediaGridLayout(6)).toEqual({ cols: 3, rows: 2, leadSpan: false, shown: 6 });
+    expect(mediaGridLayout(7)).toEqual({ cols: 3, rows: 3, leadSpan: false, shown: 7 });
+    expect(mediaGridLayout(9)).toEqual({ cols: 3, rows: 3, leadSpan: false, shown: 9 });
+  });
+
+  it('caps the board at nine tiles and reports the overflow tail', () => {
+    expect(mediaGridLayout(10)).toEqual({ cols: 3, rows: 3, leadSpan: false, shown: 9 });
+    expect(mediaGridLayout(40)).toEqual({ cols: 3, rows: 3, leadSpan: false, shown: 9 });
+    expect(mediaGridLayout(0)).toEqual({ cols: 1, rows: 1, leadSpan: false, shown: 1 });
+  });
+
+  it('column classes ride the shared map (no island keeps its own copy)', () => {
+    expect(mediaGridClass(1)).toBe('grid-cols-1');
+    expect(mediaGridClass(2)).toBe('grid-cols-2 grid-rows-1 aspect-2/1');
+    expect(mediaGridClass(3)).toBe('grid-cols-2 grid-rows-2 aspect-square');
+    expect(mediaGridClass(4)).toBe('grid-cols-2 grid-rows-2 aspect-square');
+    expect(mediaGridClass(6)).toBe('grid-cols-3 grid-rows-2 aspect-3/2');
+    expect(mediaGridClass(9)).toBe('grid-cols-3 grid-rows-3 aspect-square');
   });
 });
 
@@ -97,12 +114,28 @@ describe('estimateChannelCardHeight', () => {
     );
   });
 
-  it('media adds contract-derived height: the ten-image album rides four rows', () => {
+  it('media adds contract-derived height: a capped nine-tile board rides three rows', () => {
     const base = estimateChannelCardHeight(groupOf(row({ text: '' })), 3);
     expect(estimateChannelCardHeight(groupOf(mediaRow(1)), 3)).toBeGreaterThan(base);
     expect(estimateChannelCardHeight(groupOf(mediaRow(10)), 3)).toBeGreaterThan(
       estimateChannelCardHeight(groupOf(mediaRow(2)), 3),
     );
+  });
+
+  it('a single image is estimated at its own ratio, not a fixed slot', () => {
+    const tall = groupOf(
+      row({
+        text: '',
+        media: [{ url: 'https://aiya.test/tall.png', width: 800, height: 2400 }],
+      }),
+    );
+    const wide = groupOf(
+      row({
+        text: '',
+        media: [{ url: 'https://aiya.test/wide.png', width: 2400, height: 800 }],
+      }),
+    );
+    expect(estimateChannelCardHeight(tall, 3)).toBeGreaterThan(estimateChannelCardHeight(wide, 3));
   });
 });
 

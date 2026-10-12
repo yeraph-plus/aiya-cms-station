@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { SearchIcon } from 'lucide-react';
 
@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/select';
 import {
   estimateChannelCardHeight,
+  mediaGridClass,
   mediaGridLayout,
   packColumns,
   resolveChannelBlocks,
@@ -145,27 +146,15 @@ function ChannelText({
   );
 }
 
-/** Column template per image count — derived from the shared album
- *  geometry (lib/channels mediaGridLayout, also feeding the height
- *  estimator, so render and packing can never drift): 1 large, 2/3 in a
- *  row, 4 as 2×2, 5 as 3+2, 6 as 2×3, 7/8 in four columns, 9+ as the
- *  3-col wall (a Telegram album can ride ten — the mirror never drops
- *  media). */
-const GRID_CLASS: Record<number, string> = {
-  1: 'grid-cols-1',
-  2: 'grid-cols-2',
-  3: 'grid-cols-3',
-  4: 'grid-cols-4',
-  6: 'grid-cols-6',
-};
-const imageGridClass = (count: number): string =>
-  GRID_CLASS[mediaGridLayout(count).cols] ?? 'grid-cols-3';
-
 /** The card's dedicated image area: the group's merged album media in the
- *  count-aware grid; clicking opens the shared lightbox at that index.
- *  Sensitive (NSFW-channel) media renders blurred behind a full-cover
- *  reveal button — the blurred images ignore the pointer so the lightbox
- *  stays unreachable until revealed. */
+ *  shared count-aware grid (lib/channels mediaGridLayout — the community feed
+ *  renders from the same geometry). One image rides its own ratio so long
+ *  screenshots show whole; 2/3/4 split the half-width board; 5+ is the
+ *  nine-cell 九宫格, and a longer album collapses into the ninth tile's +N
+ *  cover (every image still rides the lightbox). Clicking opens the shared
+ *  lightbox at that index. Sensitive (NSFW-channel) media renders blurred
+ *  behind a full-cover reveal button — the blurred images ignore the pointer
+ *  so the lightbox stays unreachable until revealed. */
 function MediaGrid({
   media,
   sensitive,
@@ -179,22 +168,19 @@ function MediaGrid({
   onOpen: (index: number) => void;
   onReveal: () => void;
 }) {
-  const count = media.length;
-  const five = count === 5;
+  const { shown, leadSpan } = mediaGridLayout(media.length);
+  const overflow = media.length - shown;
   return (
     <div
-      className={`relative mt-3 grid gap-0.5 overflow-hidden rounded-lg border border-border ${imageGridClass(count)}`}
+      className={`relative mt-3 grid gap-0.5 overflow-hidden rounded-lg border border-border ${mediaGridClass(media.length)}`}
     >
-      {media.map((item, index) => {
+      {media.slice(0, shown).map((item, index) => {
         const layout =
-          count === 1
-            ? 'aspect-video w-full object-cover'
-            : five
-              ? `aspect-square w-full object-cover ${index < 3 ? 'col-span-2' : 'col-span-3'}`
-              : 'aspect-square w-full object-cover';
-        return (
+          shown === 1
+            ? 'block h-auto w-full'
+            : `block h-full w-full object-cover${leadSpan && index === 0 ? ' row-span-2' : ''}`;
+        const tile = (
           <img
-            key={item.url + index}
             src={item.url}
             width={item.width}
             height={item.height}
@@ -202,10 +188,26 @@ function MediaGrid({
             loading="lazy"
             decoding="async"
             onClick={() => onOpen(index)}
-            className={`${
-              sensitive ? 'pointer-events-none blur-2xl ' : 'cursor-zoom-in '
-            }${layout}`}
+            className={`${sensitive ? 'pointer-events-none blur-2xl ' : 'cursor-zoom-in '}${layout}`}
           />
+        );
+        return (
+          <Fragment key={item.url + index}>
+            {overflow > 0 && index === shown - 1 ? (
+              <div className="relative">
+                {tile}
+                {/* The board shows nine tiles; the tail rides the lightbox only. */}
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 flex items-center justify-center bg-scrim-modal text-base font-medium text-white"
+                >
+                  +{overflow}
+                </span>
+              </div>
+            ) : (
+              tile
+            )}
+          </Fragment>
         );
       })}
       {sensitive && (

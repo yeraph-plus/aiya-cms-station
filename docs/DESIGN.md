@@ -41,8 +41,8 @@
   Regular（400）正文、Medium（500）标题强调，两档字重 css 由 AppShell
   引入；`--font-mono` 不走 MiSans。零依赖兜底页（gate/500）内联同栈，
   web 字体不达时自然回落系统黑体。手写层禁止新增 `font-family` 字面量
-  与 `font-[…]` 任意值，字体一律走令牌；页脚保留「MiSans by Xiaomi」
-  来源注明（小米授权的注明义务）。
+  与 `font-[…]` 任意值，字体一律走令牌。
+
 - **遮罩两档**：`--scrim-modal`（模态遮罩，dialog/alert-dialog 消费）与
   `--scrim-immersive`（沉浸遮罩：灯箱、全屏编辑器）。封面文字保障的英雄
   渐变 = `shell.css` 的 `.hero-scrim`（沉浸遮罩同色相的定档透明度），

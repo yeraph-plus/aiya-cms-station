@@ -105,7 +105,6 @@ export default function UserCenter({
 
   return (
     <div ref={rootRef} className="flex items-center gap-1.5">
-      <SupportChat user={null} locale={locale} timezone={timezone} />
       <Button variant="outline" size="sm" onClick={() => setDialogMode('login')}>
         <LogInIcon className="size-4" />
         {copy.login}

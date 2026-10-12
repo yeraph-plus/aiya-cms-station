@@ -33,22 +33,63 @@ export function groupChannelRows(rows: readonly ChannelPost[]): ChannelGroup[] {
   return groups;
 }
 
-/** The masonry grid geometry for a merged album of `count` images — the
-    single source both the renderer (its grid-template class) and the
-    height estimator (cell math) derive from, so they cannot drift. */
-export function mediaGridLayout(count: number): { cols: number; rows: number } {
-  const cols =
-    count === 1
-      ? 1
-      : count === 2 || count === 4
-        ? 2
-        : count === 5
-          ? 6
-          : count === 7 || count === 8
-            ? 4
-            : 3;
-  const rows = count === 5 ? 2 : Math.ceil(count / cols);
-  return { cols, rows };
+/** The album grid geometry for a merged album of `count` images — the single
+    source both renderers (their grid template) and the height estimator
+    (cell math) derive from, so they cannot drift.
+
+    Deliberate shape (2026-10-13, UX.md §3 图片区排布): one image fills the
+    measure at its own ratio — never cropped, never height-capped, so long
+    phone screenshots show whole; two sit side by side; three put one tall
+    image beside a stacked pair; four is the 2×2 board; five and up ride the
+    uniform three-column 九宫格. `shown` is how many tiles actually render —
+    capped at nine, the caller covering the ninth with the +N overflow badge
+    (the hidden tail still rides the lightbox). */
+export function mediaGridLayout(count: number): {
+  cols: number;
+  rows: number;
+  /** First tile spans both rows — the 3-image one-tall-left/two-right shape. */
+  leadSpan: boolean;
+  /** Tiles actually rendered: 9 once the album overflows the board. */
+  shown: number;
+} {
+  const shown = Math.min(Math.max(count, 1), 9);
+  const cols = shown <= 1 ? 1 : shown <= 4 ? 2 : 3;
+  const rows = shown <= 2 ? 1 : Math.ceil(shown / cols);
+  return { cols, rows, leadSpan: shown === 3, shown };
+}
+
+/** Grid-template classes per board shape — the renderers' template, derived
+    from the same geometry so no island keeps its own copy of the recipe.
+    Multi-image boards pin the container's aspect (cols : rows) with every
+    cell on `1fr`, so the squares stay square AND no tile's own height can
+    inflate a row — a long screenshot is cropped by its cell, never laid out
+    at its intrinsic size. The single tile rides its own ratio instead. */
+const COLS_CLASS: Record<number, string> = {
+  1: 'grid-cols-1',
+  2: 'grid-cols-2',
+  3: 'grid-cols-3',
+};
+const ROWS_CLASS: Record<number, string> = {
+  1: 'grid-rows-1',
+  2: 'grid-rows-2',
+  3: 'grid-rows-3',
+};
+const BOARD_ASPECT_CLASS: Record<string, string> = {
+  '2x1': 'aspect-2/1',
+  '2x2': 'aspect-square',
+  '3x2': 'aspect-3/2',
+  '3x3': 'aspect-square',
+};
+
+export function mediaGridClass(count: number): string {
+  const { cols, rows, shown } = mediaGridLayout(count);
+  return [
+    COLS_CLASS[cols],
+    shown > 1 ? ROWS_CLASS[rows] : '',
+    BOARD_ASPECT_CLASS[`${cols}x${rows}`] ?? '',
+  ]
+    .filter(Boolean)
+    .join(' ');
 }
 
 /** Estimated card height in px-ish units (heuristic constants — media is
@@ -67,6 +108,14 @@ const isWideChar = (char: string): boolean => {
   const code = char.codePointAt(0)!;
   return code >= 0x1100 && !(code >= 0x2000 && code <= 0x206f);
 };
+
+/** Height ÷ width for one media item — the contract's dimensions are exact;
+    dimension-less media falls back to a 4:3 placeholder. */
+function mediaAspect(item: ChannelPostMedia): number {
+  const w = item.width ?? 0;
+  const h = item.height ?? 0;
+  return w > 0 && h > 0 ? h / w : 3 / 4;
+}
 
 /** Pre-computed card height for shortest-column packing: pure in (group,
     columnCount), so re-running the pack over a grown feed reproduces every
@@ -89,7 +138,10 @@ export function estimateChannelCardHeight(group: ChannelGroup, columnCount: numb
   if (media.length > 0) {
     height += MEDIA_GAP_PX;
     if (media.length === 1) {
-      height += (width * 9) / 16; // the single-image aspect-video slot
+      // The single tile renders at the image's own ratio (never cropped):
+      // the contract's dimensions are the real measure, the fallback only
+      // covers media the source posted without them.
+      height += width * mediaAspect(media[0]!);
     } else {
       const { cols, rows } = mediaGridLayout(media.length);
       height += (rows * width) / cols; // square cells

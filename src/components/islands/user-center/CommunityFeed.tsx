@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 
 import {
   ChevronDownIcon,
@@ -35,6 +35,7 @@ import RichEditor, {
 } from '@/components/islands/user-center/RichEditor';
 import { apiErrorCopy, toastApiError } from '@/lib/feedback';
 import { t, type Locale } from '@/lib/i18n';
+import { mediaGridClass, mediaGridLayout } from '@/lib/channels';
 import type { FeedThread, FeedReply } from '@/lib/community';
 import type { Pagination } from '@/lib/core/contracts';
 import { htmlHasContent } from '@/lib/content';
@@ -74,30 +75,13 @@ interface ReplyCache {
   loaded: boolean;
 }
 
-/** Column template per image count: 1 large, 2/3 in a row, 4 as 2×2,
- *  5 as 3+2 (bottom row spans 3 each), 6 as 2×3, 7/8 in four columns,
- *  9 as the classic 3×3 wall. */
-const imageGridClass = (count: number): string => {
-  switch (Math.min(count, 9)) {
-    case 1:
-      return 'grid-cols-1';
-    case 2:
-      return 'grid-cols-2';
-    case 4:
-      return 'grid-cols-2';
-    case 5:
-      return 'grid-cols-6';
-    case 7:
-    case 8:
-      return 'grid-cols-4';
-    default:
-      return 'grid-cols-3';
-  }
-};
-
 /** Thread/reply image area: ~70% of the column on desktop, full width on
- *  mobile, with a count-aware grid layout. Clicking an image opens the
- *  lightbox at that index (caller supplies the shared gallery). */
+ *  mobile, in the shared count-aware grid (lib/channels mediaGridLayout — the
+ *  channel mirror renders from the same geometry). One image rides its own
+ *  ratio so long screenshots show whole; 2/3/4 split the half-width board;
+ *  5+ is the nine-cell 九宫格, and a longer album collapses into the ninth
+ *  tile's +N cover (every image still rides the lightbox). Clicking an image
+ *  opens the lightbox at that index (caller supplies the shared gallery). */
 function ImageGrid({
   images,
   onOpen,
@@ -106,30 +90,47 @@ function ImageGrid({
   onOpen?: (index: number) => void;
 }) {
   if (images.length === 0) return null;
-  const count = Math.min(images.length, 9);
-  const five = count === 5;
+  const { shown, leadSpan } = mediaGridLayout(images.length);
+  const overflow = images.length - shown;
   return (
     <div className="w-full sm:w-[68%]">
       <div
-        className={`grid gap-0.5 overflow-hidden rounded-lg border border-border ${imageGridClass(count)}`}
+        className={`grid gap-0.5 overflow-hidden rounded-lg border border-border ${mediaGridClass(images.length)}`}
       >
-        {images.slice(0, 9).map((img, index) => {
+        {images.slice(0, shown).map((img, index) => {
           const layout =
-            count === 1
-              ? 'aspect-video w-full object-cover'
-              : five
-                ? `aspect-square w-full object-cover ${index < 3 ? 'col-span-2' : 'col-span-3'}`
-                : 'aspect-square w-full object-cover';
-          return (
+            shown === 1
+              ? 'block h-auto w-full'
+              : `block h-full w-full object-cover${leadSpan && index === 0 ? ' row-span-2' : ''}`;
+          const tile = (
             <img
-              key={img.url + index}
               src={img.url}
+              width={img.width ?? undefined}
+              height={img.height ?? undefined}
               alt={img.alt || ''}
               loading="lazy"
               decoding="async"
               onClick={onOpen ? () => onOpen(index) : undefined}
               className={`${onOpen ? 'cursor-zoom-in ' : ''}${layout}`}
             />
+          );
+          return (
+            <Fragment key={img.url + index}>
+              {overflow > 0 && index === shown - 1 ? (
+                <div className="relative">
+                  {tile}
+                  {/* The board shows nine tiles; the tail rides the lightbox only. */}
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0 flex items-center justify-center bg-scrim-modal text-base font-medium text-white"
+                  >
+                    +{overflow}
+                  </span>
+                </div>
+              ) : (
+                tile
+              )}
+            </Fragment>
           );
         })}
       </div>
