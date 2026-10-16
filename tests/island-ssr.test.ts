@@ -5,7 +5,11 @@ import { renderToString } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
 import UserCenter from '@/components/islands/UserCenter';
+import PostLoop, { type LoopChip } from '@/components/islands/feed/PostLoop';
+import { ChannelCard } from '@/components/islands/channels/ChannelFeed';
+import type { PostSummary } from '@/lib/core/contracts';
 import type { UserCenterCopy, UserCenterUser } from '@/components/islands/user-center/types';
+import { groupChannelRows, type ChannelPost } from '@/lib/channels';
 import { t } from '@/lib/i18n';
 
 /**
@@ -109,6 +113,144 @@ describe('shell islands render on the server', () => {
     ] as const) {
       expect(renderUserCenter(sessionUser(hard, soft))).toContain('SSR Probe');
     }
+  });
+});
+
+/** The channel card is the album renderer: a caption that rides a later
+    album row must still reach the server HTML (rows[0] alone dropped it). */
+function channelPost(overrides: Partial<ChannelPost>): ChannelPost {
+  return {
+    id: 1,
+    kind: 'photo',
+    text: '',
+    entities: [],
+    media: [{ url: 'https://aiya.test/album.png', width: 800, height: 600 }],
+    channel: { id: -1001234567890, title: 'Example', username: 'example', nsfw: false },
+    tgLink: 'https://t.me/example/1',
+    mediaGroupId: 'album',
+    postedAt: '2026-10-13T00:00:00+00:00',
+    ...overrides,
+  };
+}
+
+describe('channel cards render on the server', () => {
+  it('renders the caption of a later album row, not just the first row', () => {
+    const group = groupChannelRows([
+      channelPost({ id: 2 }),
+      channelPost({ id: 1, text: '相册说明文字' }),
+    ])[0]!;
+    const html = renderToString(
+      createElement(ChannelCard, {
+        group,
+        locale,
+        timezone: 'Asia/Shanghai',
+        showNsfw: false,
+        onOpen: () => {},
+        onTag: () => {},
+      }),
+    );
+    expect(html).toContain('相册说明文字');
+    expect(html).toContain('https://aiya.test/album.png');
+    // The card stacks text above the media area: DOM order is visual order.
+    expect(html.indexOf('相册说明文字')).toBeLessThan(html.indexOf('https://aiya.test/album.png'));
+  });
+});
+
+/**
+ * The category table never fits one toolbar row: PostLoop keeps the busiest
+ * window in the row and hands the tail to the panel's category row (split at
+ * lib/filters' CATEGORY_CHIP_CAP). The panel is closed at first paint, so the
+ * tail must not reach the SSR HTML at all — and the chevron appears exactly
+ * when there is a tail to reach.
+ */
+function loopChips(count: number): LoopChip[] {
+  return [
+    { slug: '', name: '全部', href: '/posts/' },
+    ...Array.from({ length: count }, (_, index) => ({
+      slug: `term-${index + 1}`,
+      name: `分类 ${index + 1}`,
+      // Descending counts: the ranking mirrors the fixture order, so where the
+      // cut lands is unambiguous.
+      count: 1000 - index,
+      href: `/posts/?category=term-${index + 1}`,
+    })),
+  ];
+}
+
+/** The bare minimum a FeedCard reads: the tests below need a non-empty list
+    so the append sentinel (and the pager) have something to speak about. */
+function loopItem(id: number): PostSummary {
+  return {
+    id,
+    type: 'post',
+    slug: `probe-${id}`,
+    title: `Probe ${id}`,
+    excerpt: '',
+    badges: [],
+    categories: [],
+    author: { name: '', avatar: null },
+    metrics: { views: 0, likes: 0, comments: 0, ratingScore: null, ratingCount: null },
+    thumbnail: null,
+  } as unknown as PostSummary;
+}
+
+function renderLoop(
+  chips: LoopChip[],
+  options: { heading?: string; hasNext?: boolean } = {},
+): string {
+  return renderToString(
+    createElement(PostLoop, {
+      endpoint: '/api/feed/posts/',
+      items: [loopItem(1)],
+      pagination: { page: 1, totalPages: 3, hasNext: options.hasNext ?? true, hasPrevious: false },
+      page: 1,
+      query: {},
+      route: { index: '/posts/', pagePattern: '/posts/page/{page}/', carry: ['category'] },
+      chips,
+      categoryLabel: '分类',
+      heading: options.heading,
+      emptyText: copy.posts.listEmpty,
+      errorText: copy.state.backendMessage,
+      locale,
+    }),
+  );
+}
+
+describe('the loop category window renders on the server', () => {
+  it('keeps the tail out of the toolbar row and behind the chevron', () => {
+    const html = renderLoop(loopChips(15));
+    expect(html).toContain('分类 12');
+    // Neither chip nor crawlable href for the three quietest terms.
+    expect(html).not.toContain('分类 13');
+    expect(html).not.toContain('term-13');
+    // The tail is what justifies the filter chevron on a chips-only list.
+    expect(html).toContain(copy.posts.filter);
+  });
+
+  it('drops the chevron when the whole table fits the row', () => {
+    const html = renderLoop(loopChips(12));
+    expect(html).toContain('分类 12');
+    expect(html).not.toContain(copy.posts.filter);
+  });
+});
+
+/**
+ * The navigation mode is derived from the toolbar, never passed per route: a
+ * filter bar means the visitor is scrolling a stream (append sentinel, no
+ * pager), anything else means explicit pages. Both halves are asserted, so a
+ * mode that silently disappears cannot pass as the other one.
+ */
+describe('the loop mode follows the toolbar', () => {
+  it('appends the next page while the filter bar owns the toolbar', () => {
+    const html = renderLoop(loopChips(15), { hasNext: false });
+    expect(html).toContain(copy.posts.noMore);
+    expect(html).not.toContain(copy.common.pagination);
+  });
+
+  it('renders the pager buttons for a heading-only list', () => {
+    const html = renderLoop([], { heading: copy.posts.title });
+    expect(html).toContain(copy.common.pagination);
+    expect(html).not.toContain(copy.posts.noMore);
   });
 });
 

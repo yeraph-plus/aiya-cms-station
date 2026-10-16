@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
+  channelGroupTexts,
   estimateChannelCardHeight,
   mediaGridClass,
   mediaGridLayout,
@@ -249,12 +250,14 @@ function useColumnCount(): number | null {
   return count;
 }
 
-/** One message card: the album head's styled text plus the group's merged
- *  media area. Header: the bold channel name linking to the t.me permalink
- *  on the left, the post date on the right (a not-yet-filled title degrades
- *  to a bare date). NSFW-channel media renders blurred (unless the
- *  visitor's soft switch is on) behind a click-to-reveal cover. */
-function ChannelCard({
+/** One message card: every row's styled text (an album's caption rides
+ *  whichever message carried it — rows[0] alone drops a later caption) plus
+ *  the group's merged media area. Header: the bold channel name linking to
+ *  the t.me permalink on the left, the post date on the right (a
+ *  not-yet-filled title degrades to a bare date). NSFW-channel media renders
+ *  blurred (unless the visitor's soft switch is on) behind a click-to-reveal
+ *  cover. */
+export function ChannelCard({
   group,
   locale,
   timezone,
@@ -295,7 +298,13 @@ function ChannelCard({
         </time>
       </header>
       <div className="min-w-0">
-        <ChannelText text={head.text} entities={head.entities} onTag={onTag} />
+        {/* Every row's text, not just rows[0]: an album's caption rides
+            whichever message carried it. */}
+        {channelGroupTexts(group).map((row, index) => (
+          <div key={row.id} className={index > 0 ? 'mt-2' : undefined}>
+            <ChannelText text={row.text} entities={row.entities} onTag={onTag} />
+          </div>
+        ))}
         {media.length > 0 && (
           <MediaGrid
             media={media}

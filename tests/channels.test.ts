@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  channelGroupTexts,
   estimateChannelCardHeight,
   groupChannelRows,
   mediaGridClass,
@@ -136,6 +137,41 @@ describe('estimateChannelCardHeight', () => {
       }),
     );
     expect(estimateChannelCardHeight(tall, 3)).toBeGreaterThan(estimateChannelCardHeight(wide, 3));
+  });
+
+  it('measures every album row, not just the first (a late caption still counts)', () => {
+    const album = (rows: ChannelPost[]): ChannelGroup => ({ groupId: 'album', rows });
+    const tile = { url: 'https://aiya.test/tile.png', width: 800, height: 800 };
+    const bare = album([
+      row({ id: 2, text: '', media: [tile] }),
+      row({ id: 1, text: '', media: [tile] }),
+    ]);
+    const captioned = album([
+      row({ id: 2, text: '', media: [tile] }),
+      row({ id: 1, text: '一'.repeat(40), media: [tile] }),
+    ]);
+    expect(estimateChannelCardHeight(captioned, 3)).toBeGreaterThan(
+      estimateChannelCardHeight(bare, 3),
+    );
+    // Two rows of text stack taller than one row carrying the same glyphs.
+    const split = album([
+      row({ id: 2, text: '一'.repeat(40) }),
+      row({ id: 1, text: '一'.repeat(40) }),
+    ]);
+    expect(estimateChannelCardHeight(split, 3)).toBeGreaterThan(
+      estimateChannelCardHeight(groupOf(row({ text: '一'.repeat(80) })), 3),
+    );
+  });
+});
+
+describe('channelGroupTexts', () => {
+  it('keeps every row that carries text, in row order', () => {
+    const group: ChannelGroup = {
+      groupId: 'album',
+      rows: [row({ id: 2, text: '' }), row({ id: 1, text: 'late caption' })],
+    };
+    expect(channelGroupTexts(group).map((post) => post.text)).toEqual(['late caption']);
+    expect(channelGroupTexts(groupOf(row({ text: '' })))).toEqual([]);
   });
 });
 

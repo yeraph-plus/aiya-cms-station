@@ -2,7 +2,8 @@
 /**
  * Page list (/pages/): page-type entries share the post projection, so the
  * PostLoop island serves this route exactly like /posts/ (sort select in
- * the toolbar, auto-load appends the next page). Pages carry one category
+ * the toolbar; its filter bar is what switches the loop to append-on-scroll
+ * instead of the pager). Pages carry one category
  * vocabulary (page_category) — the chips mirror the /posts/ toolbar minus
  * the tag panel, which no page vocabulary maps to.
  */
@@ -46,11 +47,6 @@ const chips = [
     slug: '',
     name: copy.pages.all,
     href: '/pages/',
-    route: {
-      index: '/pages/',
-      pagePattern: '/pages/page/{page}/',
-      carry: ['q', 'category', 'sort'],
-    },
   },
   ...(page.ok
     ? page.value.categories.map((term) => ({
@@ -76,10 +72,9 @@ const chips = [
   {
     page.ok && (
       <PostLoop
-        autoLoad
         client:load
         chips={chips}
-        filterAriaLabel={copy.pages.category}
+        categoryLabel={copy.pages.category}
         endpoint="/api/feed/pages/"
         items={page.value.pages}
         pagination={page.value.pagination}

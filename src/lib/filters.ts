@@ -5,7 +5,9 @@
  * query state the island itself produces, and the canonical carries the
  * filters (never the sort preference). One source — page 1 and page N must
  * read identical keys, or a filter set on page 1 silently vanishes on
- * page 2.
+ * page 2. The category chip window (toolbar vs. filter panel) and its
+ * single-select rule live here too: the two rows the split produces must
+ * agree on both the ranking and what a click means.
  */
 
 export interface ListFilters {
@@ -55,4 +57,48 @@ export function chipHref(base: string, filters: ListFilters, slug: string): stri
   if (filters.tag !== '') params.set('tag', filters.tag);
   const query = params.toString();
   return query !== '' ? `${base}?${query}` : base;
+}
+
+/**
+ * The category taxonomy never fits in one toolbar row, so its table is split
+ * in two: the chip row carries the busiest `CATEGORY_CHIP_CAP` terms, the
+ * filter panel's category row carries the rest. Both halves write the same
+ * single-select `category` param, so the split is presentation only — the
+ * union is the whole table and a selection survives either way.
+ */
+export const CATEGORY_CHIP_CAP = 12;
+
+export interface ChipWindow<T> {
+  /** The "all" chip plus the busiest terms, in ranking order. */
+  toolbar: T[];
+  /** Every term the toolbar window left out, in ranking order. */
+  panel: T[];
+}
+
+/**
+ * Split the chip list into the toolbar window and the panel remainder.
+ * Ranking is the per-term published count (the figure the chips print),
+ * most articles first; the backend's own term order breaks ties — the copy
+ * is sorted (never the caller's array) and `Array#sort` is stable, so both
+ * rows stay deterministic across requests. Chips without a count rank last.
+ */
+export function splitCategoryChips<T extends { slug: string; count?: number }>(
+  chips: T[],
+  cap: number = CATEGORY_CHIP_CAP,
+): ChipWindow<T> {
+  const all = chips.filter((chip) => chip.slug === '');
+  const ranked = chips
+    .filter((chip) => chip.slug !== '')
+    .sort((a, b) => (b.count ?? 0) - (a.count ?? 0));
+  return { toolbar: [...all, ...ranked.slice(0, cap)], panel: ranked.slice(cap) };
+}
+
+/**
+ * The single rule behind both category rows (toolbar chips and the panel's
+ * category row): a click makes that term the only chosen category, and
+ * clicking the active one — or the "all" chip — clears the selection. One
+ * source so the two rows can never disagree on what a click means.
+ */
+export function nextCategorySelection(current: string[], slug: string): string[] {
+  return slug === '' || (current.length === 1 && current[0] === slug) ? [] : [slug];
 }

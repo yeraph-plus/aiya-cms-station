@@ -46,11 +46,6 @@ const chips = [
     slug: '',
     name: copy.posts.all,
     href: '/posts/',
-    route: {
-      index: '/posts/',
-      pagePattern: '/posts/page/{page}/',
-      carry: ['q', 'category', 'tag', 'sort'],
-    },
   },
   ...(page.ok
     ? page.value.categories.map((term) => ({
@@ -93,10 +88,9 @@ const tagGroups = page.ok
     page.ok && (
       <>
         <PostLoop
-          autoLoad
           client:load
           chips={chips}
-          filterAriaLabel={copy.posts.category}
+          categoryLabel={copy.posts.category}
           tagGroups={tagGroups}
           endpoint="/api/feed/posts/"
           items={page.value.posts.map(cloakPostSummaryMedia)}

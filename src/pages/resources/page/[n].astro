@@ -46,7 +46,6 @@ const copy = t(view.page.locale);
         <>
           <h1 class="sr-only">{view.listTitle}</h1>
           <PostLoop
-            autoLoad
             client:load
             endpoint="/api/feed/resources/"
             items={view.page.value.items}

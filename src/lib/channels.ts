@@ -33,6 +33,15 @@ export function groupChannelRows(rows: readonly ChannelPost[]): ChannelGroup[] {
   return groups;
 }
 
+/** The rows whose text a card renders, in order: EVERY row's non-empty text.
+    An album is several rows and Telegram hangs the caption on whichever
+    message carried it, so reading rows[0] alone drops a caption that rides a
+    later row (it surfaced as "the images showed, the text was gone").
+    Entities stay per row — the caller never re-bases offsets. */
+export function channelGroupTexts(group: ChannelGroup): ChannelPost[] {
+  return group.rows.filter((row) => row.text !== '');
+}
+
 /** The album grid geometry for a merged album of `count` images — the single
     source both renderers (their grid template) and the height estimator
     (cell math) derive from, so they cannot drift.
@@ -100,6 +109,7 @@ const LINE_PX = 23;
 const HEADER_PX = 34;
 const PADDING_PX = 32;
 const MEDIA_GAP_PX = 12;
+const TEXT_GAP_PX = 8; // the mt-2 between stacked text rows
 const CJK_PX = 14.5;
 const NARROW_PX = 8;
 const COLUMN_WIDTH_PX: Record<number, number> = { 1: 1400, 2: 690, 3: 456 };
@@ -122,12 +132,12 @@ function mediaAspect(item: ChannelPostMedia): number {
     earlier placement exactly — pagination never moves a placed card. */
 export function estimateChannelCardHeight(group: ChannelGroup, columnCount: number): number {
   const width = COLUMN_WIDTH_PX[columnCount] ?? COLUMN_WIDTH_PX[3]!;
-  const head = group.rows[0]!;
   let height = HEADER_PX + PADDING_PX;
-  if (head.text !== '') {
+  for (const [index, row] of channelGroupTexts(group).entries()) {
+    if (index > 0) height += TEXT_GAP_PX; // stacked rows keep the block gap
     const capacity = width / CJK_PX;
     let lines = 0;
-    for (const line of head.text.split('\n')) {
+    for (const line of row.text.split('\n')) {
       let units = 0;
       for (const char of line) units += isWideChar(char) ? 1 : NARROW_PX / CJK_PX;
       lines += Math.max(1, Math.ceil(units / capacity));

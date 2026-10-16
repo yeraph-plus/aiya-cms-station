@@ -29,7 +29,8 @@ import {
   PaginationLink,
 } from '@/components/ui/pagination';
 import Spinner from '@/components/islands/Spinner';
-import { t, type Locale } from '@/lib/i18n';
+import { nextCategorySelection, splitCategoryChips } from '@/lib/filters';
+import { t, type Dictionary, type Locale } from '@/lib/i18n';
 import type { Pagination, PostSummary } from '@/lib/core/contracts';
 import { useInfiniteScroll } from '@/lib/use-infinite-scroll';
 
@@ -43,10 +44,19 @@ export interface FeedRoute {
   carry?: string[];
 }
 
-/** One taxonomy chip of the inline filter toolbar (Astro-built). */
-export interface LoopChip {
+/** One taxonomy term as the toolbar chips and the panel rows render it: the
+    label plus the term icon meta the server resolved through the lucide
+    lookup. Both surfaces share the shape, so a term moves between them (the
+    category table's split) without being re-projected. */
+export interface TermItem {
   slug: string;
   name: string;
+  /** Inner SVG of the term's icon meta; null/absent renders the label only. */
+  icon?: string | null;
+}
+
+/** One category chip of the inline filter toolbar (Astro-built). */
+export interface LoopChip extends TermItem {
   /** Crawlable single-term target (the entry page) for the non-JS
       fallback; a click toggles the query URL instead (single-select). */
   href: string;
@@ -54,9 +64,6 @@ export interface LoopChip {
       relationships only, unfiltered by the visitor's NSFW preference — a
       total-volume figure) — marked beside the name; absent renders none. */
   count?: number;
-  /** Inner SVG of the term's icon meta, resolved server-side through the
-      lucide lookup; null/absent renders the label only. */
-  icon?: string | null;
 }
 
 interface PageMeta {
@@ -95,9 +102,15 @@ export interface PostLoopProps {
   route: FeedRoute;
   perPage?: number;
   /** Taxonomy chips rendered left of the view toggle in one toolbar row;
-      clicks filter the loop client-side (筛选重置页码). */
+      clicks filter the loop client-side (筛选重置页码). Only the "all" chip
+      plus the busiest categories reach the row (lib/filters splits the table
+      at CATEGORY_CHIP_CAP); the terms left over render in the panel's
+      category row — both sides write the same single-select `category`
+      param, so the table stays one filter. */
   chips?: LoopChip[];
-  filterAriaLabel?: string;
+  /** Label of the category taxonomy the chips list: the toolbar row's
+      aria-label and the heading of the panel's category row. */
+  categoryLabel?: string;
   /** Standing label of the toolbar's left slot for the filter-less mode
       (author archives and other lists that carry no chips): it takes the
       place the chips row would occupy, so the row keeps a visible section
@@ -107,8 +120,9 @@ export interface PostLoopProps {
   /** Inner SVG of the heading's lucide icon, resolved server-side through
       the lucide lookup; null/absent renders the label only. */
   headingIcon?: string | null;
-  /** Tag filter groups for the collapsible panel under the toolbar;
-      absent (or all empty) hides the panel's toggle button. */
+  /** Tag filter groups for the collapsible panel under the toolbar (toggled
+      multi-select); absent (or all empty) hides their rows. The panel's
+      category row comes from `chips`, not from here. */
   tagGroups?: TagGroup[];
   /** Summary feeds (homepage sections) set false: their toggle row would
       dangle under the section header — the preference still applies from
@@ -118,11 +132,6 @@ export interface PostLoopProps {
       the archive target the section's window summarizes. Rendered only
       when provided; pages with a view toggle never pass it. */
   more?: { href: string; label: string };
-  /** Infinite scroll: the next page appends automatically when its
-      sentinel enters the viewport (main entrances only; archives keep
-      explicit pagination). No history entries are pushed — back/forward
-      still swaps to the SSR page the visitor navigated to. */
-  autoLoad?: boolean;
   /** Initial layout; the visitor's toggle persists over it (localStorage).
       Summary feeds pin their own: pass `stickyView={false}` there. */
   defaultView?: LoopView;
@@ -142,18 +151,25 @@ const splitSlugs = (value: string | undefined): string[] =>
     .map((slug) => slug.trim())
     .filter(Boolean);
 
+/** The non-empty entries of a query dict as URL params, insertion order
+    kept. `keys` narrows it to a route's carry list, so a paginated link
+    never drops a filter the address bar carries. */
+function queryParams(query: Record<string, string>, keys?: string[]): URLSearchParams {
+  const params = new URLSearchParams();
+  for (const key of keys ?? Object.keys(query)) {
+    const value = query[key];
+    if (value) params.set(key, value);
+  }
+  return params;
+}
+
 /** Page-1 → index path; later pages → the page pattern; carry list rides along. */
 function hrefForPage(route: FeedRoute, query: Record<string, string>, page: number): string {
   const base =
     page === 1 || !route.pagePattern
       ? route.index
       : route.pagePattern.replace('{page}', String(page));
-  const params = new URLSearchParams();
-  for (const key of route.carry ?? []) {
-    const value = query[key];
-    if (value) params.set(key, value);
-  }
-  const qs = params.toString();
+  const qs = queryParams(query, route.carry ?? []).toString();
   return qs ? `${base}?${qs}` : base;
 }
 
@@ -385,6 +401,27 @@ function CardInfo({
   );
 }
 
+/** Term icon of a chip or panel pill: the server resolved the term's icon
+    meta into an inner SVG (`iconInner`) — null/absent renders the label
+    alone. One component so the toolbar and the panel cannot drift. */
+function TermIcon({ icon, size }: { icon?: string | null; size: number }) {
+  if (!icon) return null;
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width={size}
+      height={size}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      dangerouslySetInnerHTML={{ __html: icon }}
+    />
+  );
+}
+
 /** Compact pill of the filter panel rows (sort options and tag terms) — the
     same shadcn Button the category chips wear, so panel and toolbar read as
     one control family: default variant when active, outline otherwise. */
@@ -407,6 +444,39 @@ function FilterPill({
     >
       {children}
     </Button>
+  );
+}
+
+/** One labelled row of filter pills: a vocabulary's heading plus its terms,
+    the active ones highlighted. The panel's category row and every tag
+    vocabulary wear the same row, so the two can never disagree on spacing or
+    on what a term looks like. `label` is optional — the toolbar's own
+    category row heading is passed only when the page has one. */
+function FilterRow({
+  label,
+  items,
+  active,
+  onToggle,
+}: {
+  label?: string;
+  items: TermItem[];
+  active: string[];
+  onToggle: (slug: string) => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      {label && <span className="shrink-0 text-sm text-body-muted">{label}</span>}
+      {items.map((term) => (
+        <FilterPill
+          key={term.slug}
+          active={active.includes(term.slug)}
+          onClick={() => onToggle(term.slug)}
+        >
+          <TermIcon icon={term.icon} size={13} />
+          {term.name}
+        </FilterPill>
+      ))}
+    </div>
   );
 }
 
@@ -478,17 +548,126 @@ function FeedCard({
 }
 
 /**
+ * The pager buttons — the navigation mode of every list whose toolbar has no
+ * filter bar: term archives, search, author profiles, and any page past the
+ * first. Hrefs stay real paths, so a middle-click (or a click before the
+ * island hydrates) still lands on the SSR page; a plain click swaps the list
+ * in place. Renders nothing for a single-page list.
+ */
+function LoopPager({
+  pagination,
+  page,
+  route,
+  query,
+  copy,
+  onGoto,
+}: {
+  pagination: PageMeta;
+  page: number;
+  route: FeedRoute;
+  query: Record<string, string>;
+  copy: Dictionary;
+  onGoto: (page: number) => void;
+}) {
+  if (pagination.totalPages <= 1) return null;
+  /** One end cap: a link while the step exists, a dimmed stand-in otherwise
+      (the row keeps its width). The icon leads on the previous side and
+      trails on the next. */
+  const cap = (
+    rel: 'prev' | 'next',
+    enabled: boolean,
+    target: number,
+    label: string,
+    icon: React.ReactNode,
+  ) => {
+    const content = (
+      <>
+        {rel === 'prev' && icon}
+        <span className="hidden sm:inline">{label}</span>
+        {rel === 'next' && icon}
+      </>
+    );
+    return enabled ? (
+      <PaginationLink
+        href={hrefForPage(route, query, target)}
+        rel={rel}
+        size="default"
+        className="h-8 px-2.5 text-xs"
+        onClick={(event) => {
+          event.preventDefault();
+          onGoto(target);
+        }}
+      >
+        {content}
+      </PaginationLink>
+    ) : (
+      <span className="inline-flex h-8 items-center gap-1 rounded-md px-2.5 text-xs opacity-40">
+        {content}
+      </span>
+    );
+  };
+  return (
+    <PaginationRoot className="mt-8 text-xs" aria-label={copy.common.pagination}>
+      <PaginationContent>
+        <PaginationItem>
+          {cap(
+            'prev',
+            pagination.hasPrevious,
+            page - 1,
+            copy.common.previousPage,
+            <ChevronLeftIcon aria-hidden="true" />,
+          )}
+        </PaginationItem>
+        {pageItems(page, pagination.totalPages).map((item, index) =>
+          item === 'ellipsis' ? (
+            <PaginationItem key={`gap-${index}`}>
+              <PaginationEllipsis />
+            </PaginationItem>
+          ) : (
+            <PaginationItem key={item}>
+              <PaginationLink
+                href={hrefForPage(route, query, item)}
+                isActive={item === page}
+                className="size-8 text-xs"
+                onClick={(event) => {
+                  event.preventDefault();
+                  onGoto(item);
+                }}
+              >
+                {item}
+              </PaginationLink>
+            </PaginationItem>
+          ),
+        )}
+        <PaginationItem>
+          {cap(
+            'next',
+            pagination.hasNext,
+            page + 1,
+            copy.common.nextPage,
+            <ChevronRightIcon aria-hidden="true" />,
+          )}
+        </PaginationItem>
+      </PaginationContent>
+    </PaginationRoot>
+  );
+}
+
+/**
  * Generic article loop island (posts / resources / author & category
  * archives share the PostSummary projection). Astro owns parameter
  * parsing, the initial request, route shapes (FeedRoute) and design
  * params; this island renders the toolbar (taxonomy chips on the left;
- * the tag-filter chevron, clear-filter and view toggles pinned right),
- * the collapsible filter panel (sort + tag groups), the list, and serves
- * subsequent states from the same-origin JSON feed. URL state: every
- * client-side update pushState's the canonical URL (cloning the
- * ClientRouter's history state), so back/forward stays owned by the
- * router's full SSR swap and hard loads / deep links keep working
- * through the path routes.
+ * the filter chevron, clear-filter and view toggles pinned right), the
+ * collapsible filter panel (sort + the categories the toolbar window left
+ * out + tag groups), the list, and serves subsequent states from the
+ * same-origin JSON feed. Two navigation modes ride the toolbar's left
+ * slot: the filter bar (chips) appends the next page as the visitor
+ * scrolls, anything else (the standing heading, a bare archive) shows the
+ * pager buttons — see the `autoLoad` derivation below. URL state: every client-side
+ * update pushState's the canonical URL (cloning the ClientRouter's
+ * history state), so back/forward stays owned by the router's full SSR
+ * swap and hard loads / deep links keep working through the path routes.
  */
 export default function PostLoop({
   endpoint,
@@ -499,13 +678,12 @@ export default function PostLoop({
   route,
   perPage,
   chips,
-  filterAriaLabel,
+  categoryLabel,
   heading,
   headingIcon,
   tagGroups,
   showViewToggle = true,
   more,
-  autoLoad = false,
   defaultView = 'list',
   stickyView = true,
   emptyText,
@@ -559,14 +737,48 @@ export default function PostLoop({
     historyUrl: string;
   } | null>(null);
   const copy = t(locale);
+  const vertical = view === 'grid';
+  const groups = (tagGroups ?? []).filter((group) => group.items.length > 0);
+  const hasTags = groups.length > 0;
+  // The category table is split by volume: the busiest terms ride the
+  // toolbar row, the tail waits in the panel's category row (same
+  // single-select param on either side).
+  const { toolbar: toolbarChips, panel: panelCategoryChips } = splitCategoryChips(chips ?? []);
+  const hasChips = toolbarChips.length > 0;
+  const hasCategoryRow = panelCategoryChips.length > 0;
+  // Either row justifies the chevron: the tag groups and the category tail
+  // both live behind it (a chips-only list with a short table has neither).
+  const hasPanel = hasTags || hasCategoryRow;
+  // The heading takes the left slot only in the filter-less mode: chips win
+  // it whenever they render, so a page never shows both.
+  const hasHeading = !hasChips && Boolean(heading);
+  // Navigation mode follows that left slot, never the page: while the filter
+  // bar owns the row the visitor is reading a stream, so the next page
+  // appends itself; without it — the standing heading, or a bare archive —
+  // the loop hands over to the pager buttons. One derivation, so no route
+  // can hand this island a mode its own toolbar contradicts.
+  const autoLoad = hasChips;
+  const categorySet = activeCategories ?? splitSlugs(state.query.category);
+  const tagSet = activeTags ?? splitSlugs(state.query.tag);
+  // A term chosen from the panel's category row has no chip in the toolbar
+  // (it sits below the cut), so the chevron itself has to carry the state —
+  // otherwise a filtered list would show no selected control at all.
+  const panelCategoryActive = panelCategoryChips.some((term) => categorySet.includes(term.slug));
+  const chipActive = (slug: string) =>
+    slug === '' ? categorySet.length === 0 : categorySet.includes(slug);
+  // Literal classes only — Tailwind's scanner cannot see interpolated names.
+  // Card view never drops below two columns (through sm): on phones the
+  // single-column grid degenerated into a wall of aspect-video images with
+  // no scan grid.
+  const listClass = vertical
+    ? 'grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'
+    : 'flex flex-col gap-3';
 
   /** The one feed GET both pager paths share: query dict + page → the
       parsed envelope, or null when the response is unusable. */
   const requestFeed = async (query: Record<string, string>, page: number) => {
     const target = new URL(endpoint, window.location.origin);
-    for (const [key, value] of Object.entries(query)) {
-      if (value) target.searchParams.set(key, value);
-    }
+    for (const [key, value] of queryParams(query)) target.searchParams.set(key, value);
     target.searchParams.set('page', String(page));
     if (perPage) target.searchParams.set('perPage', String(perPage));
     const response = await fetch(target, { headers: { Accept: 'application/json' } });
@@ -685,17 +897,16 @@ export default function PostLoop({
       (carry keys, term lists, sort) rides along, keeping the address bar
       shareable. */
   const historyUrlFor = (query: Record<string, string>): string => {
-    const params = new URLSearchParams();
-    for (const [key, value] of Object.entries(query)) {
-      if (value) params.set(key, value);
-    }
-    const qs = params.toString();
-    return qs ? `${stateRef.current.route.index}?${qs}` : stateRef.current.route.index;
+    const qs = queryParams(query).toString();
+    const { index } = stateRef.current.route;
+    return qs ? `${index}?${qs}` : index;
   };
 
-  const applySort = (next: 'newest' | 'oldest') => {
+  /** Commit a page-1 change of the filter state (sort / category / tag):
+      optimistic highlight, single-flight fetch, canonical URL. The pager's
+      gotoPage is the only caller that keeps its page number. */
+  const applyQuery = (nextQuery: Record<string, string>) => {
     const s = stateRef.current;
-    const nextQuery: Record<string, string> = { ...s.query, sort: next };
     fetchState(
       {
         pagination: s.pagination,
@@ -707,64 +918,37 @@ export default function PostLoop({
     );
   };
 
-  /** Category chips are single-select (0.96.0): a click makes the term the
-      only chosen category — clicking the active one (or "all") clears the
-      filter. Multi-select stays the tag panel's job. The "all" chip
-      normalizes to an empty selection so its own highlight rule
-      (chipActive on an empty set) stays truthful. */
-  const applyChip = (chip: LoopChip) => {
-    const s = stateRef.current;
-    const current = activeCategories ?? splitSlugs(s.query.category);
-    const next =
-      chip.slug === '' || (current.length === 1 && current[0] === chip.slug) ? [] : [chip.slug];
+  const applySort = (next: 'newest' | 'oldest') =>
+    applyQuery({ ...stateRef.current.query, sort: next });
+
+  /** Category selection is single-select on both rows (0.96.0): a click makes
+      the term the only chosen category — clicking the active one (or "all")
+      clears the filter, and the toolbar chips and the panel's category row
+      share the rule through lib/filters. Multi-select stays the tag panel's
+      job. The "all" chip normalizes to an empty selection so its own
+      highlight rule (chipActive on an empty set) stays truthful. */
+  const applyCategory = (slug: string) => {
+    const current = activeCategories ?? splitSlugs(stateRef.current.query.category);
+    const next = nextCategorySelection(current, slug);
     setActiveCategories(next);
-    const nextQuery: Record<string, string> = { ...s.query, category: next.join(',') };
-    fetchState(
-      {
-        pagination: s.pagination,
-        page: 1,
-        query: nextQuery,
-        route: s.route,
-      },
-      historyUrlFor(nextQuery),
-    );
+    applyQuery({ ...stateRef.current.query, category: next.join(',') });
   };
 
   /** Tag filter: toggling slugs in the comma list (multi-select). The
       panel stays open so several tags can be combined in a row. */
   const applyTag = (slug: string) => {
-    const s = stateRef.current;
-    const current = activeTags ?? splitSlugs(s.query.tag);
+    const current = activeTags ?? splitSlugs(stateRef.current.query.tag);
     const next = current.includes(slug)
       ? current.filter((value) => value !== slug)
       : [...current, slug];
     setActiveTags(next);
-    const nextQuery: Record<string, string> = { ...s.query, tag: next.join(',') };
-    fetchState(
-      {
-        pagination: s.pagination,
-        page: 1,
-        query: nextQuery,
-        route: s.route,
-      },
-      historyUrlFor(nextQuery),
-    );
+    applyQuery({ ...stateRef.current.query, tag: next.join(',') });
   };
 
   /** Clears every selected tag (toolbar button next to the chevron). */
   const clearTagFilter = () => {
     setActiveTags([]);
-    const s = stateRef.current;
-    const nextQuery: Record<string, string> = { ...s.query, tag: '' };
-    fetchState(
-      {
-        pagination: s.pagination,
-        page: 1,
-        query: nextQuery,
-        route: s.route,
-      },
-      historyUrlFor(nextQuery),
-    );
+    applyQuery({ ...stateRef.current.query, tag: '' });
   };
 
   const gotoPage = (next: number) => {
@@ -779,25 +963,6 @@ export default function PostLoop({
     );
   };
 
-  const vertical = view === 'grid';
-  const groups = (tagGroups ?? []).filter((group) => group.items.length > 0);
-  const hasTags = groups.length > 0;
-  const chipItems = chips ?? [];
-  const hasChips = chipItems.length > 0;
-  // The heading takes the left slot only in the filter-less mode: chips win
-  // it whenever they render, so a page never shows both.
-  const hasHeading = !hasChips && Boolean(heading);
-  const categorySet = activeCategories ?? splitSlugs(state.query.category);
-  const tagSet = activeTags ?? splitSlugs(state.query.tag);
-  const chipActive = (slug: string) =>
-    slug === '' ? categorySet.length === 0 : categorySet.includes(slug);
-  // Literal classes only — Tailwind's scanner cannot see interpolated names.
-  // Card view never drops below two columns (through sm): on phones the
-  // single-column grid degenerated into a wall of aspect-video images with
-  // no scan grid.
-  const listClass = vertical
-    ? 'grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'
-    : 'flex flex-col gap-3';
   return (
     <div aria-busy={loading}>
       {/* Toolbar: the left slot holds the taxonomy chips (filter mode) or,
@@ -809,9 +974,9 @@ export default function PostLoop({
         {hasChips && (
           <nav
             className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-            aria-label={filterAriaLabel}
+            aria-label={categoryLabel}
           >
-            {chipItems.map((chip) => {
+            {toolbarChips.map((chip) => {
               const active = chipActive(chip.slug);
               return (
                 <Button
@@ -827,23 +992,10 @@ export default function PostLoop({
                     className="inline-flex items-center gap-1.5"
                     onClick={(event) => {
                       event.preventDefault();
-                      applyChip(chip);
+                      applyCategory(chip.slug);
                     }}
                   >
-                    {chip.icon && (
-                      <svg
-                        viewBox="0 0 24 24"
-                        width={14}
-                        height={14}
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
-                        dangerouslySetInnerHTML={{ __html: chip.icon }}
-                      />
-                    )}
+                    <TermIcon icon={chip.icon} size={14} />
                     {chip.name}
                     {chip.count !== undefined && (
                       <span className="text-[11px] font-normal opacity-70">{chip.count}</span>
@@ -896,9 +1048,11 @@ export default function PostLoop({
                 {copy.posts.clearFilter}
               </Button>
             )}
-            {hasTags && (
+            {hasPanel && (
               <Button
-                variant={panelOpen || tagSet.length > 0 ? 'default' : 'outline'}
+                variant={
+                  panelOpen || tagSet.length > 0 || panelCategoryActive ? 'default' : 'outline'
+                }
                 size="icon"
                 className="size-8"
                 aria-expanded={panelOpen}
@@ -915,7 +1069,7 @@ export default function PostLoop({
             )}
             {/* Second separator: keeps the filter controls and the view
                 toggles visually apart (only when the chevron exists). */}
-            {hasTags && <div aria-hidden="true" className="h-5 w-px shrink-0 bg-border" />}
+            {hasPanel && <div aria-hidden="true" className="h-5 w-px shrink-0 bg-border" />}
             <div
               className="flex shrink-0 gap-1.5"
               role="group"
@@ -947,7 +1101,7 @@ export default function PostLoop({
           </div>
         )}
       </div>
-      {panelOpen && hasTags && (
+      {panelOpen && hasPanel && (
         <div className="mb-3 animate-in fade-in slide-in-from-top-2 border-y border-border py-2.5 duration-base">
           <div className="space-y-1.5">
             {/* Sort row: moved out of the chips nav into the panel. */}
@@ -966,33 +1120,25 @@ export default function PostLoop({
                 {copy.posts.sortOldest}
               </FilterPill>
             </div>
+            {/* Category row: the terms the toolbar window left out, carrying
+                the toolbar's own single-select rule — one choice across both
+                rows, so the split never splits the filter. */}
+            {hasCategoryRow && (
+              <FilterRow
+                label={categoryLabel}
+                items={panelCategoryChips}
+                active={categorySet}
+                onToggle={applyCategory}
+              />
+            )}
             {groups.map((group) => (
-              <div key={group.key} className="flex flex-wrap items-center gap-1.5">
-                <span className="shrink-0 text-sm text-body-muted">{group.label}</span>
-                {group.items.map((tag) => (
-                  <FilterPill
-                    key={tag.slug}
-                    active={tagSet.includes(tag.slug)}
-                    onClick={() => applyTag(tag.slug)}
-                  >
-                    {tag.icon && (
-                      <svg
-                        viewBox="0 0 24 24"
-                        width={13}
-                        height={13}
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
-                        dangerouslySetInnerHTML={{ __html: tag.icon }}
-                      />
-                    )}
-                    {tag.name}
-                  </FilterPill>
-                ))}
-              </div>
+              <FilterRow
+                key={group.key}
+                label={group.label}
+                items={group.items}
+                active={tagSet}
+                onToggle={applyTag}
+              />
             ))}
           </div>
         </div>
@@ -1016,9 +1162,14 @@ export default function PostLoop({
             />
           ))}
         </div>
-      ) : autoLoad ? null : (
+      ) : (
         <EmptyNote className="px-6 py-8">{emptyText}</EmptyNote>
       )}
+      {/* Append sentinel: stays mounted in the chips mode even while the list
+          is empty — the observer is armed once, so unmounting it would kill
+          auto-load for the rest of the session. Its text belongs to a list
+          that actually has items (an empty result wears the empty note
+          alone). */}
       {autoLoad && (
         <div
           ref={sentinelRef}
@@ -1027,9 +1178,9 @@ export default function PostLoop({
         >
           {loading ? (
             <Spinner label={copy.posts.loading} />
-          ) : state.pagination.hasNext ? null : (
+          ) : state.items.length > 0 && !state.pagination.hasNext ? (
             copy.posts.noMore
-          )}
+          ) : null}
         </div>
       )}
       {failed && (
@@ -1037,76 +1188,15 @@ export default function PostLoop({
           {errorText}
         </p>
       )}
-      {!autoLoad && state.pagination.totalPages > 1 && (
-        <PaginationRoot className="mt-8 text-xs" aria-label={t(locale).common.pagination}>
-          <PaginationContent>
-            <PaginationItem>
-              {state.pagination.hasPrevious ? (
-                <PaginationLink
-                  href={hrefForPage(state.route, state.query, state.page - 1)}
-                  rel="prev"
-                  size="default"
-                  className="h-8 px-2.5 text-xs"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    gotoPage(state.page - 1);
-                  }}
-                >
-                  <ChevronLeftIcon aria-hidden="true" />
-                  <span className="hidden sm:inline">{copy.common.previousPage}</span>
-                </PaginationLink>
-              ) : (
-                <span className="inline-flex h-8 items-center gap-1 rounded-md px-2.5 text-xs opacity-40">
-                  <ChevronLeftIcon aria-hidden="true" />
-                  <span className="hidden sm:inline">{copy.common.previousPage}</span>
-                </span>
-              )}
-            </PaginationItem>
-            {pageItems(state.page, state.pagination.totalPages).map((item, index) =>
-              item === 'ellipsis' ? (
-                <PaginationItem key={`gap-${index}`}>
-                  <PaginationEllipsis />
-                </PaginationItem>
-              ) : (
-                <PaginationItem key={item}>
-                  <PaginationLink
-                    href={hrefForPage(state.route, state.query, item)}
-                    isActive={item === state.page}
-                    className="size-8 text-xs"
-                    onClick={(event) => {
-                      event.preventDefault();
-                      gotoPage(item);
-                    }}
-                  >
-                    {item}
-                  </PaginationLink>
-                </PaginationItem>
-              ),
-            )}
-            <PaginationItem>
-              {state.pagination.hasNext ? (
-                <PaginationLink
-                  href={hrefForPage(state.route, state.query, state.page + 1)}
-                  rel="next"
-                  size="default"
-                  className="h-8 px-2.5 text-xs"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    gotoPage(state.page + 1);
-                  }}
-                >
-                  <span className="hidden sm:inline">{copy.common.nextPage}</span>
-                  <ChevronRightIcon aria-hidden="true" />
-                </PaginationLink>
-              ) : (
-                <span className="inline-flex h-8 items-center gap-1 rounded-md px-2.5 text-xs opacity-40">
-                  <span className="hidden sm:inline">{copy.common.nextPage}</span>
-                  <ChevronRightIcon aria-hidden="true" />
-                </span>
-              )}
-            </PaginationItem>
-          </PaginationContent>
-        </PaginationRoot>
+      {!autoLoad && (
+        <LoopPager
+          pagination={state.pagination}
+          page={state.page}
+          route={state.route}
+          query={state.query}
+          copy={copy}
+          onGoto={gotoPage}
+        />
       )}
     </div>
   );

@@ -86,7 +86,6 @@ if (page.ok) {
     page.ok && (
       <>
         <PostLoop
-          autoLoad
           client:load
           chips={[
             {
@@ -102,7 +101,7 @@ if (page.ok) {
               href: chipHref('/resources/', filters, term.slug),
             })),
           ]}
-          filterAriaLabel={copy.resources.category}
+          categoryLabel={copy.resources.category}
           tagGroups={tagGroups}
           endpoint="/api/feed/resources/"
           items={page.value.resources.map(cloakPostSummaryMedia)}
