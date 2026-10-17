@@ -15,6 +15,8 @@ const zh_HK: Dictionary = {
     copied: '已複製',
     breadcrumb: '麵包屑導覽',
     pagination: '分頁',
+    leavingSite: '即將離開本站，前往外部網站',
+    openExternal: '跳轉',
   },
   shell: {
     menuToggle: '切換導航',

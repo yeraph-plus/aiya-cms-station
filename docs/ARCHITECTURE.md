@@ -46,7 +46,7 @@ lib/core/         contracts.ts（zod 线上契约，后端 PHP DTO 的逐字段�
 lib/i18n/         前端自有文案：locale 解析 user.locale → site.language →
                   zh_CN；字典属性访问（支持函数值插值），四语言结构由类型 + 测试锁齐
 lib/seo.ts        JSON-LD 纯函数（WebSite / Article / BreadcrumbList）+ robotsTxt()
-lib/content.ts    唯一 HTML 净化边界（sanitize-html 白名单）
+lib/content.ts    唯一 HTML 净化边界（sanitize-html 白名单；跨域锚点在此补 rel）
 ```
 
 ## 实现分布
@@ -79,7 +79,9 @@ SEO）、路由与请求器（pages/ → loadPage → HTTP 状态）全归 Astro
   cookie——解锁响应即解锁后的完整详情，岛内原位替换正文，冷刷新重新上锁。
 - 正文模板零件为 HTML-first 标记（`details/alert/dl/span[data-clipboard-slot]/
 part-button`），剪贴板零件由正文零件的 effect 绑定复制按钮；正文图片带后端
-  注入的 `aiya-lightbox` class。
+  注入的 `aiya-lightbox` class。跨域外链走第三处绑定：同一 effect 绑激活事件、
+  `ArticleBody` 持气泡状态（气泡渲染在 memo 之外，避免重设 `innerHTML` 抹掉
+  已绑监听），气泡内容与 `ui/popover` 同料。
 - **详情三壳岛**（`islands/detail/`）：`PostDetail`/`ResourceDetail` 两栏
   （左正文、右侧栏作者卡/附件/相关文章），`PageDetail` 全宽；零件全部拆进
   `detail/parts.tsx`，壳负责组装，hydration 边界只在壳上。SSR 页只做取数 +
@@ -208,7 +210,11 @@ part-button`），剪贴板零件由正文零件的 effect 绑定复制按钮；
    `/community/board/{board}/`），经共享 `anchorTransform` 挂在三个 sanitize
    边界（`safeContent`/`sanitizeDiscussionHtml`/`sanitizeCommentHtml`）——
    解析成功补 href、传输用 data 属性即剥（前台 HTML 洁净），句柄不可用降级
-   为无 href 惰性文本。正文内提及蓝链与 `[ref]` 零件标记同走此通道；详情
+   为无 href 惰性文本。正文内提及蓝链与 `[ref]` 零件标记同走此通道；作者手写的**外链**不是路由
+   形状而是内容，故不由标记承载——保留真实 href，仅在同一 `anchorTransform`
+   边界补 `rel="nofollow noopener noreferrer"`（`safeContent` 的白名单是唯一
+   放行 `rel` 的一支；跨域判定与离站气泡归 `lib/links.ts` 与正文 effect，后端
+   不参与）；详情
    JSON-LD 的路由也由 `postRoute(type, slug)` 自建（seo.ts，面包屑仅
    label+position）。
 5. **通知标题是通知 HTML**：`/notifications` 的 `title` 携带后端产出的软

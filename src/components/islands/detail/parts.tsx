@@ -37,9 +37,10 @@ import {
 import { toast } from 'sonner';
 
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
 
 import CommentSection from '@/components/islands/CommentSection';
@@ -49,6 +50,7 @@ import LikeButton from '@/components/islands/LikeButton';
 import RatingRow from '@/components/islands/RatingRow';
 import UnlockGate from '@/components/islands/UnlockGate';
 import { postRoute, safeContent } from '@/lib/content';
+import { isCrossOrigin, linkDisplay } from '@/lib/links';
 import { displayDate } from '@/lib/format';
 import Avatar from '@/components/islands/Avatar';
 import EmptyNote from '@/components/islands/EmptyNote';
@@ -431,6 +433,12 @@ type GallerySlides = { src: string; alt?: string }[];
 
 export function ArticleBody({ post, locale }: { post: PostDetail; locale: Locale }) {
   const [gallery, setGallery] = useState<DetailGallery>({ open: false, index: 0, slides: [] });
+  // The outbound safety bubble (UX.md §7): the prose anchor that was
+  // activated plus its resolved target. It lives here, outside the memoized
+  // body, for the same reason the gallery does — ProseBody has to bail out of
+  // re-renders, or a re-set innerHTML would wipe the very listeners this
+  // state exists to serve.
+  const [outbound, setOutbound] = useState<OutboundTarget | null>(null);
   // Stable across renders: the memoized ProseBody must never see a new
   // callback, or its bail-out would break and a gallery re-render would
   // re-set the prose innerHTML (wiping the bound listeners with it).
@@ -439,10 +447,23 @@ export function ArticleBody({ post, locale }: { post: PostDetail; locale: Locale
     [],
   );
   const closeGallery = useCallback(() => setGallery((prev) => ({ ...prev, open: false })), []);
+  const openOutbound = useCallback((anchor: HTMLAnchorElement, href: string) => {
+    // The rect is read at activation, not at render: the popover then mounts
+    // with its stand-in already on the link (a later move would be a frame
+    // behind the reader).
+    const rect = anchor.getBoundingClientRect();
+    setOutbound({ anchor, href, x: rect.left + rect.width / 2, y: rect.top });
+  }, []);
+  const closeOutbound = useCallback(() => setOutbound(null), []);
 
   return (
     <>
-      <ProseBody post={post} locale={locale} onOpenGallery={openGallery} />
+      <ProseBody
+        post={post}
+        locale={locale}
+        onOpenGallery={openGallery}
+        onOpenOutbound={openOutbound}
+      />
       <Lightbox
         open={gallery.open}
         index={gallery.index}
@@ -451,6 +472,7 @@ export function ArticleBody({ post, locale }: { post: PostDetail; locale: Locale
         plugins={lightboxPlugins(gallery.slides.length)}
         {...lightboxChrome}
       />
+      <OutboundBubble target={outbound} locale={locale} onClose={closeOutbound} />
     </>
   );
 }
@@ -465,10 +487,12 @@ const ProseBody = memo(function ProseBody({
   post,
   locale,
   onOpenGallery,
+  onOpenOutbound,
 }: {
   post: PostDetail;
   locale: Locale;
   onOpenGallery: (index: number, slides: GallerySlides) => void;
+  onOpenOutbound: (anchor: HTMLAnchorElement, href: string) => void;
 }) {
   const copy = t(locale);
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -517,7 +541,36 @@ const ProseBody = memo(function ProseBody({
       img.dataset.lightboxBound = '1';
       img.addEventListener('click', () => onOpenGallery(index, slides));
     });
-  }, [post.content.html, copy.common.copy, copy.common.copied, onOpenGallery]);
+
+    // Outbound links (UX.md §7): activating a cross-origin link opens the
+    // safety bubble instead of leaving at once. The href stays untouched, so
+    // middle clicks, modified clicks and no-JS visitors keep working — only
+    // the plain left click is gated. These anchors are not React nodes (they
+    // live in the sanitized blob), so the bubble hangs from a stand-in that
+    // is positioned over the link at activation.
+    prose.querySelectorAll('a[href]').forEach((node) => {
+      if (!(node instanceof HTMLAnchorElement) || node.dataset.outbound === '1') return;
+      // A template-part button carries its own affordance, and a link around
+      // an image belongs to the lightbox.
+      if (node.classList.contains('part-button') || node.querySelector('img')) return;
+      const target = node.href;
+      if (!isCrossOrigin(target, window.location.origin)) return;
+      node.dataset.outbound = '1';
+      node.addEventListener('click', (event) => {
+        if (
+          event.button !== 0 ||
+          event.metaKey ||
+          event.ctrlKey ||
+          event.shiftKey ||
+          event.altKey
+        ) {
+          return;
+        }
+        event.preventDefault();
+        onOpenOutbound(node, target);
+      });
+    });
+  }, [post.content.html, copy.common.copy, copy.common.copied, onOpenGallery, onOpenOutbound]);
 
   if (post.gated) {
     return (
@@ -564,6 +617,104 @@ const ProseBody = memo(function ProseBody({
     />
   );
 });
+
+/** One pending outbound navigation: the prose anchor that asked for it, its
+    resolved target, and the viewport point the bubble hangs from. */
+interface OutboundTarget {
+  anchor: HTMLAnchorElement;
+  href: string;
+  x: number;
+  y: number;
+}
+
+/**
+ * The outbound safety bubble (UX.md §7): one line of notice, the target and a
+ * real link button — real, so the keyboard reaches it, middle-click and
+ * copy-link behave, and no popup blocker is involved. Radix anchors the panel
+ * to a zero-size stand-in kept on the trigger's rect: the prose anchor is not
+ * a React node, and this Radix line has no virtual anchor, so the stand-in is
+ * how a node inside the sanitized blob gets a popover.
+ */
+function OutboundBubble({
+  target,
+  locale,
+  onClose,
+}: {
+  target: OutboundTarget | null;
+  locale: Locale;
+  onClose: () => void;
+}) {
+  const copy = t(locale);
+  const standInRef = useRef<HTMLDivElement>(null);
+
+  // While a target is live the stand-in rides its anchor's rect — the reader
+  // may scroll (inner scrollers included, hence the capture listener) before
+  // deciding. The position is re-read on the next frame, not on every event.
+  useEffect(() => {
+    if (!target) return;
+    const place = () => {
+      const node = standInRef.current;
+      if (!node) return;
+      const rect = target.anchor.getBoundingClientRect();
+      node.style.left = `${rect.left + rect.width / 2}px`;
+      node.style.top = `${rect.top}px`;
+    };
+    let frame = 0;
+    const queue = () => {
+      if (frame !== 0) return;
+      frame = window.requestAnimationFrame(() => {
+        frame = 0;
+        place();
+      });
+    };
+    window.addEventListener('scroll', queue, true);
+    window.addEventListener('resize', queue);
+    return () => {
+      if (frame !== 0) window.cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', queue, true);
+      window.removeEventListener('resize', queue);
+    };
+  }, [target]);
+
+  if (!target) return null;
+
+  return (
+    <Popover
+      open
+      onOpenChange={(next) => {
+        if (!next) onClose();
+      }}
+    >
+      <PopoverAnchor
+        ref={standInRef}
+        aria-hidden="true"
+        className="pointer-events-none fixed size-0"
+        style={{ left: target.x, top: target.y }}
+      />
+      <PopoverContent
+        side="top"
+        sideOffset={8}
+        aria-label={copy.common.leavingSite}
+        className="w-auto max-w-[calc(100vw-2rem)] p-3"
+        onCloseAutoFocus={(event) => {
+          // A dismissal hands the reader back to the link they were on.
+          event.preventDefault();
+          target.anchor.focus();
+        }}
+      >
+        <p className="text-xs text-body-muted">{copy.common.leavingSite}</p>
+        <p className="mt-1 text-sm break-all text-foreground">{linkDisplay(target.href)}</p>
+        <div className="mt-3 flex justify-end">
+          <Button asChild size="sm" className="h-11 px-5">
+            <a href={target.href} target="_blank" rel="noopener noreferrer" onClick={onClose}>
+              {copy.common.openExternal}
+            </a>
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 /**
  * The header action bar: like (post/page) or rating (resource) plus the

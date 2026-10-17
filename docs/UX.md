@@ -21,7 +21,7 @@ Popover。
 | **toast**                | sonner（AppShell 挂载；`bottom-right` 固定在 `ui/sonner` 内，移动端经 `mobileOffset` 抬到 TabBar 之上） | 动作已发出、结果异步返回，用户**不需要停留在原地修正**；或无表单上下文的拦截                                          | 点赞/收藏/评分结果、Aria2 推送、图片上传失败、社区操作失败、游客触发登录动作的拦截 |
 | **内联 alert / status**  | 表单内 `role="alert" text-error` / `role="status"`，紧邻提交控件                                        | 用户**需要就地修正**：字段校验、服务端拒绝且原因与输入相关                                                            | 登录失败、设置保存失败、解锁失败、兑换码错误                                       |
 | **Dialog / AlertDialog** | `ui/dialog`；行内破坏性操作确认 = `ConfirmPopover` 锚定气泡                                             | ① 破坏性或不可逆操作**必须先确认**（行内动作用确认气泡，模态确认留给全局性操作）；② 需要成块输入的复杂操作            | 登录/注册、发帖、头像上传（Dialog）；删帖/删回复/删头像（ConfirmPopover）          |
-| **Popover**              | `ui/popover`                                                                                            | 非模态环境信息：用户主动唤起、点外部即关、不打断阅读                                                                  | 通知铃、钱包气泡、表情选择器、正文零件                                             |
+| **Popover**              | `ui/popover`                                                                                            | 非模态环境信息：用户主动唤起、点外部即关、不打断阅读                                                                  | 通知铃、钱包气泡、表情选择器、正文零件、正文外链安全气泡                           |
 | **Tooltip**              | `ui/tooltip`                                                                                            | 纯图标控件的**悬停命名**：aria-label 的可视化补充，只命名不承载操作结果，一句话；触屏无悬停，入口必须有非悬停可达路径 | 顶栏动作钮（暗色/通知/积分/会员/客服）、回到顶部                                   |
 | **整页 reload**          | `location.reload()`                                                                                     | **仅限会话或 SSR 状态变更**：登录/注册成功、评论进入待审——页面新状态只能由服务端重渲染表达                            | AuthDialog 成功、CommentSection 待审提示                                           |
 
@@ -163,3 +163,22 @@ focus-visible:outline-focus-blue`。手写层禁用 `focus:border-*` 冒充
   （`UserMenu` 的 `user.softNsfw` ← `lib/nsfw.ts` 读 cookie，先例即修复）；
   cookie 是服务端状态，壳是唯一读点。浏览器全局只允许出现在 `useEffect`
   与事件回调里，`tests/island-ssr.test.ts` 常驻执法。
+
+## 7. 正文外链（离站安全气泡）
+
+- **范围**：只作用于正文（`PostDetail`/`ResourceDetail`/`PageDetail` 共用的
+  `ArticleBody` → `ProseBody`）内的**跨域**链接。评论、社区帖、频道镜像各有
+  自己的内容通道，不受本约；同源与相对链接、`mailto:`、页内锚点、模板零件
+  按钮（`a.part-button`）、包图锚点都不进气泡。
+- **合规基线（不做 href 隐藏）**：外链保留真实 `href`——无 JS 时是普通链接、
+  可被抓取、可中键与复制链接；SSR 侧在 `lib/content.ts` 的净化边界给跨域锚点
+  补 `rel="nofollow noopener noreferrer"`（`nofollow` 才是不传权重的正当机制）。
+  **不做** base64/假标签式外链隐藏：隐藏与「源码形态与用户所见一致」相悖，
+  且主引擎渲染 JS、对隐藏无效。
+- **激活语义**：点击 / 键盘 Enter / 触屏点按**跨域**链接不立即导航，先弹锚定
+  气泡（`ui/popover`）：一行离站提示 + 目标 URL（域名+路径，超长中段截断）+
+  「跳转」链接按钮；按钮开新标签（`rel="noopener noreferrer"`）。站内链接不
+  拦截、同标签直达；带修饰键的点击（Ctrl/Cmd/Shift）不拦截，交给浏览器。
+- **可达性**：Esc 与点外部关闭；关闭后焦点回到触发链接。气泡宽度与触控目标
+  遵 §5（`max-w-[calc(100vw-2rem)]`、碰撞 16px、≥44px）。
+- **刻意不做**：不做悬停预览（避免提示噪音）；不做「不再提醒」（每次离站都提醒）。

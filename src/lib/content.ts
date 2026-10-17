@@ -1,4 +1,5 @@
 import sanitizeHtml from 'sanitize-html';
+import { isOutboundHref } from '@/lib/links';
 import { rewriteMediaUrl, rewriteSrcset } from '@/lib/media';
 import { boardPaths } from '@/lib/routes';
 
@@ -102,8 +103,20 @@ function refHref(attribs: Record<string, string>): string | undefined {
   }
 }
 
-/** The shared `a` transform: reference markers become routed anchors;
-    every other anchor keeps the media-rewrite path. */
+/** `rel` tokens to stamp on an outbound anchor, merged with whatever the
+    author set — a Set keeps the pass idempotent (the detail islands re-run
+    this boundary as defense in depth; a duplicated token list would drift
+    between the SSR HTML and the hydrated DOM). */
+function outboundRel(existing: string | undefined): string {
+  const tokens = `${existing ?? ''} nofollow noopener noreferrer`.split(/\s+/).filter(Boolean);
+  return [...new Set(tokens)].join(' ');
+}
+
+/** The shared `a` transform: reference markers become routed anchors; every
+    other anchor keeps the media-rewrite path, and an outbound target
+    additionally carries the no-equity `rel` (UX.md §7 — the href itself
+    stays, so no-JS visitors and crawlers still see a plain working link and
+    the safety bubble is an enhancement, never a replacement). */
 function anchorTransform(
   _tagName: string,
   attribs: Record<string, string>,
@@ -113,7 +126,15 @@ function anchorTransform(
     return { tagName: 'a', attribs: { ...attribs, href: ref } };
   }
 
-  return { tagName: 'a', attribs: { ...attribs, href: rewriteMediaUrl(attribs.href ?? '') } };
+  const href = rewriteMediaUrl(attribs.href ?? '');
+  return {
+    tagName: 'a',
+    attribs: {
+      ...attribs,
+      href,
+      ...(isOutboundHref(href) ? { rel: outboundRel(attribs.rel) } : {}),
+    },
+  };
 }
 
 /**
@@ -165,7 +186,9 @@ export function safeContent(html: string): string {
       'td',
     ],
     allowedAttributes: {
-      a: ['href', 'title', 'class'],
+      // `rel` survives so the outbound stamp above — and an author's own
+      // tokens — lands in the HTML a crawler sees.
+      a: ['href', 'title', 'class', 'rel'],
       div: ['data-post-card', 'data-post-card-body', 'data-card-type', 'data-badges'],
       // `class` survives so backend-injected smilies (`aiya-smilie`) can be
       // sized by CSS; content imgs simply rarely carry one. The lightbox

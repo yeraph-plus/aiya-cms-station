@@ -17,6 +17,8 @@ const zh_CN = {
     copied: '已复制',
     breadcrumb: '面包屑导航',
     pagination: '分页',
+    leavingSite: '即将离开本站，前往外部网站',
+    openExternal: '跳转',
   },
   shell: {
     menuToggle: '切换导航',

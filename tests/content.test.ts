@@ -211,6 +211,54 @@ describe('reference markers (zero-routing)', () => {
   });
 });
 
+describe('outbound anchors (rel at the boundary)', () => {
+  it('stamps the no-equity rel on absolute http(s) targets and keeps the href', () => {
+    const html = safeContent('<p><a href="https://other.example/x">外部</a></p>');
+    expect(html).toContain('href="https://other.example/x"');
+    expect(html).toContain('rel="nofollow noopener noreferrer"');
+    // No target attribute: the safety bubble owns the new-tab decision and a
+    // no-JS visitor keeps navigating in place (UX.md §7).
+    expect(html).not.toContain('target=');
+  });
+
+  it('stamps protocol-relative targets too', () => {
+    const html = safeContent('<a href="//other.example/x">外部</a>');
+    expect(html).toContain('rel="nofollow noopener noreferrer"');
+  });
+
+  it('leaves the site own shapes unstamped', () => {
+    for (const href of ['/posts/a/', 'posts/a/', '#comment-1', 'mailto:a@b.c']) {
+      const html = safeContent(`<a href="${href}">站内</a>`);
+      expect(html).toContain(`href="${href}"`);
+      expect(html).not.toContain('rel=');
+    }
+  });
+
+  it('keeps the author own rel tokens alongside the stamp', () => {
+    const html = safeContent('<a href="https://other.example/x" rel="sponsored">外部</a>');
+    expect(html).toContain('rel="sponsored nofollow noopener noreferrer"');
+  });
+
+  it('stays idempotent: the detail islands re-run this boundary as defense in depth', () => {
+    const once = safeContent('<a href="https://other.example/x">外部</a>');
+    expect(safeContent(once)).toBe(once);
+  });
+
+  it('keeps the routed marker anchors unstamped', () => {
+    const html = safeContent(
+      '<a data-aiya-ref="post" data-aiya-type="post" data-aiya-slug="a">内链</a>',
+    );
+    expect(html).toContain('href="/posts/a/"');
+    expect(html).not.toContain('rel=');
+  });
+
+  it('drops javascript targets instead of stamping them', () => {
+    const html = safeContent('<a href="javascript:alert(1)">x</a>');
+    expect(html).not.toContain('javascript:');
+    expect(html).not.toContain('rel=');
+  });
+});
+
 describe('sanitizeNotificationHtml', () => {
   it('resolves the backend soft anchor into a routed href and strips the handles', () => {
     const out = sanitizeNotificationHtml(

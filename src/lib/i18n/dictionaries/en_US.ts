@@ -14,6 +14,8 @@ const en_US: Dictionary = {
     copied: 'Copied',
     breadcrumb: 'Breadcrumb',
     pagination: 'Pagination',
+    leavingSite: 'You are leaving this site for an external website',
+    openExternal: 'Continue',
   },
   shell: {
     menuToggle: 'Toggle navigation',

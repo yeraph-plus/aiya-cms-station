@@ -7,7 +7,8 @@ import { describe, expect, it } from 'vitest';
 import UserCenter from '@/components/islands/UserCenter';
 import PostLoop, { type LoopChip } from '@/components/islands/feed/PostLoop';
 import { ChannelCard } from '@/components/islands/channels/ChannelFeed';
-import type { PostSummary } from '@/lib/core/contracts';
+import { ArticleBody } from '@/components/islands/detail/parts';
+import type { PostDetail, PostSummary } from '@/lib/core/contracts';
 import type { UserCenterCopy, UserCenterUser } from '@/components/islands/user-center/types';
 import { groupChannelRows, type ChannelPost } from '@/lib/channels';
 import { t } from '@/lib/i18n';
@@ -251,6 +252,30 @@ describe('the loop mode follows the toolbar', () => {
     const html = renderLoop([], { heading: copy.posts.title });
     expect(html).toContain(copy.common.pagination);
     expect(html).not.toContain(copy.posts.noMore);
+  });
+});
+
+/** Minimal detail fixture for the prose surface: ArticleBody reads only the
+    body HTML and the two gate flags, so the rest of the DTO stays a cast. */
+function prosePost(html: string): PostDetail {
+  return { content: { html }, gated: false, locked: false } as unknown as PostDetail;
+}
+
+describe('the article body keeps its outbound links server-rendered', () => {
+  it('renders the real href and the rel stamp, with no bubble in the SSR output', () => {
+    const html = renderToString(
+      createElement(ArticleBody, {
+        post: prosePost('<p><a href="https://other.example/x">外部</a></p>'),
+        locale,
+      }),
+    );
+    // Progressive enhancement (UX.md §7): the href stays real, so a no-JS
+    // visitor keeps a working link and a crawler keeps seeing one.
+    expect(html).toContain('href="https://other.example/x"');
+    expect(html).toContain('rel="nofollow noopener noreferrer"');
+    // The bubble is client state — nothing of it belongs in the SSR output.
+    expect(html).not.toContain(copy.common.leavingSite);
+    expect(html).not.toContain(copy.common.openExternal);
   });
 });
 
