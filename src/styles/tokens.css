@@ -171,8 +171,14 @@
   --error: #ff7373;
 }
 @theme {
-  --font-display: 'MiSans', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
-  --font-body: 'MiSans', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  --font-display:
+    'Station Sans SC', 'Station Sans TC', 'Station Sans JP', 'PingFang SC', 'PingFang TC',
+    'Hiragino Sans', 'Microsoft YaHei', 'Microsoft JhengHei', 'Yu Gothic UI', 'Noto Sans CJK SC',
+    'Noto Sans CJK TC', 'Noto Sans CJK JP', system-ui, sans-serif;
+  --font-body:
+    'Station Sans SC', 'Station Sans TC', 'Station Sans JP', 'PingFang SC', 'PingFang TC',
+    'Hiragino Sans', 'Microsoft YaHei', 'Microsoft JhengHei', 'Yu Gothic UI', 'Noto Sans CJK SC',
+    'Noto Sans CJK TC', 'Noto Sans CJK JP', system-ui, sans-serif;
   --font-mono: 'SFMono-Regular', Consolas, monospace;
   --radius-media: 0.375rem;
 }
@@ -199,4 +205,32 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Regional glyph forms come from the family, not from `locl`: each Station
+   Sans family is built from its own language's upstream OTF, so a Hant or
+   Japanese page reorders the stack instead of asking the shaper to swap
+   variants. `:lang()` also covers content that carries its own lang — a
+   Japanese quote inside a Chinese post, say — and an element language wins
+   over the document one. */
+:lang(zh-Hant),
+:lang(zh-TW),
+:lang(zh-HK),
+:lang(zh-MO) {
+  --font-display:
+    'Station Sans TC', 'Station Sans SC', 'Station Sans JP', 'PingFang TC', 'PingFang SC',
+    'Hiragino Sans', 'Microsoft JhengHei', 'Microsoft YaHei', 'Yu Gothic UI', 'Noto Sans CJK TC',
+    'Noto Sans CJK SC', 'Noto Sans CJK JP', system-ui, sans-serif;
+  --font-body:
+    'Station Sans TC', 'Station Sans SC', 'Station Sans JP', 'PingFang TC', 'PingFang SC',
+    'Hiragino Sans', 'Microsoft JhengHei', 'Microsoft YaHei', 'Yu Gothic UI', 'Noto Sans CJK TC',
+    'Noto Sans CJK SC', 'Noto Sans CJK JP', system-ui, sans-serif;
+}
+:lang(ja) {
+  --font-display:
+    'Station Sans JP', 'Station Sans SC', 'Station Sans TC', 'Hiragino Sans', 'Yu Gothic UI',
+    'Noto Sans CJK JP', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', system-ui, sans-serif;
+  --font-body:
+    'Station Sans JP', 'Station Sans SC', 'Station Sans TC', 'Hiragino Sans', 'Yu Gothic UI',
+    'Noto Sans CJK JP', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', system-ui, sans-serif;
 }

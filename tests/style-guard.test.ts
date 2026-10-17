@@ -165,7 +165,7 @@ describe('style guard', () => {
     expect(violations(css, /(?:^|[^-])transition[^;:]*:[^;]*\d+\.?\d*m?s/)).toEqual([]);
   });
 
-  it('font stacks ride the tokens, MiSans opens display and body (DESIGN.md §2 字体栈)', () => {
+  it('font stacks ride the tokens, Station Sans opens display and body (DESIGN.md §2 字体栈)', () => {
     // Handwritten font-family literals drift off the single webfont stack;
     // tokens.css is the only source, gate/500 keep their inline
     // dependency-free stacks (the hex-allowlist zero-dep pages minus the
@@ -177,13 +177,78 @@ describe('style guard', () => {
       ),
     );
     expect(violations(files, /font-family|font-\[/)).toEqual([]);
-    // The webfont decision itself: self-hosted MiSans must stay the first
-    // family of both text stacks (AppShell imports Regular + Medium css).
+
     const tokens = readFileSync(join(ROOT, 'src/styles/tokens.css'), 'utf-8');
+    const compact = (text: string) => text.replace(/\s+/g, ' ');
+    // The webfont decision itself: the Simplified family leads both text
+    // stacks, the Hant and Japanese families sit behind it (a page pulls one
+    // family's slices plus only the other families' differing glyphs), and
+    // the system faces for all three scripts stay in the chain for codepoints
+    // no slice covers.
+    const BASE = [
+      "'Station Sans SC'",
+      "'Station Sans TC'",
+      "'Station Sans JP'",
+      "'PingFang SC'",
+      "'PingFang TC'",
+      "'Hiragino Sans'",
+      "'Microsoft YaHei'",
+      "'Microsoft JhengHei'",
+      "'Yu Gothic UI'",
+      "'Noto Sans CJK SC'",
+      "'Noto Sans CJK TC'",
+      "'Noto Sans CJK JP'",
+      'system-ui',
+      'sans-serif',
+    ].join(', ');
     for (const token of ['--font-display', '--font-body']) {
-      const line = tokens.split('\n').find((candidate) => candidate.trim().startsWith(`${token}:`));
-      expect(line?.includes(`'MiSans',`)).toBe(true);
-      expect(line?.indexOf(`'MiSans'`)).toBeLessThan(line?.indexOf(`'PingFang SC'`) ?? NaN);
+      // prettier wraps the long value across lines, so read the whole
+      // declaration instead of the first physical line.
+      const match = new RegExp(`${token}:\\s*([^;]+);`).exec(compact(tokens));
+      const stack = match?.[1]?.trim() ?? '';
+      expect(stack.startsWith(`'Station Sans SC',`)).toBe(true);
+      expect(stack.indexOf(`'Station Sans SC'`)).toBeLessThan(stack.indexOf(`'Station Sans TC'`));
+    }
+    // Three copies, one base stack: the dependency-free gate and 500 pages
+    // inline exactly what the tokens declare (they carry no webfont, so their
+    // fallbacks have to be the same list).
+    expect(compact(tokens)).toContain(BASE);
+    expect(compact(readFileSync(join(ROOT, 'src/lib/gate.ts'), 'utf-8'))).toContain(BASE);
+    expect(compact(readFileSync(join(ROOT, 'src/pages/500.astro'), 'utf-8'))).toContain(BASE);
+
+    // Regional forms come from reordering the families, not from `locl`:
+    // each block must put its own family first and keep that script's system
+    // faces behind it.
+    const blockOf = (selector: string) => {
+      const match = new RegExp(`${selector}[^{]*\\{([^}]*)\\}`).exec(tokens);
+      expect(match, `missing ${selector} block`).not.toBeNull();
+      return compact(match?.[1] ?? '');
+    };
+    const hant = blockOf(':lang\\(zh-Hant\\)');
+    expect(hant).toContain("--font-display: 'Station Sans TC'");
+    expect(hant).toContain("'Station Sans TC', 'Station Sans SC'");
+    for (const face of ["'PingFang TC'", "'Microsoft JhengHei'", "'Noto Sans CJK TC'"]) {
+      expect(hant).toContain(face);
+    }
+    const japanese = blockOf(':lang\\(ja\\)');
+    expect(japanese).toContain("--font-body: 'Station Sans JP'");
+    expect(japanese).toContain("'Station Sans JP', 'Station Sans SC'");
+    for (const face of ["'Hiragino Sans'", "'Yu Gothic UI'", "'Noto Sans CJK JP'"]) {
+      expect(japanese).toContain(face);
+    }
+
+    // The wiring: the shell imports all three families' two weights, which is
+    // what puts the slices in the build at all (a family left out here would
+    // silently fall back to system faces).
+    const shell = readFileSync(join(ROOT, 'src/components/layout/AppShell.astro'), 'utf-8');
+    for (const [id, stem] of [
+      ['sc', 'StationSansSC'],
+      ['tc', 'StationSansTC'],
+      ['jp', 'StationSansJP'],
+    ]) {
+      for (const weight of ['Regular', 'Medium']) {
+        expect(shell).toContain(`@/fonts/station-sans/${id}/${stem}-${weight}.min.css`);
+      }
     }
   });
 

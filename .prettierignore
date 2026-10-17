@@ -3,6 +3,12 @@ node_modules/
 .astro/
 package-lock.json
 
+# Font pipeline outputs (generated: a few hundred @font-face rules and long
+# unicode-range lists, which prettier would explode one range per line)
+src/fonts/station-sans/
+scripts/fonts/ranges.json
+scripts/fonts/order.json
+
 # prettier-plugin-astro cannot parse the define:vars gtag inline script (hard
 # error, not a style diff) — keep this file out of format enforcement
 src/components/layout/BaseHead.astro

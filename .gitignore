@@ -11,6 +11,10 @@ coverage/
 # Contract snapshot scratch output (sync tool workspace artifact)
 /backend-snap.json
 
+# Font build inputs (scripts/fonts/fetch.mjs drops the upstream OTFs here;
+# only the subsetted slices under src/fonts/ are versioned)
+/.cache/
+
 # Dev-server build artifacts and session scratch scripts
 rich-transformed.mjs
 /tmp-*.py

@@ -92,6 +92,13 @@ export default defineConfig({
   integrations: [react(), bundleSsrDepsForStandalone],
   vite: {
     plugins: [tailwindcss()],
+    build: {
+      // The font slices are 20-40 KB each and are fetched individually by
+      // unicode-range; Vite's default 4 KB inline limit would base64 the small
+      // ones into the stylesheet, where they would arrive on every page
+      // regardless of whether that page renders any of their codepoints.
+      assetsInlineLimit: 0,
+    },
     // Dev keeps the default dependency externalization — with `ssr.noExternal`
     // the Vite 8 module runner evaluates react's CJS entry as ESM and crashes
     // with "module is not defined" before the first request. The standalone

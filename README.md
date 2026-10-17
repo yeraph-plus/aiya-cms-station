@@ -54,6 +54,15 @@ dev 需要精确 origin 时临时改 `.env` 的端口即可（见 `.env.example`
 **无机器身份**：前台不做管理/预览能力，内容读全部匿名——`serverClient()` 不
 持有任何 WP 账号；浏览器端仅存访客各自的 Bearer（HttpOnly cookie）。
 
+字体切片是**仓库产物**（`src/fonts/station-sans/`，三族两字重约 9.6MB，随仓库
+版本管理）：日常开发与构建不重新生成、也不联网。只有更换字体或调整切片策略时
+才跑管线——`npm run fonts:fetch`（上游 per-language OTF 进 gitignore 的
+`.cache/fonts/`，`cdn.jsdelivr.net` 主镜像、raw.githubusercontent 兜底）→
+`npm run fonts:snapshot`（官方切片表快照成每族覆盖集）→ `npm run fonts:build`
+（harfbuzz 子集化成 woff2 + 分片 css）→ `npm run fonts:check`（产物体检；
+`npm run verify` 已含这一步）。覆盖集、分片顺序与取舍理由见
+[`docs/DESIGN.md`](docs/DESIGN.md) §2 字体栈。
+
 ## 生产部署
 
 镜像一次构建、运行时注入配置——`astro:env` 读的是进程环境，没有任何配置值

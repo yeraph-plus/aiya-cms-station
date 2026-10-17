@@ -1,0 +1,97 @@
+{
+  "$comment": "Upstream sources for the in-repo font pipeline (scripts/fonts/). Build-time only: the generated slices under src/fonts/station-sans/ are committed, so a normal build never touches the network.",
+  "upstream": {
+    "font": "Noto Sans CJK (Source Han Sans)",
+    "repo": "https://github.com/notofonts/noto-cjk",
+    "path": "Sans/OTF",
+    "mirrors": [
+      "https://cdn.jsdelivr.net/gh/notofonts/noto-cjk@main",
+      "https://raw.githubusercontent.com/notofonts/noto-cjk/main"
+    ],
+    "license": {
+      "id": "OFL-1.1",
+      "file": "src/fonts/station-sans/OFL.txt",
+      "source": "https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/notosanssc/OFL.txt",
+      "reservedFontName": "Source",
+      "rename": "Station Sans SC/TC/JP are subsetted derivatives of Noto Sans CJK. The OFL reserved font name 'Source' (and the Noto name) is therefore not used: the families are renamed, and this file plus OFL.txt ship with every slice."
+    }
+  },
+  "subset": {
+    "sliceSize": 140,
+    "keepFeatures": ["ccmp", "calt", "clig", "liga", "kern", "mark", "mkmk"],
+    "dropTables": ["DSIG", "gasp", "meta", "vhea", "vmtx"],
+    "$why": [
+      "locl is dropped on purpose. Regional glyph forms come from the family instead: each family is built from that language's own upstream OTF, whose default cmap mapping is already the language's baked forms. Carrying all four regional variant sets in one family costs ~1.9x per codepoint (measured: 472 vs 244 B/codepoint) and would make the rendering depend on the browser's lang -> locl mapping, which cannot be verified in this workspace.",
+      "vert/vrt2 and the vertical metrics tables are dropped: the site has no vertical CJK.",
+      "ruby, trad, smpl, aalt, dlig, hist, fwid, hwid, pwid and halt/palt are unused by the site's CSS and would only add closure glyphs."
+    ]
+  },
+  "families": [
+    {
+      "id": "sc",
+      "family": "Station Sans SC",
+      "subdir": "SimplifiedChinese",
+      "coverageFamily": "Noto Sans SC",
+      "weights": [
+        {
+          "name": "Regular",
+          "css": 400,
+          "file": "NotoSansCJKsc-Regular.otf",
+          "bytes": 16437364,
+          "sha256": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b"
+        },
+        {
+          "name": "Medium",
+          "css": 500,
+          "file": "NotoSansCJKsc-Medium.otf",
+          "bytes": 16523632,
+          "sha256": "ca094f6b0001fb048ca39ddd797a0cdb0179e1e55c6561e111c49c3e6a61d7b7"
+        }
+      ]
+    },
+    {
+      "id": "tc",
+      "family": "Station Sans TC",
+      "subdir": "TraditionalChinese",
+      "coverageFamily": "Noto Sans TC",
+      "weights": [
+        {
+          "name": "Regular",
+          "css": 400,
+          "file": "NotoSansCJKtc-Regular.otf",
+          "bytes": 16435884,
+          "sha256": "dce08bd4fd91aa8aa76ed8fea4b694c2dfb8550f67871e326843212ddbeb88b4"
+        },
+        {
+          "name": "Medium",
+          "css": 500,
+          "file": "NotoSansCJKtc-Medium.otf",
+          "bytes": 16522152,
+          "sha256": "2905dd3de65d7b7de764596e2294978407986f4cc0a66c9584c5b95c5aa9572e"
+        }
+      ]
+    },
+    {
+      "id": "jp",
+      "family": "Station Sans JP",
+      "subdir": "Japanese",
+      "coverageFamily": "Noto Sans JP",
+      "weights": [
+        {
+          "name": "Regular",
+          "css": 400,
+          "file": "NotoSansCJKjp-Regular.otf",
+          "bytes": 16467736,
+          "sha256": "68a3fc98800b2a27b371f2fb79991daf3633bd89309d4ffaa6946fd587f375b5"
+        },
+        {
+          "name": "Medium",
+          "css": 500,
+          "file": "NotoSansCJKjp-Medium.otf",
+          "bytes": 16554004,
+          "sha256": "dd523e580e3413c480b2d701bf64e534c20f8419e3cfb6a44c2bdcd8d2a6c052"
+        }
+      ]
+    }
+  ]
+}

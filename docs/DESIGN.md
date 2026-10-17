@@ -45,13 +45,33 @@
   （同一个 `PROSE_CLASS`），三处门禁状态的起点与正文一致。
 - **字号阶梯**：xs（元信息）/ sm（正文默认）/ base（详情正文）/ lg（页头
   标题）；xl 以上仅限首页 banner 与详情 h1。
-- **字体栈**：站点字形 = 自托管 MiSans（小米；npm `misans` 包的 woff2 分片，
-  unicode-range 按需加载）。`--font-display` / `--font-body` 唯一字栈为
-  `'MiSans', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif`，
-  Regular（400）正文、Medium（500）标题强调，两档字重 css 由 AppShell
-  引入；`--font-mono` 不走 MiSans。零依赖兜底页（gate/500）内联同栈，
-  web 字体不达时自然回落系统黑体。手写层禁止新增 `font-family` 字面量
-  与 `font-[…]` 任意值，字体一律走令牌。
+- **字体栈**：站点字形 = 自托管 Station Sans——OFL 1.1 的 Noto Sans CJK 派生的三个
+  语言族 `Station Sans SC` / `TC` / `JP`，简/繁/日字形由**族**决定，不依赖 `locl`。
+  基础栈（`--font-display` 与 `--font-body` 同值）：
+
+  ```css
+  'Station Sans SC', 'Station Sans TC', 'Station Sans JP', 'PingFang SC', 'PingFang TC',
+    'Hiragino Sans', 'Microsoft YaHei', 'Microsoft JhengHei', 'Yu Gothic UI',
+    'Noto Sans CJK SC', 'Noto Sans CJK TC', 'Noto Sans CJK JP', system-ui, sans-serif
+  ```
+
+  `:lang(zh-Hant|zh-TW|zh-HK|zh-MO)` 让 TC 族置顶、`:lang(ja)` 让 JP 族置顶：标了
+  语言的日文引文取日文字形，未标语言的中日混排按文档语言取字形（假名在三族构建里
+  字形一致，混排不缺字）。Regular（400）正文、Medium（500）标题强调，六份分片 css
+  由 AppShell 引入；`--font-mono` 不走 Station Sans。零依赖兜底页（gate/500）内联
+  同一基础栈，web 字体不达时自然回落栈内系统黑体。手写层禁止新增 `font-family`
+  字面量与 `font-[…]` 任意值，字体一律走令牌。
+
+  分片由仓库内管线生成，不依赖任何第三方字体包：`scripts/fonts/` 取源（上游每语言
+  OTF 入 `.cache/fonts/`，不入版本管理，镜像 cdn.jsdelivr.net 优先）→ 快照官方覆盖表
+  `ranges.json` + 字频顺序 `order.json` → harfbuzz 子集化为
+  `src/fonts/station-sans/<族>/` 的 woff2 与分片 css（管线命令 `npm run fonts:fetch`、
+  `fonts:snapshot`、`fonts:build`、`fonts:check`，`verify` 已含 check）。SC 族装前段块
+  与字频常用字（10,000 码位）；
+  TC/JP 族只装与本族字形**实际不同**的码位（5,210 / 8,663 码位，逐字形比对轮廓哈希，
+  日文专有汉字含在内），相同字形由 SC 族承担，故不存在风格断裂；三族两字重合计
+  9.65MB，纯中文页只拉一两片核心片与自身汉字所在片。emoji/符号块有意排除，以免以
+  单色字形遮蔽系统彩色 emoji。
 
 - **遮罩两档**：`--scrim-modal`（模态遮罩，dialog/alert-dialog 消费）与
   `--scrim-immersive`（沉浸遮罩：灯箱、全屏编辑器）。封面文字保障的英雄
@@ -84,14 +104,17 @@
 
 ## 3. 防回潮守卫
 
-`tests/style-guard.test.ts` 十二条 vitest 常驻执法，是本契约的可执行形态：
+`tests/style-guard.test.ts` 十四条 vitest 常驻执法，是本契约的可执行形态：
 rounded-xl 限 ui/、禁 `min-[1440px]`、vh 上限禁用（一律 svh）、命名容器
 强制、islands 遮罩字面量清零、hex 白名单（gate/500/theme/page.server 的
 零依赖兜底页豁免）、字母头像单方（共享 `islands/Avatar.tsx`）、错误码出口
 唯一（`lib/feedback`）、lucide-static 服务端独占（岛内图标走
 props/termIconMap）、裸输入 label 钉扎、组件层字面时长禁止（时长走
 `duration-fast/base/slow` 令牌工具类）、字体栈唯一（`font-family` 字面量
-只许 tokens.css 与 gate/500 内联豁免，`--font-display`/`--font-body`
-栈首必须 MiSans）。
+只许 tokens.css 与 gate/500 内联豁免，三处基础栈逐字一致、栈首必须
+`Station Sans SC`，TC/JP 族紧随其后，简/繁/日系统面与 `:lang()` 区域
+重排必须在场）、正文节奏单一声明（正文与模板
+零件同走 `--prose-gap-block`）、正文容器配方唯一（`prose-content` 只在
+`lib/prose.ts` 组装）。
 
 **新增系统性约定时优先落成守卫用例，而不是口头规范。**
