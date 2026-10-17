@@ -259,6 +259,39 @@ describe('outbound anchors (rel at the boundary)', () => {
   });
 });
 
+describe('template parts survive the boundary', () => {
+  // The parts' skins and rhythm live in shell.css, keyed by these tags and
+  // attributes — a whitelist that dropped one would leave the part rendered
+  // as plain text with no styling hook.
+  it('keeps the backend part markup and its own attributes', () => {
+    const html = safeContent(
+      [
+        '<details open><summary>折叠</summary><p>内部</p></details>',
+        '<alert level="warning" title="注意">提示</alert>',
+        '<dl data-ratio="2"><dt>术语</dt><dd>解释</dd></dl>',
+        '<span data-clipboard-slot="x">文本</span>',
+        '<a href="/posts/a/" class="part-button part-button-primary">按钮</a>',
+        '<div data-post-card><div data-post-card-body>',
+        '<span data-post-card-part="title">标题</span></div></div>',
+      ].join(''),
+    );
+    for (const marker of [
+      '<details open',
+      '<summary',
+      '<alert',
+      'level="warning"',
+      'title="注意"',
+      'data-ratio="2"',
+      'data-clipboard-slot',
+      'part-button-primary',
+      'data-post-card',
+      'data-post-card-part="title"',
+    ]) {
+      expect(html, marker).toContain(marker);
+    }
+  });
+});
+
 describe('sanitizeNotificationHtml', () => {
   it('resolves the backend soft anchor into a routed href and strips the handles', () => {
     const out = sanitizeNotificationHtml(

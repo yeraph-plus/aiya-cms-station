@@ -113,6 +113,11 @@
 @theme {
   --container-shell: 1510px;
   --container-dialog-sm: 380px;
+  /* 正文节奏两档（DESIGN.md §2）：段落步进与块级步进。非 inline @theme，
+     变量同时落到 :root，供 shell.css 的 .prose-content 段 var() 读取 ——
+     Typography 的编辑节奏（20/32/48px）一律不生效。 */
+  --prose-gap-text: 0.75rem;
+  --prose-gap-block: 1rem;
   /* Motion vocabulary (§4): micro-interaction / popover / page-level. The
      --transition-duration-* keys are Tailwind v4's duration namespace —
      they generate the duration-fast/base/slow utilities AND land on :root

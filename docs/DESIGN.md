@@ -33,6 +33,16 @@
 - **卡片配方**：`rounded-lg border border-border bg-surface` + 内容内距
   `p-4`（紧凑 `p-3`）；可点击卡片加 `transition-colors hover:border-body-muted`；
   `ui/card` 出厂默认已本地化为站点配方（`gap-0 rounded-lg py-0`、去 shadow）。
+- **正文节奏两档**：文章正文（`prose-content`）的纵向间隔只有两档令牌 ——
+  `--prose-gap-text: 0.75rem`（段落、列表项等文本步进）与
+  `--prose-gap-block: 1rem`（列表/图片/表格/引用/代码块，以及后端模板零件块：
+  折叠、提示、术语表、关联卡、按钮与剪贴板槽）。标题上距从块级档派生
+  （h2 ×2、h3 ×1.5、h4 ×1），标题下距用文本档。Tailwind Typography 只负责
+  文字语义（字号、颜色、项目符号、引用缩进），**它的 20/32/48px 编辑节奏不
+  得生效**；`shell.css` 的 `.prose-content` 段是这些间隔的唯一出处，零件盒
+  内距统一 `0.75rem 1rem`（紧凑档），盒内首/末子元素外边距清零、行内表情
+  与网格术语列不得继承外边距。解锁后的正文与正常正文走同一条渲染路径
+  （同一个 `PROSE_CLASS`），三处门禁状态的起点与正文一致。
 - **字号阶梯**：xs（元信息）/ sm（正文默认）/ base（详情正文）/ lg（页头
   标题）；xl 以上仅限首页 banner 与详情 h1。
 - **字体栈**：站点字形 = 自托管 MiSans（小米；npm `misans` 包的 woff2 分片，

@@ -186,4 +186,65 @@ describe('style guard', () => {
       expect(line?.indexOf(`'MiSans'`)).toBeLessThan(line?.indexOf(`'PingFang SC'`) ?? NaN);
     }
   });
+
+  it('the article body declares one block step for text blocks and parts (DESIGN.md §2 正文节奏)', () => {
+    // The rhythm lives in exactly one declaration list: every text block and
+    // every backend template part rides --prose-gap-block, so a part can no
+    // longer invent a margin of its own (alert/collapse sat at 0 while the
+    // related-post card sat at 1rem and col_list inherited 1.25em).
+    // Comments first: a preceding comment is not part of a rule's selector,
+    // and its prose ("…margin used to push…") would otherwise read as a
+    // declaration.
+    const css = readFileSync(join(ROOT, 'src/styles/shell.css'), 'utf-8').replace(
+      /\/\*[\s\S]*?\*\//g,
+      '',
+    );
+    const blocks = css.match(/[^{}]+\{[^{}]*\}/g) ?? [];
+    const rhythm = blocks.filter((block) => block.includes('margin-block: var(--prose-gap-block)'));
+    const declared = rhythm.join('\n');
+    for (const selector of [
+      '.prose-content ul',
+      '.prose-content ol',
+      '.prose-content blockquote',
+      '.prose-content pre',
+      '.prose-content table',
+      '.prose-content figure',
+      '.prose-content dl',
+      '.prose-content details',
+      '.prose-content alert',
+      '.prose-content [data-post-card]',
+      '.prose-content a.part-button',
+      '.prose-content span[data-clipboard-slot]',
+      '.prose-content img',
+    ]) {
+      expect(declared, `${selector} must ride the block step`).toContain(selector);
+    }
+    // …and no part carries a literal margin behind the family step: the only
+    // margin a part block may declare is zero (its inner first/last reset) or
+    // one of the two rhythm tokens.
+    const PART =
+      /\.prose-content (?:alert|details|dl|a\.part-button|span\[data-clipboard-slot\]|\[data-post-card\])/;
+    const OFF_SCALE =
+      /^(?:margin|margin-block|margin-top|margin-bottom):(?:0|var\(--prose-gap-(?:text|block)\))$/;
+    const literals = blocks
+      .filter(
+        (block) =>
+          !block.includes('summary') &&
+          !block.includes('::before') &&
+          !block.includes('::after') &&
+          PART.test(block),
+      )
+      .flatMap((block) => block.match(/margin[^:;]*:[^;}]+/g) ?? [])
+      .map((declaration) => declaration.replace(/\s+/g, ''))
+      .filter((declaration) => !OFF_SCALE.test(declaration));
+    expect(literals).toEqual([]);
+  });
+
+  it('the prose container recipe has one source (the unlocked body shares it)', () => {
+    // A second, hand-rolled `prose-content` string is how the unlocked body
+    // ended up with no typography at all (no heading scale, no list markers,
+    // no paragraph gaps) — the class may only be assembled in lib/prose.ts.
+    const files = new Map([...scan(SRC, TS_ASTRO)].filter(([f]) => f !== 'src/lib/prose.ts'));
+    expect(violations(files, /prose-content/)).toEqual([]);
+  });
 });

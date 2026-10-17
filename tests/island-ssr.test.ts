@@ -256,9 +256,15 @@ describe('the loop mode follows the toolbar', () => {
 });
 
 /** Minimal detail fixture for the prose surface: ArticleBody reads only the
-    body HTML and the two gate flags, so the rest of the DTO stays a cast. */
-function prosePost(html: string): PostDetail {
-  return { content: { html }, gated: false, locked: false } as unknown as PostDetail;
+    body HTML, the id and the two gate flags, so the rest of the DTO stays a
+    cast. */
+function prosePost(html: string, state: { gated?: boolean; locked?: boolean } = {}): PostDetail {
+  return {
+    id: 7,
+    content: { html },
+    gated: state.gated ?? false,
+    locked: state.locked ?? false,
+  } as unknown as PostDetail;
 }
 
 describe('the article body keeps its outbound links server-rendered', () => {
@@ -276,6 +282,27 @@ describe('the article body keeps its outbound links server-rendered', () => {
     // The bubble is client state — nothing of it belongs in the SSR output.
     expect(html).not.toContain(copy.common.leavingSite);
     expect(html).not.toContain(copy.common.openExternal);
+  });
+});
+
+describe('the body states share one start line', () => {
+  it('hands a locked body to the unlock gate, with no second prose path', () => {
+    const html = renderToString(
+      createElement(ArticleBody, { post: prosePost('<p>x</p>', { locked: true }), locale }),
+    );
+    expect(html).toContain(copy.posts.lockedTitle);
+    // Locked means no prose shell — and no extra top inset either: the three
+    // body states all start at the shell's CardContent padding (DESIGN.md §2).
+    expect(html).not.toContain('prose-content');
+    expect(html).not.toContain('mt-6');
+  });
+
+  it('hands a gated body to the visibility notice', () => {
+    const html = renderToString(
+      createElement(ArticleBody, { post: prosePost('<p>x</p>', { gated: true }), locale }),
+    );
+    expect(html).toContain(copy.posts.gatedLoginTitle);
+    expect(html).not.toContain('prose-content');
   });
 });
 

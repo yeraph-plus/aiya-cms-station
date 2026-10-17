@@ -51,6 +51,7 @@ import RatingRow from '@/components/islands/RatingRow';
 import UnlockGate from '@/components/islands/UnlockGate';
 import { postRoute, safeContent } from '@/lib/content';
 import { isCrossOrigin, linkDisplay } from '@/lib/links';
+import { PROSE_CLASS } from '@/lib/prose';
 import { displayDate } from '@/lib/format';
 import Avatar from '@/components/islands/Avatar';
 import EmptyNote from '@/components/islands/EmptyNote';
@@ -415,11 +416,13 @@ export function SimpleHeader({
 }
 
 /**
- * Row 5+ — the body region with its three gate states: the visibility
- * gate outranks the password lock (an unqualified viewer cannot unlock
- * their way past it — the backend keeps the body empty either way). The
- * prose container runs Tailwind Typography with CJK-friendly leading and
- * justification; the clipboard slot markers bind their copy buttons here.
+ * Row 5+ — the body region with its three states: the visibility gate
+ * outranks the password lock (an unqualified viewer cannot unlock their way
+ * past it — the backend keeps the body empty either way), and the unlocked
+ * body is the same prose path as the normal one. All three states start at the
+ * card's own inset (the shell's `CardContent` padding), so the body's first
+ * line sits on the same line whatever the state. `ProseBody` below is the one
+ * renderer: same container recipe, same clipboard/lightbox/outbound bindings.
  */
 /** One lightbox gallery, shared with the community surface's component. */
 export interface DetailGallery {
@@ -455,15 +458,58 @@ export function ArticleBody({ post, locale }: { post: PostDetail; locale: Locale
     setOutbound({ anchor, href, x: rect.left + rect.width / 2, y: rect.top });
   }, []);
   const closeOutbound = useCallback(() => setOutbound(null), []);
+  // The in-place unlock (ARCHITECTURE 详情页约定): the gate hands the unlocked
+  // HTML up so the body keeps one render path — same container recipe, same
+  // clipboard/lightbox/outbound bindings — instead of a second, bare one.
+  const [unlocked, setUnlocked] = useState<string | null>(null);
+  const copy = t(locale);
+
+  if (post.gated) {
+    return (
+      <div className="rounded-lg border border-dashed border-border bg-surface px-6 py-8 text-center">
+        <p className="font-medium text-foreground">
+          {post.visibility === 'member' ? copy.posts.gatedMemberTitle : copy.posts.gatedLoginTitle}
+        </p>
+        <p className="mx-auto mt-1 max-w-md text-sm text-body-muted">
+          {post.visibility === 'member'
+            ? copy.posts.gatedMemberDescription
+            : copy.posts.gatedLoginDescription}
+        </p>
+        {post.visibility === 'login' && (
+          <button
+            type="button"
+            className="mt-4 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+            onClick={() => window.dispatchEvent(new CustomEvent('aiya:open-auth'))}
+          >
+            {copy.shell.login}
+          </button>
+        )}
+      </div>
+    );
+  }
 
   return (
     <>
-      <ProseBody
-        post={post}
-        locale={locale}
-        onOpenGallery={openGallery}
-        onOpenOutbound={openOutbound}
-      />
+      {post.locked && unlocked === null ? (
+        <UnlockGate
+          postId={post.id}
+          onUnlocked={setUnlocked}
+          labels={{
+            title: copy.posts.lockedTitle,
+            description: copy.posts.lockedDescription,
+            placeholder: copy.posts.lockedPlaceholder,
+            submit: copy.posts.lockedSubmit,
+            failed: copy.posts.lockedFailed,
+          }}
+        />
+      ) : (
+        <ProseBody
+          html={unlocked ?? post.content.html}
+          locale={locale}
+          onOpenGallery={openGallery}
+          onOpenOutbound={openOutbound}
+        />
+      )}
       <Lightbox
         open={gallery.open}
         index={gallery.index}
@@ -484,12 +530,13 @@ export function ArticleBody({ post, locale }: { post: PostDetail; locale: Locale
  * this component's effect bound (the "lightbox opens once" bug).
  */
 const ProseBody = memo(function ProseBody({
-  post,
+  html,
   locale,
   onOpenGallery,
   onOpenOutbound,
 }: {
-  post: PostDetail;
+  /** Sanitized body HTML — the normal content or the in-place unlock's. */
+  html: string;
   locale: Locale;
   onOpenGallery: (index: number, slides: GallerySlides) => void;
   onOpenOutbound: (anchor: HTMLAnchorElement, href: string) => void;
@@ -570,50 +617,13 @@ const ProseBody = memo(function ProseBody({
         onOpenOutbound(node, target);
       });
     });
-  }, [post.content.html, copy.common.copy, copy.common.copied, onOpenGallery, onOpenOutbound]);
+  }, [html, copy.common.copy, copy.common.copied, onOpenGallery, onOpenOutbound]);
 
-  if (post.gated) {
-    return (
-      <div className="mt-6 rounded-lg border border-dashed border-border bg-surface px-6 py-8 text-center">
-        <p className="font-medium text-foreground">
-          {post.visibility === 'member' ? copy.posts.gatedMemberTitle : copy.posts.gatedLoginTitle}
-        </p>
-        <p className="mx-auto mt-1 max-w-md text-sm text-body-muted">
-          {post.visibility === 'member'
-            ? copy.posts.gatedMemberDescription
-            : copy.posts.gatedLoginDescription}
-        </p>
-        {post.visibility === 'login' && (
-          <button
-            type="button"
-            className="mt-4 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-            onClick={() => window.dispatchEvent(new CustomEvent('aiya:open-auth'))}
-          >
-            {copy.shell.login}
-          </button>
-        )}
-      </div>
-    );
-  }
-  if (post.locked) {
-    return (
-      <UnlockGate
-        postId={post.id}
-        labels={{
-          title: copy.posts.lockedTitle,
-          description: copy.posts.lockedDescription,
-          placeholder: copy.posts.lockedPlaceholder,
-          submit: copy.posts.lockedSubmit,
-          failed: copy.posts.lockedFailed,
-        }}
-      />
-    );
-  }
   return (
     <div
       ref={bodyRef}
-      className="prose prose-neutral dark:prose-invert prose-content max-w-none prose-headings:font-semibold prose-p:my-3 prose-p:leading-[1.9] prose-p:text-justify prose-li:leading-[1.85] prose-a:text-primary prose-code:before:content-none prose-code:after:content-none prose-img:rounded-md"
-      dangerouslySetInnerHTML={{ __html: safeContent(post.content.html) }}
+      className={PROSE_CLASS}
+      dangerouslySetInnerHTML={{ __html: safeContent(html) }}
     />
   );
 });

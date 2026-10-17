@@ -40,7 +40,13 @@ export default function PageDetail({
         />
         <CardContent className="px-6 py-6">
           <ArticleBody post={post} locale={locale} />
-          <DownloadSection lists={downloads} postId={post.id} loggedIn={loggedIn} locale={locale} />
+          <DownloadSection
+            lists={downloads}
+            postId={post.id}
+            loggedIn={loggedIn}
+            locale={locale}
+            timezone={timezone}
+          />
         </CardContent>
       </Card>
       <CommentsBlock

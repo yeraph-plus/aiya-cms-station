@@ -4,7 +4,6 @@ import { KeyRoundIcon, LoaderCircleIcon } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { safeContent } from '@/lib/content';
 
 export interface UnlockGateProps {
   postId: number;
@@ -16,6 +15,10 @@ export interface UnlockGateProps {
     submit: string;
     failed: string;
   };
+  /** The unlocked body HTML. It is handed up rather than rendered here so the
+      unlocked body keeps the one prose path (container recipe + clipboard,
+      lightbox and outbound-link bindings) — ARCHITECTURE 详情页约定. */
+  onUnlocked: (html: string) => void;
 }
 
 /**
@@ -24,11 +27,10 @@ export interface UnlockGateProps {
  * detail in the same response, so the panel swaps the body in place and a
  * cold reload simply re-asks (server semantics, mirrored client-side).
  */
-export default function UnlockGate({ postId, labels }: UnlockGateProps) {
+export default function UnlockGate({ postId, labels, onUnlocked }: UnlockGateProps) {
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
-  const [html, setHtml] = useState<string | null>(null);
 
   const unlock = async (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -47,7 +49,7 @@ export default function UnlockGate({ postId, labels }: UnlockGateProps) {
       } | null;
       const body = json?.post?.content?.html;
       if (json?.ok && typeof body === 'string') {
-        setHtml(body);
+        onUnlocked(body);
       } else {
         setFailed(true);
       }
@@ -58,17 +60,8 @@ export default function UnlockGate({ postId, labels }: UnlockGateProps) {
     }
   };
 
-  if (html !== null) {
-    return (
-      <div
-        className="prose-content mt-6 text-[15px] leading-relaxed text-foreground"
-        dangerouslySetInnerHTML={{ __html: safeContent(html) }}
-      />
-    );
-  }
-
   return (
-    <div className="mt-6 rounded-lg border border-dashed border-border bg-surface px-6 py-8">
+    <div className="rounded-lg border border-dashed border-border bg-surface px-6 py-8">
       <div className="mx-auto flex max-w-sm flex-col items-center gap-3 text-center">
         <KeyRoundIcon className="size-6 text-body-muted" aria-hidden="true" />
         <p className="font-medium text-foreground">{labels.title}</p>

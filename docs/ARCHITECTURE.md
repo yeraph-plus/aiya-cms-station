@@ -76,7 +76,9 @@ SEO）、路由与请求器（pages/ → loadPage → HTTP 状态）全归 Astro
 
 - 评论关闭（后端 `commentsOpen=false`）时评论区渲染禁用态而非隐藏；锁文/门禁
   正文为空时评论一并隐藏（WP 语义：锁文评论读取 404）；密码解锁不落
-  cookie——解锁响应即解锁后的完整详情，岛内原位替换正文，冷刷新重新上锁。
+  cookie——解锁响应即解锁后的完整详情，`UnlockGate` 把 HTML 上抛给
+  `ArticleBody`、由同一个 `PROSE_CLASS` 正文路径渲染（正文样式与剪贴板/灯箱/
+  外链气泡三处绑定一次到位），冷刷新重新上锁。
 - 正文模板零件为 HTML-first 标记（`details/alert/dl/span[data-clipboard-slot]/
 part-button`），剪贴板零件由正文零件的 effect 绑定复制按钮；正文图片带后端
   注入的 `aiya-lightbox` class。跨域外链走第三处绑定：同一 effect 绑激活事件、
