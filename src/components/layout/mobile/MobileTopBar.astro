@@ -59,10 +59,11 @@ const seed = searchSeed(Astro.url.pathname, Astro.url.searchParams.get('type') ?
       <MobileSearch client:load locale={locale} value={seed.keyword} scope={seed.scope} />
       <NotificationPopover client:load copy={authCopy} localeTag={localeTag} timezone={timezone} />
       {
-        /* No support-chat button here by contract: the top bar stays lean and
-          the avatar dropdown's 联系客服 entry (aiya:open-chat bridge) opens
-          the dialog — it portals to the body, so the fact that the owning
-          island sits in the CSS-hidden desktop header doesn't matter. */
+        /* No support-chat button here by contract: the avatar dropdown's
+          联系客服 entry (aiya:open-chat bridge) opens the one triggerless
+          dialog AppShell mounts for signed-in visitors. The signed-in user
+          slot is the credits chip + avatar menu; the membership entry stays
+          in the dropdown. */
       }
       <UserCenter
         client:load

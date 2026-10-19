@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from 'react';
 import { LogInIcon, UserPlusIcon, UserRoundIcon } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import SupportChat from '@/components/islands/chat/SupportChat';
 import { AuthDialog } from './user-center/AuthDialog';
 import { UserMenu } from './user-center/UserMenu';
 import { WalletBubble } from './user-center/WalletBubble';
@@ -22,22 +21,22 @@ export interface UserCenterProps {
   /** Site calendar timezone (from /site) for wallet date rendering. */
   timezone?: string;
   copy: UserCenterCopy;
-  /** Desktop keeps the text entries and the wallet chip; mobile collapses
-      to a single avatar slot — guests get the login dialog (sign-up lives
-      inside it), members the avatar menu (wallet rides the hub tab). */
+  /** Desktop keeps the text entries and the membership button; mobile is
+      the credits chip + avatar slot — guests get the login dialog (sign-up
+      lives inside it), members the avatar menu. */
   variant?: 'desktop' | 'mobile';
 }
 
 /**
  * Aggregated user-center island: logged-out = login entries plus the auth
- * dialogs; logged-in = wallet bubble + support-chat button + user menu
- * bubble (the desktop action row reads 积分 → 会员 → 客服 → 头像 left to
- * right — the support button lives here, not in the header, so it can sit
- * between the wallet cluster and the avatar). The notification bubble is
- * NOT here anymore (0.96.0): it moved out of the session gate next to the
- * color-mode toggle, where guests read it too. All of the interaction
- * lives in React — the Astro shell renders this one island (per shell) and
- * keeps its own vanilla surface UI-only.
+ * dialogs; logged-in = wallet bubble + user menu bubble. The wallet renders
+ * on both shells (desktop credits + membership button, mobile credits chip
+ * only); the support dialog is triggerless and mounted once by AppShell, so
+ * its entry lives solely in the avatar dropdown's `aiya:open-chat` bridge.
+ * The notification bubble is NOT here (0.96.0): it moved out of the session
+ * gate next to the color-mode toggle, where guests read it too. All of the
+ * interaction lives in React — the Astro shell renders this one island (per
+ * shell) and keeps its own vanilla surface UI-only.
  *
  * Cross-island bridge: any island can dispatch the window event
  * `aiya:open-auth` to pop the login dialog (e.g. a guest hitting a
@@ -71,8 +70,12 @@ export default function UserCenter({
   if (user) {
     return (
       <div ref={rootRef} className="flex items-center gap-1.5">
-        {variant === 'desktop' && <WalletBubble locale={locale} timezone={timezone} />}
-        {variant === 'desktop' && <SupportChat user={user} locale={locale} timezone={timezone} />}
+        <WalletBubble
+          locale={locale}
+          timezone={timezone}
+          initialTierName={user.membershipTierName}
+          variant={variant}
+        />
         <UserMenu user={user} copy={copy} variant={variant} />
       </div>
     );

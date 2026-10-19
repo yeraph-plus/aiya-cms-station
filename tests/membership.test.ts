@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import type { Tier } from '@/lib/core/contracts';
-import { displayDay, paymentMethods, purchasableTiers } from '@/lib/membership';
+import type { MembershipEntitlement, Tier } from '@/lib/core/contracts';
+import {
+  activeMembershipTier,
+  displayDay,
+  paymentMethods,
+  purchasableTiers,
+} from '@/lib/membership';
 
 describe('tier selection', () => {
   const tier = (key: string, enabled: boolean): Tier => ({
@@ -24,6 +29,49 @@ describe('tier selection', () => {
       'alipay',
       'wxpay',
     ]);
+  });
+});
+
+describe('active membership tier', () => {
+  const row = (overrides: Partial<MembershipEntitlement> = {}): MembershipEntitlement => ({
+    tierKey: 'tier',
+    tierName: 'Tier',
+    cycleDays: 30,
+    creditsPerCycle: 5,
+    cyclesTotal: 1,
+    cyclesGranted: 1,
+    startsAt: '2026-01-01T00:00:00+08:00',
+    endsAt: '2026-02-01T00:00:00+08:00',
+    status: 'active',
+    ...overrides,
+  });
+
+  it('picks the active row whose window covers now, even across offsets', () => {
+    const active = row();
+    const now = Date.parse('2026-01-15T00:00:00Z');
+    expect(activeMembershipTier({ queue: [active] }, now)).toEqual(active);
+    // Same instants expressed with a different offset still compare correctly.
+    const shifted = row({
+      startsAt: '2025-12-31T16:00:00Z',
+      endsAt: '2026-01-31T16:00:00Z',
+    });
+    expect(activeMembershipTier({ queue: [shifted] }, now)).toEqual(shifted);
+  });
+
+  it('ignores cancelled and out-of-window rows', () => {
+    const now = Date.parse('2026-01-15T00:00:00Z');
+    expect(activeMembershipTier({ queue: [row({ status: 'cancelled' })] }, now)).toBeNull();
+    expect(
+      activeMembershipTier(
+        {
+          queue: [
+            row({ startsAt: '2026-02-01T00:00:00+08:00', endsAt: '2026-03-01T00:00:00+08:00' }),
+          ],
+        },
+        now,
+      ),
+    ).toBeNull();
+    expect(activeMembershipTier(null, now)).toBeNull();
   });
 });
 

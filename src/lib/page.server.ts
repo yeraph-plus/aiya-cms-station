@@ -5,6 +5,7 @@ import { backend } from './core/health';
 import { currentUser, readSessionToken } from './core/session';
 import { authClient, serverClient, siteOrigin } from './core/server';
 import { nsfwExcluded } from './nsfw';
+import { activeMembershipTier } from './membership';
 import { resolveLocale, t } from './i18n';
 import { pageError, type PageErrorCopy } from './page-error';
 import { isBackendOutage } from './reachability';
@@ -22,6 +23,11 @@ export interface ShellFrame {
   footerMenu: Menu;
   /** Signed-in visitor or null; any session failure degrades to guest. */
   user: User | null;
+  /** Name of the membership tier whose paid window covers now, resolved in
+      the same SSR pass as the session. Null for guests, non-members, failed
+      membership reads and degraded shells; the wallet bubble still refreshes
+      the live balance/check-in state client-side. */
+  membershipTierName: string | null;
   locale: Locale;
   /**
    * True when the shell itself failed and hardcoded chrome is showing. The
@@ -122,7 +128,20 @@ export async function loadPage<T>(
     const client = token
       ? authClient(token, clientIp, excludeNsfw)
       : serverClient(clientIp, excludeNsfw);
-    const [siteResult, user] = await Promise.all([client.site(), currentUser(cookies, clientIp)]);
+    const [siteResult, user, membershipTierName] = await Promise.all([
+      client.site(),
+      currentUser(cookies, clientIp),
+      // Shell-resolved membership label: the dropdown badge and the header
+      // button need the tier name on first paint. A failed read is not a
+      // shell failure — the badge simply stays out and the button falls back
+      // to the join label.
+      token
+        ? client
+            .myMembership()
+            .then((result) => activeMembershipTier(result.data)?.tierName || null)
+            .catch(() => null)
+        : Promise.resolve(null),
+    ]);
     const site = siteResult.data;
     // The shell's dynamic blocks ride the /site payload (0.83.0 merge):
     // the menu consumers keep their Menu shape, sourced from site.blocks.
@@ -133,7 +152,18 @@ export async function loadPage<T>(
       // The shell's site payload doubles as loader input — display
       // settings (comments per page, window order) shape resource reads.
       const value = await resource(client, site, { excludeNsfw });
-      return { ok: true, site, origin, menu, footerMenu, user, locale, degraded: false, value };
+      return {
+        ok: true,
+        site,
+        origin,
+        menu,
+        footerMenu,
+        user,
+        membershipTierName,
+        locale,
+        degraded: false,
+        value,
+      };
     } catch (error) {
       return {
         ok: false,
@@ -142,6 +172,7 @@ export async function loadPage<T>(
         menu,
         footerMenu,
         user,
+        membershipTierName,
         locale,
         degraded: false,
         error: pageError(error, { allow404: true }, t(locale)),
@@ -162,6 +193,7 @@ export async function loadPage<T>(
       menu: { location: 'primary', items: fallbackSite.blocks.primary },
       footerMenu: { location: 'secondary', items: fallbackSite.blocks.secondary },
       user: null,
+      membershipTierName: null,
       locale,
       degraded: true,
       error: pageError(error, { allow404: false }, t(locale)),

@@ -74,7 +74,7 @@ export default defineConfig({
         // `inline script hashes` case in tests/csp-inline-hashes.test.ts
         // fails loudly when the two drift apart.
         hashes: [
-          'sha256-SvqhACN9/blyV175eywKTodB0BQ6+7BG84s2vKfW1Es=',
+          'sha256-vjCfIgkL08sjbPYuL2ckiFEqaKLdVc2qPFPK4d07evw=',
           'sha256-GrC8nqWdndno/KFAtswkxx0bI075CnHpTjW8mgcAvmw=',
         ],
       },

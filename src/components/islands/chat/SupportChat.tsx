@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { HeadsetIcon, LoaderCircleIcon, SendHorizontalIcon } from 'lucide-react';
+import { LoaderCircleIcon, SendHorizontalIcon } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { ChatMessage } from '@/lib/core/contracts';
 import { displayDate } from '@/lib/format';
 import { toastApiError } from '@/lib/feedback';
@@ -33,17 +32,13 @@ interface Props {
 }
 
 /**
- * Support chat: a headset button in the desktop action cluster (inside
- * UserCenter, between the membership entry and the avatar) opening one
- * Dialog — the visitor's single conversation with the owner (v1 relays
- * into the owner's Telegram; replies come back as staff rows). Exactly one
- * instance mounts per page; the mobile top bar has no button of its own —
- * the avatar dropdown's entry dispatches `aiya:open-chat`, this island
- * takes it, and the dialog portals to the body, so the owning island
- * sitting in the CSS-hidden desktop header below 992px changes nothing.
- * The wall polls page 1 every 20s while open, "load earlier" pages upward
- * through hasPrevious, and sends are optimistic (temp negative-id row
- * replaced by the stored row; backend 10/60s rate limit surfaces as a
+ * Support chat: one triggerless Dialog, mounted once by AppShell for the
+ * signed-in visitor. The avatar dropdown's 联系客服 entry and the membership
+ * modal's consultation link both dispatch `aiya:open-chat`, so there is no
+ * header button anymore — and a single instance serves the desktop and mobile
+ * shells alike. The wall polls page 1 every 20s while open, "load earlier"
+ * pages upward through hasPrevious, and sends are optimistic (temp negative-id
+ * row replaced by the stored row; backend 10/60s rate limit surfaces as a
  * toast). No unread badge this round — opening the dialog is the read state.
  */
 export default function SupportChat({ user, locale, timezone }: Props) {
@@ -98,14 +93,21 @@ export default function SupportChat({ user, locale, timezone }: Props) {
   }, [open, refresh]);
 
   /** The aiya:open-chat bridge stays wired while closed: the avatar
-   *  dropdown's entry (desktop AND mobile — the mobile top bar has no
-   *  button) and the membership modal's consultation link all dispatch it
-   *  blind. Exactly one instance mounts per page, so one event, one dialog. */
+   *  dropdown's entry and the membership modal's consultation link dispatch
+   *  it blind. One triggerless instance is mounted by AppShell, so one event,
+   *  one dialog; a guest dispatch degrades to the login dialog (v1 chat is
+   *  login-only). */
   useEffect(() => {
-    const onOpenChat = () => setOpen(true);
+    const onOpenChat = () => {
+      if (user === null) {
+        window.dispatchEvent(new CustomEvent('aiya:open-auth'));
+        return;
+      }
+      setOpen(true);
+    };
     window.addEventListener('aiya:open-chat', onOpenChat);
     return () => window.removeEventListener('aiya:open-chat', onOpenChat);
-  }, []);
+  }, [user]);
 
   /** Keep the viewport pinned to the oldest visible message after an
    *  earlier-page merge. */
@@ -180,114 +182,89 @@ export default function SupportChat({ user, locale, timezone }: Props) {
     }
   };
 
-  const openChat = () => {
-    if (user === null) {
-      window.dispatchEvent(new CustomEvent('aiya:open-auth'));
-      return;
-    }
-    setOpen(true);
-  };
-
   return (
-    <>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label={copy.title}
-            className="relative text-foreground"
-            onClick={openChat}
-          >
-            <HeadsetIcon className="size-[18px]" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>{copy.title}</TooltipContent>
-      </Tooltip>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogContent
+        aria-describedby={undefined}
+        className="flex h-[min(600px,80svh)] w-[min(92vw,var(--container-dialog-sm))] flex-col gap-0 overflow-hidden p-0 sm:max-w-none"
+      >
+        <DialogHeader className="border-b border-border px-4 py-3">
+          <DialogTitle className="text-base font-semibold">{copy.title}</DialogTitle>
+        </DialogHeader>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent
-          aria-describedby={undefined}
-          className="flex h-[min(600px,80svh)] w-[min(92vw,var(--container-dialog-sm))] flex-col gap-0 overflow-hidden p-0 sm:max-w-none"
-        >
-          <DialogHeader className="border-b border-border px-4 py-3">
-            <DialogTitle className="text-base font-semibold">{copy.title}</DialogTitle>
-          </DialogHeader>
-
-          <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
-            {pagination?.hasPrevious && (
-              <div className="pb-3 text-center">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled={loadingEarlier}
-                  onClick={() => void loadEarlier()}
+        <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
+          {pagination?.hasPrevious && (
+            <div className="pb-3 text-center">
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={loadingEarlier}
+                onClick={() => void loadEarlier()}
+              >
+                {loadingEarlier ? (
+                  <LoaderCircleIcon className="size-3.5 animate-spin" aria-hidden="true" />
+                ) : null}
+                {copy.loadEarlier}
+              </Button>
+            </div>
+          )}
+          {loading && messages.length === 0 ? (
+            <p className="py-8 text-center text-sm text-body-muted">{copy.loading}</p>
+          ) : messages.length === 0 ? (
+            <p className="py-8 text-center text-sm text-body-muted">{copy.empty}</p>
+          ) : (
+            <ul className="flex flex-col gap-2.5">
+              {[...messages].reverse().map((row) => (
+                <li
+                  key={row.id}
+                  className={
+                    row.sender === 'visitor'
+                      ? 'flex flex-col items-end'
+                      : 'flex flex-col items-start'
+                  }
                 >
-                  {loadingEarlier ? (
-                    <LoaderCircleIcon className="size-3.5 animate-spin" aria-hidden="true" />
-                  ) : null}
-                  {copy.loadEarlier}
-                </Button>
-              </div>
-            )}
-            {loading && messages.length === 0 ? (
-              <p className="py-8 text-center text-sm text-body-muted">{copy.loading}</p>
-            ) : messages.length === 0 ? (
-              <p className="py-8 text-center text-sm text-body-muted">{copy.empty}</p>
-            ) : (
-              <ul className="flex flex-col gap-2.5">
-                {[...messages].reverse().map((row) => (
-                  <li
-                    key={row.id}
-                    className={
+                  <div
+                    title={displayDate(row.createdAt, locale, timezone)}
+                    className={`max-w-[85%] whitespace-pre-wrap break-words rounded-lg px-3 py-2 text-sm leading-relaxed ${
                       row.sender === 'visitor'
-                        ? 'flex flex-col items-end'
-                        : 'flex flex-col items-start'
-                    }
+                        ? 'rounded-br-sm bg-primary text-primary-foreground'
+                        : 'rounded-bl-sm bg-secondary/50 text-foreground'
+                    }`}
                   >
-                    <div
-                      title={displayDate(row.createdAt, locale, timezone)}
-                      className={`max-w-[85%] whitespace-pre-wrap break-words rounded-lg px-3 py-2 text-sm leading-relaxed ${
-                        row.sender === 'visitor'
-                          ? 'rounded-br-sm bg-primary text-primary-foreground'
-                          : 'rounded-bl-sm bg-secondary/50 text-foreground'
-                      }`}
-                    >
-                      {row.body}
-                    </div>
-                    <span className="px-1 pt-0.5 text-[11px] text-body-muted">
-                      {displayDate(row.createdAt, locale, timezone)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+                    {row.body}
+                  </div>
+                  <span className="px-1 pt-0.5 text-[11px] text-body-muted">
+                    {displayDate(row.createdAt, locale, timezone)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
 
-          <div className="flex items-end gap-2 border-t border-border p-3">
-            <Textarea
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              placeholder={copy.placeholder}
-              rows={1}
-              maxLength={2000}
-              className="max-h-24 min-h-9 flex-1 resize-none bg-surface text-sm"
-            />
-            <Button
-              size="icon"
-              disabled={sending || draft.trim() === ''}
-              onClick={() => void send()}
-              aria-label={copy.send}
-            >
-              {sending ? (
-                <LoaderCircleIcon className="size-4 animate-spin" aria-hidden="true" />
-              ) : (
-                <SendHorizontalIcon className="size-4" aria-hidden="true" />
-              )}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
+        <div className="flex items-end gap-2 border-t border-border p-3">
+          <Textarea
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            placeholder={copy.placeholder}
+            rows={1}
+            maxLength={2000}
+            className="max-h-24 min-h-9 flex-1 resize-none bg-surface text-sm"
+          />
+          <Button
+            size="icon"
+            disabled={sending || draft.trim() === ''}
+            onClick={() => void send()}
+            aria-label={copy.send}
+          >
+            {sending ? (
+              <LoaderCircleIcon className="size-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <SendHorizontalIcon className="size-4" aria-hidden="true" />
+            )}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

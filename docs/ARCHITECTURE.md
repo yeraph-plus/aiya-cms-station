@@ -16,15 +16,16 @@ pages/            路由：参数解析 → loadPage → HTTP 状态 → SEO，�
 components/layout/  双壳（全 Astro，零水合，992px 断点切换）：
                   AppShell（唯一入口：主内容单次渲染）+
                   desktop/（DesktopSidebar 190/76px、DesktopHeader）+
-                  mobile/（MobileTopBar 含搜索展开行与暗色切换、TabBar
-                  前 4 项+「更多」、MobileMenuDrawer 全菜单抽屉）+
+                  mobile/（MobileTopBar 含搜索弹窗、通知、积分气泡、用户槽、
+                  TabBar 前 4 项+「更多」、MobileMenuDrawer 全菜单抽屉）+
                   共享件（BaseHead、PageHeader、PageState、Icon）。布局交互 =
                   委托式原生 <script>（document 级监听，ClientRouter 换页后
-                  天然存活；共享触发点如暗色切换的监听只挂一份，归 AppShell）；
+                  天然存活）；色模式的解析、预涂装与系统/断点监听归
+                  `lib/color-mode` + AppShell，桌面岛只负责三态循环；
                   ClientRouter 提供 SPA 导航
-components/islands/  React 岛：UserCenter（登录窗/注册窗/客服按钮/用户菜单/
-                  钱包气泡/会员弹窗，shadcn 零件组装；通知气泡在壳层独立
-                  挂载）、BackToTop、ColorModeToggle、PostLoop、
+components/islands/  React 岛：UserCenter（登录窗/注册窗/用户菜单/积分气泡/
+                  会员弹窗/会员徽章，shadcn 零件组装；通知气泡与客服 Dialog
+                  在壳层独立挂载）、BackToTop、ColorModeToggle、PostLoop、
                   CommunityFeed、CommentSection、详情三壳岛等，按需增补
 components/ui/      shadcn 控件，只服务 islands/，壳不导入
 lib/core/         contracts.ts（zod 线上契约，后端 PHP DTO 的逐字段镜像，
@@ -58,19 +59,20 @@ SEO）、路由与请求器（pages/ → loadPage → HTTP 状态）全归 Astro
 由页面 frontmatter 调用（组件级 `Astro.response.status` 赋值会被静默忽略）；
 岛的 props 只传可序列化数据（函数会静默丢失，Astro 侧预格式化为字符串）。
 
-| 路由                                                           | 主体实现                                                                                                                                                                                                                                                                                                            |
-| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/posts/` `/resources/` `/pages/`（列表/分类/标签/分页）       | `PostLoop` 岛（筛选面板/排序/多选/排队请求；导航模式由工具栏左槽自决——筛选条在则哨兵追加下一页，标题栏或裸归档则渲染分页器）                                                                                                                                                                                        |
-| `/posts/{slug}/` `/resources/{slug}/` `/pages/{slug}/` 详情    | 正文 SSR（净化 HTML + 灯箱 class 注入）+ 交互岛：`LikeButton`、`RatingRow`（resource）、`FavoriteButton`、`CommentSection`（关闭态内置）、`UnlockGate`、`PostDiscussions`；上下篇仅 post；相关文章 SSR 列表；文件下载面板（`/api/content/{id}/downloads`）；可见性门禁占位面板                                      |
-| `/categories/` `/categories/{slug}/`                           | `CategoryCards` 岛（汇总网格 + 详情页头复用）                                                                                                                                                                                                                                                                       |
-| `/search/{key}/`（+`page/[n]/`）                               | 顶栏 `SearchBox` 岛提交目标；结果是 `PostLoop` 岛；范围 `?type=`（全部=三类型并集轮转读，见 `lib/search.ts`）                                                                                                                                                                                                       |
-| `/community/`（板块/首页）                                     | `CommunityFeed` + 社区表单岛                                                                                                                                                                                                                                                                                        |
-| `/channels/`                                                   | `ChannelFeed` 岛（TG 频道镜像：Astro 取第 1 页并做相册分组与媒体 cloak，岛屿渲染瀑布流卡片墙 + 哨兵自动加载，后续页走同源 `/api/channels` 代理；相册按 `mediaGroupId` 相邻分组、`entities` 样式段解析归 `lib/channels`，行不可变；顶部工具行提供频道筛选 `channelId` 与关键词搜索 `search`，同经代理）              |
-| `/notifications/`                                              | `NotificationFeed` 岛（头部铃铛的全量列表页：同源代理 + 前端本地已读态，无会话门，恒 noindex）                                                                                                                                                                                                                      |
-| `/profile/{slug}/` `/profile/me` `/settings` `/reset-password` | `UserCenter` / `SettingsPanel` / `ResetPasswordPanel` 等账号岛                                                                                                                                                                                                                                                      |
-| 会员/积分（无独立路由）                                        | 钱包气泡 `WalletBubble` + 会员弹窗 `MembershipModal`（档位定价/兑换/收银台与签到/账本），挂于 `UserCenter`                                                                                                                                                                                                          |
-| 客服（无独立路由）                                             | `SupportChat` 岛（全页唯一实例，挂于桌面 `UserCenter` 动作簇=积分/会员之后、头像之前；移动顶栏不设按钮，移动端走头像下拉的 `aiya:open-chat` 桥唤起——Dialog portal 到 body，不依赖触发器所在岛的显隐；打开期 20s 轮询，发送乐观插入；登录限定，走同源 `/api/chat/messages` 代理——后端中继站长 Telegram，无未读徽标） |
-| 旧 `/category/` `/tag/` 形态                                   | 已整树删除（404）——分类统一入口 `/categories/`，标签过滤为列表页 `?tag=` 参数态                                                                                                                                                                                                                                     |
+| 路由                                                           | 主体实现                                                                                                                                                                                                                                                                                               |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `/posts/` `/resources/` `/pages/`（列表/分类/标签/分页）       | `PostLoop` 岛（筛选面板/排序/多选/排队请求；导航模式由工具栏左槽自决——筛选条在则哨兵追加下一页，标题栏或裸归档则渲染分页器）                                                                                                                                                                           |
+| `/`（`home_sections` 首页区块）                                | `PostLoop` 岛（每段 SSR 第 1 页/直达页，`count` 作 `perPage`；分页状态单例 `?section=<id>&page=<n>`，第 1 页裸 `/`，其他区块恒第 1 页；`lib/home-sections` 负责解析；`more` 仍走独立归档）                                                                                                             |
+| `/posts/{slug}/` `/resources/{slug}/` `/pages/{slug}/` 详情    | 正文 SSR（净化 HTML + 灯箱 class 注入）+ 交互岛：`LikeButton`、`RatingRow`（resource）、`FavoriteButton`、`CommentSection`（关闭态内置）、`UnlockGate`、`PostDiscussions`；上下篇仅 post；相关文章 SSR 列表；文件下载面板（`/api/content/{id}/downloads`）；可见性门禁占位面板                         |
+| `/categories/` `/categories/{slug}/`                           | `CategoryCards` 岛（汇总网格 + 详情页头复用）                                                                                                                                                                                                                                                          |
+| `/search/{key}/`（+`page/[n]/`）                               | 顶栏 `SearchBox` 岛提交目标；结果是 `PostLoop` 岛；范围 `?type=`（全部=三类型并集轮转读，见 `lib/search.ts`）                                                                                                                                                                                          |
+| `/community/`（板块/首页）                                     | `CommunityFeed` + 社区表单岛                                                                                                                                                                                                                                                                           |
+| `/channels/`                                                   | `ChannelFeed` 岛（TG 频道镜像：Astro 取第 1 页并做相册分组与媒体 cloak，岛屿渲染瀑布流卡片墙 + 哨兵自动加载，后续页走同源 `/api/channels` 代理；相册按 `mediaGroupId` 相邻分组、`entities` 样式段解析归 `lib/channels`，行不可变；顶部工具行提供频道筛选 `channelId` 与关键词搜索 `search`，同经代理） |
+| `/notifications/`                                              | `NotificationFeed` 岛（头部铃铛的全量列表页：同源代理 + 前端本地已读态，无会话门，恒 noindex）                                                                                                                                                                                                         |
+| `/profile/{slug}/` `/profile/me` `/settings` `/reset-password` | `UserCenter` / `SettingsPanel` / `ResetPasswordPanel` 等账号岛                                                                                                                                                                                                                                         |
+| 会员/积分（无独立路由）                                        | 钱包气泡 `WalletBubble`（桌面含会员按钮，移动端仅积分 chip）+ 会员弹窗 `MembershipModal`（档位定价/兑换/收银台与签到/账本），双壳均挂于 `UserCenter`                                                                                                                                                   |
+| 客服（无独立路由）                                             | `SupportChat` 岛（全页唯一实例，无触发器，由 AppShell 对登录用户挂载；桌面/移动均走头像下拉的 `aiya:open-chat` 桥唤起，会员弹窗的咨询链接同桥——Dialog portal 到 body；打开期 20s 轮询，发送乐观插入；登录限定，走同源 `/api/chat/messages` 代理——后端中继站长 Telegram，无未读徽标）                   |
+| 旧 `/category/` `/tag/` 形态                                   | 已整树删除（404）——分类统一入口 `/categories/`，标签过滤为列表页 `?tag=` 参数态                                                                                                                                                                                                                        |
 
 ### 详情页约定
 
@@ -108,13 +110,13 @@ part-button`），剪贴板零件由正文零件的 effect 绑定复制按钮；
 
 ## UI 基建
 
-- **壳 = ClientRouter + 近 vanilla**：布局交互不值得水合。侧栏折叠、移动
-  顶栏的暗色切换、路由进度条走委托式原生脚本（document 级监听，换页存活；
-  共享触发点如暗色切换只挂一份，归 AppShell）；**岛屿化的壳件 = UserCenter
-  **（`client:load`，双壳各挂一实例，须做可见性去重）与 `BackToTop` /
-  `ColorModeToggle`（桌面单实例，滚动可见性与点击行为归岛，Tooltip 承载
-  命名）；提交走同源代理 `/api/auth/*`，错误只出前端文案，成功 reload 让
-  SSR 壳接新会话。通知未读点是契约约定的前端本地 last-seen（localStorage）。
+- **壳 = ClientRouter + 近 vanilla**：布局交互不值得水合。侧栏折叠、路由
+  进度条走委托式原生脚本（document 级监听，换页存活）；色模式的预涂装、
+  系统/断点监听与三态解析归 `lib/color-mode` + AppShell 单例；**岛屿化的
+  壳件 = UserCenter**（`client:load`，双壳各挂一实例，须做可见性去重）与
+  `BackToTop` / `ColorModeToggle`（桌面单实例，三态循环，Tooltip 承载命名）；
+  提交走同源代理 `/api/auth/*`，错误只出前端文案，成功 reload 让 SSR 壳接
+  新会话。通知未读点是契约约定的前端本地 last-seen（localStorage）。
 - **shadcn/ui 零件**：已装 alert-dialog/badge/button/card/checkbox/dialog/
   dropdown-menu/empty/field/input-group/input/label/pagination/popover/
   radio-group/select/separator/sonner/switch/tabs/textarea/tooltip

@@ -1,4 +1,4 @@
-import type { Tier } from '@/lib/core/contracts';
+import type { MembershipEntitlement, Tier } from '@/lib/core/contracts';
 import { DEFAULT_TIMEZONE } from '@/lib/format';
 import { toBcp47, type Locale } from '@/lib/i18n/locale';
 
@@ -26,6 +26,25 @@ const DATE_PARTS: Intl.DateTimeFormatOptions = {
 /** Only tiers the backend marked purchasable; disabled ones stay hidden. */
 export function purchasableTiers(items: readonly Tier[]): Tier[] {
   return items.filter((tier) => tier.enabled);
+}
+
+/**
+ * The queue row whose paid window covers `now` — the single definition of
+ * "currently effective tier" shared by the shell (SSR badge/button label) and
+ * the wallet bubble (client fetch). Contract timestamps are ISO with an
+ * offset, so compare parsed instants: lexicographic string comparison would
+ * mis-order values written with different offsets.
+ */
+export function activeMembershipTier(
+  membership: { queue: readonly MembershipEntitlement[] } | null | undefined,
+  now = Date.now(),
+): MembershipEntitlement | null {
+  return (
+    membership?.queue.find((row) => {
+      if (row.status !== 'active') return false;
+      return Date.parse(row.startsAt) <= now && now < Date.parse(row.endsAt);
+    }) ?? null
+  );
 }
 
 /** Payment methods the cashier can offer, in the contract's own order. */

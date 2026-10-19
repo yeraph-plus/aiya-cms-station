@@ -11,7 +11,7 @@ import { MembershipModal } from '@/components/islands/membership/MembershipModal
 import type { MembershipState } from '@/lib/core/contracts';
 import { apiErrorCopy } from '@/lib/feedback';
 import { t, type Locale } from '@/lib/i18n';
-import { displayDay } from '@/lib/membership';
+import { activeMembershipTier, displayDay } from '@/lib/membership';
 import { DEFAULT_TIMEZONE } from '@/lib/format';
 
 /** The local marker that today's auto check-in attempt already happened. */
@@ -22,18 +22,19 @@ const checkinMarker = (): string => `aiya-checkin-${new Date().toISOString().sli
  * user menu. The trigger shows the live balance; the popover pairs the
  * balance with the currently effective plan, then the daily check-in. The
  * membership entry (opening the purchase modal) is NOT inside the popover —
- * it is a header button right after the credits chip (desktop action row
- * reads 积分 → 会员), reading the same membership fetch: active sponsors see
- * their tier name on the button, everyone else the plain 会员 label. It is
- * also reachable from the user dropdown through the `aiya:open-membership`
- * bridge event. Renders only for signed-in visitors (UserCenter).
+ * on desktop it is a header button right after the credits chip (action row
+ * reads 积分 → 会员): active members see their tier name, everyone else the
+ * join CTA. Mobile renders the credits chip only; its membership entry is the
+ * avatar dropdown's `aiya:open-membership` item while this island still hosts
+ * the modal for that bridge. Renders only for signed-in visitors (UserCenter).
  *
  * "Already claimed today" stays the backend's call — a 409 settles it, the
  * island never guesses from the clock. Active sponsors additionally get the
  * day's check-in performed for them: on mount, an active membership with an
- * open check-in policy triggers one automatic attempt (popover opens so the
- * result is visible), guarded by a local once-per-day marker so page
- * navigation never re-fires it.
+ * open check-in policy triggers one automatic attempt, guarded by a local
+ * once-per-day marker so page navigation never re-fires it. Desktop opens the
+ * popover so the result is visible; mobile leaves the page unobstructed and
+ * lets the toast + chip balance carry the outcome.
  */
 /** Daily auto-checkin marker; guarded reads/writes (private mode throws). */
 function readCheckinMarker(): string | null {
@@ -52,7 +53,20 @@ function writeCheckinMarker(): void {
   }
 }
 
-export function WalletBubble({ locale, timezone }: { locale: Locale; timezone?: string }) {
+export function WalletBubble({
+  locale,
+  timezone,
+  initialTierName = null,
+  variant = 'desktop',
+}: {
+  locale: Locale;
+  timezone?: string;
+  /** Shell-resolved active tier name, shown before the live fetch settles. */
+  initialTierName?: string | null;
+  /** Mobile renders the credits chip only; the membership entry stays in the
+      avatar dropdown (the modal is still hosted here for that bridge). */
+  variant?: 'desktop' | 'mobile';
+}) {
   const dict = t(locale);
   const copy = dict.membership;
   const [open, setOpen] = useState(false);
@@ -151,7 +165,10 @@ export function WalletBubble({ locale, timezone }: { locale: Locale; timezone?: 
     void (async () => {
       const next = await fetchWallet();
       if (next !== null && next.active && next.checkin.enabled && !readCheckinMarker()) {
-        setOpen(true);
+        // Desktop surfaces the grant inline by opening the popover; mobile
+        // keeps the first paint unobstructed and lets the toast carry the
+        // outcome (the chip balance updates either way).
+        if (variant === 'desktop') setOpen(true);
         const result = await claimCheckin('auto');
         // Mark only after the backend settled the day (grant or 409): a
         // network blip must not burn the day's only automatic attempt — the
@@ -192,17 +209,19 @@ export function WalletBubble({ locale, timezone }: { locale: Locale; timezone?: 
   const shown = balance ?? membership?.balance ?? null;
   const checkin = membership?.checkin;
   // The currently effective plan: the queue row whose window contains now.
-  // Compare ISO strings, not a render-time clock — a pure render must stay
-  // deterministic for hydration (membership is null on the SSR pass anyway).
-  const nowIso = new Date().toISOString();
-  const currentPlan = membership?.queue.find(
-    (row) => row.status === 'active' && row.startsAt <= nowIso && nowIso < row.endsAt,
-  );
+  // Shared with the shell's SSR badge so both labels agree on the boundary.
+  const currentPlan = activeMembershipTier(membership);
+  // Before the live read settles, trust the shell-resolved tier name; once it
+  // settles, the fetched queue is authoritative (a failed read keeps the
+  // shell label rather than flipping a member to the join CTA).
+  const membershipLabel =
+    currentPlan?.tierName ||
+    (state === 'ready' ? copy.joinMembership : initialTierName || copy.joinMembership);
 
   return (
-    /* inline-flex: the span carries TWO buttons now (credits + sponsor) —
-       as a flex item it would blockify and stack the two flex-container
-       buttons vertically without it. */
+    /* inline-flex: the span carries the credits chip and (desktop only) the
+       sponsor button — as a flex item it would blockify and stack them
+       vertically without it. */
     <span ref={rootRef} className="inline-flex items-center gap-1">
       <Popover open={open} onOpenChange={handleOpen}>
         {/* Tooltip context wraps from OUTSIDE the trigger chain: the two
@@ -215,7 +234,9 @@ export function WalletBubble({ locale, timezone }: { locale: Locale; timezone?: 
               <button
                 type="button"
                 aria-label={copy.walletOpen}
-                className="flex h-8 cursor-pointer items-center gap-1 rounded-md px-2 text-sm text-foreground outline-none hover:bg-secondary focus-visible:outline-2 focus-visible:outline-focus-blue"
+                className={`flex cursor-pointer items-center gap-1 rounded-md px-2 text-sm text-foreground outline-none hover:bg-secondary focus-visible:outline-2 focus-visible:outline-focus-blue ${
+                  variant === 'mobile' ? 'h-10' : 'h-8'
+                }`}
               >
                 <CoinsIcon className="size-4" aria-hidden="true" />
                 {shown !== null && <span className="font-medium tabular-nums">{shown}</span>}
@@ -292,23 +313,25 @@ export function WalletBubble({ locale, timezone }: { locale: Locale; timezone?: 
         </PopoverContent>
       </Popover>
       {/* The membership entry, AFTER the credits chip: crowned header
-          button — active sponsors see their tier name. */}
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <button
-            type="button"
-            onClick={() => setPlansOpen(true)}
-            aria-label={currentPlan ? currentPlan.tierName : copy.sponsorTitle}
-            className="flex h-8 max-w-40 cursor-pointer items-center gap-1 rounded-md px-2 text-sm text-foreground outline-none hover:bg-secondary focus-visible:outline-2 focus-visible:outline-focus-blue"
-          >
-            <CrownIcon className="size-4 shrink-0" aria-hidden="true" />
-            <span className="truncate">
-              {currentPlan ? currentPlan.tierName : copy.sponsorTitle}
-            </span>
-          </button>
-        </TooltipTrigger>
-        <TooltipContent>{currentPlan ? currentPlan.tierName : copy.sponsorTitle}</TooltipContent>
-      </Tooltip>
+          button — active members see their tier name, everyone else the
+          join CTA. Mobile hides it; the dropdown's membership item owns that
+          entry while this island still hosts the modal it opens. */}
+      {variant === 'desktop' && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={() => setPlansOpen(true)}
+              aria-label={membershipLabel}
+              className="flex h-8 max-w-40 cursor-pointer items-center gap-1 rounded-md px-2 text-sm text-foreground outline-none hover:bg-secondary focus-visible:outline-2 focus-visible:outline-focus-blue"
+            >
+              <CrownIcon className="size-4 shrink-0" aria-hidden="true" />
+              <span className="truncate">{membershipLabel}</span>
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>{membershipLabel}</TooltipContent>
+        </Tooltip>
+      )}
       <MembershipModal open={plansOpen} onOpenChange={setPlansOpen} locale={locale} />
     </span>
   );

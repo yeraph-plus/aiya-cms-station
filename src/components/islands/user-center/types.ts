@@ -11,6 +11,10 @@ export interface UserCenterUser {
   /** "Always show NSFW content" (0.96.0): when true the dropdown's soft
       switch renders locked-on (the backend ignores NSFW exclusions). */
   showNsfw: boolean;
+  /** Name of the membership tier covering now, resolved by the shell in the
+      same SSR pass as the session. Null for non-members; the dropdown badge
+      renders only when present. */
+  membershipTierName: string | null;
   /** The visitor's soft switch ("show NSFW content"), resolved server-side
       from the first-party cookie (lib/nsfw.ts softShowNsfw). It travels as
       a prop because the island must not read document.cookie while it
@@ -23,7 +27,7 @@ export interface UserCenterCopy {
   login: string;
   register: string;
   logout: string;
-  /** /profile/me/ entry (user center). */
+  /** /profile/me/ entry (user home). */
   profile: string;
   favorites: string;
   followingTitle: string;
@@ -33,7 +37,7 @@ export interface UserCenterCopy {
       `aiya:open-membership` bridge, WalletBubble owns the modal). */
   membership: string;
   accountSettings: string;
-  /** Support-chat entry (dropdown); the header headset is the primary one. */
+  /** Support-chat entry (dropdown; opens the AppShell-mounted dialog). */
   chatSupport: string;
   emailLabel: string;
   passwordLabel: string;
@@ -52,6 +56,7 @@ export interface UserCenterCopy {
   switchToRegisterHint: string;
   switchToLoginHint: string;
   notifications: string;
+  notificationsList: string;
   notificationsLoading: string;
   notificationsEmpty: string;
   notificationsError: string;

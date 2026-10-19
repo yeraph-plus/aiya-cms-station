@@ -21,6 +21,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import Avatar from '@/components/islands/Avatar';
 import { flashToast } from '@/lib/feedback';
@@ -29,16 +30,18 @@ import { NOTIFICATIONS_PAGE_PATH } from './NotificationPopover';
 import type { UserCenterCopy, UserCenterUser } from './types';
 
 /**
- * Avatar bubble: dropdown with the identity header (nickname + role badge,
- * email below) and the hub entries — every hub link lands on /profile/me/
- * with a tab param (the hub island reads ?tab=); the public archive stays
- * reachable from the hub itself, not from this menu. The NSFW soft switch
- * rides here (0.96.0): locked on when the account's "always show" meta is
- * set, otherwise it mirrors the browser cookie (server-read, handed in as
- * user.softNsfw) — toggling rewrites the cookie and reloads so the SSR
- * lists re-render with the new exclusion state. Logout is the destructive
- * item and revokes the session before reloading; the outcome toast rides
- * the flash handoff so it survives the reload.
+ * Avatar bubble: dropdown with the identity header (nickname + membership
+ * tier badge + role badge, email below) and two fixed groups — system
+ * entries (membership modal, support chat, notification list) then the
+ * /profile/me/ entries (hub, favorites, following, credit history, account
+ * settings). The content is identical on desktop and mobile; only the
+ * trigger changes (desktop spells the account out, mobile stays avatar-only).
+ * The NSFW soft switch rides here (0.96.0): locked on when the account's
+ * "always show" meta is set, otherwise it mirrors the browser cookie
+ * (server-read, handed in as user.softNsfw) — toggling rewrites the cookie
+ * and reloads so the SSR lists re-render with the new exclusion state.
+ * Logout is the destructive item and revokes the session before reloading;
+ * the outcome toast rides the flash handoff so it survives the reload.
  */
 
 /** Browser-side soft switch: first-party cookie, readable by the SSR
@@ -117,13 +120,52 @@ export function UserMenu({
         <DropdownMenuLabel>
           <div className="flex items-center justify-between gap-2">
             <span className="truncate text-sm font-medium text-foreground">{user.nickname}</span>
-            <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-[11px] text-body-muted">
-              {user.roleLabel}
+            <span className="flex shrink-0 items-center gap-1">
+              {user.membershipTierName && (
+                <Badge
+                  variant="outline"
+                  className="gap-1 border-primary/30 bg-primary/10 px-1.5 text-[11px] font-normal text-primary"
+                >
+                  <CrownIcon aria-hidden="true" />
+                  <span className="max-w-28 truncate">{user.membershipTierName}</span>
+                </Badge>
+              )}
+              <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-[11px] text-body-muted">
+                {user.roleLabel}
+              </span>
             </span>
           </div>
           <p className="mt-0.5 truncate text-xs font-normal text-body-muted">{user.email}</p>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {/* System group: modal/bridge entries first. */}
+        <DropdownMenuItem asChild>
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent('aiya:open-membership'))}
+          >
+            <CrownIcon aria-hidden="true" />
+            {copy.membership}
+          </button>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent('aiya:open-chat'))}
+          >
+            <HeadsetIcon aria-hidden="true" />
+            {copy.chatSupport}
+          </button>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <a href={NOTIFICATIONS_PAGE_PATH}>
+            <BellIcon aria-hidden="true" />
+            {copy.notificationsList}
+          </a>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        {/* Own-account group: every link lands on /profile/me/ or one of its
+            tabs; the public archive stays reachable from the hub itself. */}
         <DropdownMenuItem asChild>
           <a href="/profile/me/">
             <UserRoundIcon aria-hidden="true" />
@@ -137,36 +179,15 @@ export function UserMenu({
           </a>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <a href="/profile/me/?tab=wallet">
-            <CoinsIcon aria-hidden="true" />
-            {copy.wallet}
-          </a>
-        </DropdownMenuItem>
-        {/* Membership modal entry via the bridge — WalletBubble (same
-             desktop cluster) owns the modal and listens for it; mobile has
-             no wallet bubble, so the entry stays desktop-only until the
-             mobile shell grows its own access path. */}
-        {variant === 'desktop' && (
-          <DropdownMenuItem asChild>
-            <button
-              type="button"
-              onClick={() => window.dispatchEvent(new CustomEvent('aiya:open-membership'))}
-            >
-              <CrownIcon aria-hidden="true" />
-              {copy.membership}
-            </button>
-          </DropdownMenuItem>
-        )}
-        <DropdownMenuItem asChild>
           <a href="/profile/me/?tab=following">
             <UserRoundCheckIcon aria-hidden="true" />
             {copy.followingTitle}
           </a>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <a href={NOTIFICATIONS_PAGE_PATH}>
-            <BellIcon aria-hidden="true" />
-            {copy.notifications}
+          <a href="/profile/me/?tab=wallet">
+            <CoinsIcon aria-hidden="true" />
+            {copy.wallet}
           </a>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
@@ -174,17 +195,6 @@ export function UserMenu({
             <SettingsIcon aria-hidden="true" />
             {copy.accountSettings}
           </a>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          {/* Redundant entry: the header headset button is the primary one,
-              and its island (same header) owns the dialog. */}
-          <button
-            type="button"
-            onClick={() => window.dispatchEvent(new CustomEvent('aiya:open-chat'))}
-          >
-            <HeadsetIcon aria-hidden="true" />
-            {copy.chatSupport}
-          </button>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         {/* The soft switch is a plain row (not a menu item): toggling must

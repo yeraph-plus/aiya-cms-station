@@ -1,14 +1,15 @@
-import { MoonIcon, SunIcon } from 'lucide-react';
+import { MonitorIcon, MoonIcon, SunIcon } from 'lucide-react';
 
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { cycleColorMode } from '@/lib/color-mode';
 
 /**
- * Color-mode toggle, desktop header. The mobile top bar keeps its vanilla
- * `data-color-toggle` button driven by AppShell's delegated script — this
- * island deliberately does NOT carry that attribute, or one click would
- * toggle the class twice (delegated listener + own handler). Both icons
- * render at all times and CSS picks the visible one, so the component
- * holds no theme state.
+ * Color-mode toggle, desktop header only. Clicking advances the three-state
+ * cycle dark → light → system and persists it; the mobile shell always
+ * follows the system palette and carries no button. All three icons render
+ * at all times and shell.css picks the visible one from the `data-color-mode`
+ * stamp written by BaseHead's pre-paint script — so the component holds no
+ * theme state and SSR/first paint agree.
  */
 export default function ColorModeToggle({ label }: { label: string }) {
   return (
@@ -18,17 +19,13 @@ export default function ColorModeToggle({ label }: { label: string }) {
           type="button"
           aria-label={label}
           onClick={() => {
-            const dark = document.documentElement.classList.toggle('dark');
-            try {
-              localStorage.setItem('aiya-color-mode', dark ? 'dark' : 'light');
-            } catch {
-              /* storage unavailable — the class toggle still took effect */
-            }
+            cycleColorMode();
           }}
           className="flex size-8 cursor-pointer items-center justify-center rounded-md text-foreground hover:bg-secondary focus-visible:outline-2 focus-visible:outline-focus-blue"
         >
-          <MoonIcon className="size-[18px] dark:hidden" aria-hidden="true" />
-          <SunIcon className="hidden size-[18px] dark:block" aria-hidden="true" />
+          <SunIcon data-color-mode-icon="light" className="size-[18px]" aria-hidden="true" />
+          <MoonIcon data-color-mode-icon="dark" className="size-[18px]" aria-hidden="true" />
+          <MonitorIcon data-color-mode-icon="system" className="size-[18px]" aria-hidden="true" />
         </button>
       </TooltipTrigger>
       <TooltipContent>{label}</TooltipContent>

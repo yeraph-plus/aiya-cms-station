@@ -10,6 +10,7 @@ import PageState from '@/components/layout/PageState.astro';
 import Breadcrumb from '@/components/layout/Breadcrumb.astro';
 import AdSpace from '@/components/islands/AdSpace';
 import BackToTop from '@/components/islands/BackToTop';
+import SupportChat from '@/components/islands/chat/SupportChat';
 import { t, toBcp47 } from '@/lib/i18n';
 import { cssUrl, rewriteMediaUrl } from '@/lib/media';
 import { softShowNsfw } from '@/lib/nsfw';
@@ -66,6 +67,7 @@ const sessionUser = page.user
       slug: page.user.slug,
       email: page.user.email,
       showNsfw: page.user.showNsfw,
+      membershipTierName: page.membershipTierName,
       // The NSFW soft switch is read here, on the server, and rides down as
       // a prop: an island that read the cookie itself would do it during
       // SSR too (`document is not defined`) and break the response stream.
@@ -99,6 +101,7 @@ const authCopy = {
   switchToLoginHint: copy.shell.switchToLoginHint,
   colorMode: copy.shell.colorMode,
   notifications: copy.shell.notifications,
+  notificationsList: copy.shell.notificationsList,
   notificationsLoading: copy.shell.notificationsLoading,
   notificationsEmpty: copy.shell.notificationsEmpty,
   notificationsError: copy.shell.notificationsError,
@@ -125,7 +128,11 @@ const showBanner = bannerUrl !== null && isHome;
 ---
 
 <!doctype html>
-<html lang={toBcp47(page.locale)} data-color-mode-default={page.site.defaults.colorMode}>
+<html
+  lang={toBcp47(page.locale)}
+  data-color-mode={page.site.defaults.colorMode}
+  data-color-mode-default={page.site.defaults.colorMode}
+>
   <head>
     <BaseHead
       title={title}
@@ -220,6 +227,21 @@ const showBanner = bannerUrl !== null && isHome;
       pathname={Astro.url.pathname}
     />
     {
+      /* One triggerless support dialog for the signed-in visitor, shared by
+        both shells: the avatar dropdown's 联系客服 entry and the membership
+        modal's consultation link open it through the `aiya:open-chat` bridge. */
+    }
+    {
+      sessionUser && (
+        <SupportChat
+          client:load
+          user={sessionUser}
+          locale={page.locale}
+          timezone={page.site.timezone}
+        />
+      )
+    }
+    {
       /* transition:persist keeps the toaster (and its in-flight toasts)
         alive across ClientRouter swaps instead of being re-mounted. */
     }
@@ -229,6 +251,8 @@ const showBanner = bannerUrl !== null && isHome;
 </html>
 
 <script>
+  import { initColorMode } from '@/lib/color-mode';
+
   // Route-change progress bar: visible between ClientRouter navigation start
   // and the swap; the element re-queries after each swap like the button.
   const progress = () => document.getElementById('route-progress');
@@ -258,14 +282,9 @@ const showBanner = bannerUrl !== null && isHome;
   // scroll listener and the click now); the `data-back-to-top` attribute
   // survives purely as the shell.css visibility-styling hook.
 
-  // Color mode toggle: the MOBILE top bar still carries a [data-color-toggle]
-  // button driven here — delegated, one listener per page, surviving
-  // ClientRouter swaps. The desktop toggle is an island (ColorModeToggle)
-  // and deliberately does not carry the attribute.
-  document.addEventListener('click', (event) => {
-    if (!(event.target instanceof Element)) return;
-    if (!event.target.closest('[data-color-toggle]')) return;
-    const dark = document.documentElement.classList.toggle('dark');
-    localStorage.setItem('aiya-color-mode', dark ? 'dark' : 'light');
-  });
+  // Color mode: BaseHead's inline script painted the first frame; this
+  // engine keeps it live (system palette changes, 992px shell crossing) and
+  // the desktop island only advances the three-state cycle. One init per
+  // document; the listeners survive ClientRouter swaps.
+  initColorMode();
 </script>

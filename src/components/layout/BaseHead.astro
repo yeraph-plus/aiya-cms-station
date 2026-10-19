@@ -66,23 +66,27 @@ const faviconHref = site.favicon ? rewriteMediaUrl(site.favicon.url) : '/favicon
 <link rel="icon" href={faviconHref} />
 <ClientRouter />
 {
-  /* Color mode pre-paint: stored choice → site default → system. Runs
-    before first paint and again after every ClientRouter swap (the html
-    element is replaced by the swap, losing the class). */
+  /* Color mode pre-paint: stored choice (dark/light/system) → site default →
+    system; the mobile shell always resolves to system. Runs before first
+    paint and again after every ClientRouter swap (the html element is
+    replaced by the swap, losing the class and the data stamp). */
 }
 <script is:inline data-astro-rerun>
   (() => {
-    const stored = localStorage.getItem('aiya-color-mode');
+    const valid = (value) => value === 'dark' || value === 'light' || value === 'system';
+    let stored = null;
+    try {
+      stored = localStorage.getItem('aiya-color-mode');
+    } catch {
+      /* storage unavailable — fall through to the site default */
+    }
     const fallback = document.documentElement.dataset.colorModeDefault;
-    const mode =
-      stored === 'dark' || stored === 'light'
-        ? stored
-        : fallback === 'dark' || fallback === 'light'
-          ? fallback
-          : matchMedia('(prefers-color-scheme: dark)').matches
-            ? 'dark'
-            : 'light';
-    document.documentElement.classList.toggle('dark', mode === 'dark');
+    const preference = valid(stored) ? stored : valid(fallback) ? fallback : 'system';
+    const mode = matchMedia('(max-width: 991px)').matches ? 'system' : preference;
+    const dark =
+      mode === 'dark' || (mode === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+    document.documentElement.dataset.colorMode = mode;
+    document.documentElement.classList.toggle('dark', dark);
   })();
 </script>
 <meta property="og:site_name" content={site.name} />

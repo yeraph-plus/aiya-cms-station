@@ -32,6 +32,19 @@
   outline-offset: 2px;
 }
 
+/* Color-mode toggle icons: the inline pre-paint script stamps the resolved
+   preference on <html>, so the visible icon needs no React state. One icon
+   per state; the fallback keeps the system glyph if the stamp is missing. */
+[data-color-mode-icon] {
+  display: none;
+}
+html[data-color-mode='light'] [data-color-mode-icon='light'],
+html[data-color-mode='dark'] [data-color-mode-icon='dark'],
+html[data-color-mode='system'] [data-color-mode-icon='system'],
+html:not([data-color-mode]) [data-color-mode-icon='system'] {
+  display: block;
+}
+
 /* Route-change progress bar, driven by ClientRouter events. The 1s here is
    the indeterminate loop period, not a motion-token duration. */
 #route-progress {

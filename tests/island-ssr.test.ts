@@ -59,6 +59,7 @@ function copyFixture(): UserCenterCopy {
     switchToRegisterHint: shell.switchToRegisterHint,
     switchToLoginHint: shell.switchToLoginHint,
     notifications: shell.notifications,
+    notificationsList: shell.notificationsList,
     notificationsLoading: shell.notificationsLoading,
     notificationsEmpty: shell.notificationsEmpty,
     notificationsError: shell.notificationsError,
@@ -78,12 +79,16 @@ function sessionUser(showNsfw: boolean, softNsfw: boolean): UserCenterUser {
     email: 'ssr-probe@example.com',
     showNsfw,
     softNsfw,
+    membershipTierName: null,
   };
 }
 
 const locale = 'zh_CN' as const;
 
-function renderUserCenter(user: UserCenterUser | null): string {
+function renderUserCenter(
+  user: UserCenterUser | null,
+  variant: 'desktop' | 'mobile' = 'desktop',
+): string {
   return renderToString(
     createElement(UserCenter, {
       user,
@@ -92,6 +97,7 @@ function renderUserCenter(user: UserCenterUser | null): string {
       locale,
       timezone: 'Asia/Shanghai',
       copy: copyFixture(),
+      variant,
     }),
   );
 }
@@ -114,6 +120,24 @@ describe('shell islands render on the server', () => {
     ] as const) {
       expect(renderUserCenter(sessionUser(hard, soft))).toContain('SSR Probe');
     }
+  });
+
+  it('labels a non-member header button with the join CTA', () => {
+    expect(renderUserCenter(sessionUser(false, false))).toContain(copy.membership.joinMembership);
+  });
+
+  it('renders the membership tier badge from the shell prop', () => {
+    const html = renderUserCenter({ ...sessionUser(false, false), membershipTierName: '进阶方案' });
+    expect(html).toContain('进阶方案');
+  });
+
+  it('renders the mobile credits chip with the full avatar menu', () => {
+    const html = renderUserCenter(sessionUser(false, false), 'mobile');
+    expect(html).toContain(copy.membership.walletOpen);
+    expect(html).toContain('SSR Probe');
+    // The membership header button stays desktop-only; mobile reaches the
+    // modal through the dropdown's 会员 item.
+    expect(html).not.toContain(copy.membership.joinMembership);
   });
 });
 

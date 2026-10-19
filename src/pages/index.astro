@@ -2,12 +2,15 @@
 /**
  * Home portal. The Blocks settings page's `home_sections` repeater feeds
  * the page: each section is a query template (content type + category
- * multi-select + count) that the page front matter resolves against the
- * public list reads, then renders through the shared PostLoop island —
- * its summary-feed mode (heading + icon + "more" link, no view toggle,
- * no pager) IS the section chrome. Sections whose query fails or answers
- * nothing are skipped; an empty configuration keeps the bare shell (the
- * banner is a homepage-only AppShell decoration).
+ * multi-select + page size) that the page front matter resolves against
+ * the public list reads, then renders through the shared PostLoop island —
+ * its summary-feed mode (heading + icon + "more" link, no view toggle) with
+ * the shared pager. Paging is exclusive: `?section=<id>&page=<n>` can page
+ * one section at a time, while every other section stays on page 1. The
+ * first page (and any deep-linked page) is resolved by SSR; later pager
+ * clicks fetch through the loop's own feed. Sections whose query fails or
+ * answers nothing are skipped; an empty configuration keeps the bare shell
+ * (the banner is a homepage-only AppShell decoration).
  */
 import AppShell from '@/components/layout/AppShell.astro';
 import PostLoop from '@/components/islands/feed/PostLoop';
@@ -16,24 +19,45 @@ import { loadPage } from '@/lib/page.server';
 import { iconInner } from '@/lib/icons';
 import { cloakPostSummaryMedia } from '@/lib/media';
 import { t } from '@/lib/i18n';
-import type { HomeSection, PostSummary } from '@/lib/core/contracts';
+import { homeSectionPagePattern, readHomeSectionRequest } from '@/lib/home-sections';
+import type { HomeSection, Pagination, PostSummary } from '@/lib/core/contracts';
 
 interface ResolvedSection {
   section: HomeSection;
   posts: PostSummary[];
+  pagination: Pagination;
+  page: number;
 }
+
+const requested = readHomeSectionRequest(Astro.url);
 
 const page = await loadPage(
   async (client, site) => {
     const resolved = await Promise.all(
       site.blocks.sections.map(async (section): Promise<ResolvedSection | null> => {
         const category = section.categories.join(',');
+        const loadSection = (page: number) =>
+          section.type === 'resource'
+            ? client.resources({ category, perPage: section.count, page })
+            : client.posts({ category, perPage: section.count, page });
+        let pageNumber = requested.id === section.id ? requested.page : 1;
         try {
-          const result =
-            section.type === 'resource'
-              ? await client.resources({ category, perPage: section.count })
-              : await client.posts({ category, perPage: section.count });
-          return result.data.length > 0 ? { section, posts: result.data } : null;
+          let result = await loadSection(pageNumber);
+          // A stale or hand-edited deep link can name a page outside the
+          // current window; clamp to the last real page instead of leaving
+          // the pager on a page that cannot exist.
+          if (pageNumber > 1 && result.meta.pagination.totalPages < pageNumber) {
+            pageNumber = Math.max(1, result.meta.pagination.totalPages);
+            result = await loadSection(pageNumber);
+          }
+          return result.data.length > 0 || result.meta.pagination.totalItems > 0
+            ? {
+                section,
+                posts: result.data,
+                pagination: result.meta.pagination,
+                page: pageNumber,
+              }
+            : null;
         } catch {
           // One broken query skips its section, never the whole homepage.
           return null;
@@ -59,6 +83,7 @@ const archiveHref = (section: HomeSection): string => {
 };
 const origin = page.origin;
 const jsonLd = page.ok ? [websiteJsonLd(page.site, origin)] : [];
+const paged = requested.page > 1;
 ---
 
 <AppShell
@@ -66,25 +91,36 @@ const jsonLd = page.ok ? [websiteJsonLd(page.site, origin)] : [];
   title=""
   description={page.site.description}
   canonicalPath="/"
+  noindex={paged}
   jsonLd={jsonLd}
 >
   <h1 class="sr-only">{page.site.name}</h1>
   {
     page.ok && page.value.length > 0 && (
       <div class="flex w-full flex-col gap-10">
-        {page.value.map(({ section, posts }) => (
+        {page.value.map((entry) => (
           <PostLoop
             client:load
-            endpoint={section.type === 'resource' ? '/api/feed/resources/' : '/api/feed/posts/'}
-            items={posts.map(cloakPostSummaryMedia)}
-            pagination={{ page: 1, totalPages: 1, hasNext: false, hasPrevious: false }}
-            page={1}
-            query={section.categories.length > 0 ? { category: section.categories.join(',') } : {}}
-            route={{ index: archiveHref(section) }}
-            heading={section.title}
-            headingIcon={section.icon ? iconInner(section.icon) : null}
+            endpoint={
+              entry.section.type === 'resource' ? '/api/feed/resources/' : '/api/feed/posts/'
+            }
+            items={entry.posts.map(cloakPostSummaryMedia)}
+            pagination={entry.pagination}
+            page={entry.page}
+            perPage={entry.section.count}
+            query={
+              entry.section.categories.length > 0
+                ? { category: entry.section.categories.join(',') }
+                : {}
+            }
+            route={{
+              index: '/',
+              pagePattern: homeSectionPagePattern(entry.section.id),
+            }}
+            heading={entry.section.title}
+            headingIcon={entry.section.icon ? iconInner(entry.section.icon) : null}
             showViewToggle={false}
-            more={{ href: archiveHref(section), label: copy.home.viewAll }}
+            more={{ href: archiveHref(entry.section), label: copy.home.viewAll }}
             defaultView="grid"
             stickyView={false}
             emptyText={copy.posts.listEmpty}
