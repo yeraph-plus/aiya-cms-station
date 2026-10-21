@@ -30,6 +30,11 @@ import '@/fonts/station-sans/tc/StationSansTC-Medium.min.css';
 import '@/fonts/station-sans/jp/StationSansJP-Regular.min.css';
 import '@/fonts/station-sans/jp/StationSansJP-Medium.min.css';
 import '@/styles/shell.css';
+// Editorial skin recipes (docs/EDITORIAL.md §2): the composite rules the
+// `ed/` component layer cannot express with utilities. Tokens live in
+// tokens.css; adopting the look is the `.theme-editorial` scope, not a
+// different stylesheet.
+import '@/styles/editorial.css';
 
 interface Props {
   page: PageResult;

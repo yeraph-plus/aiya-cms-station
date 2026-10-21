@@ -1,0 +1,10 @@
+/* Lab-only Tailwind entry: the preview lives outside the app's `src`, so it
+   reuses the app's token/recipe layers and declares its own scan roots.
+   Scanning the app's `src` keeps the component layer's utilities intact;
+   scanning the lab's own `src` picks up the preview's utilities. Nothing here
+   ships with the site. */
+@import '../../../../src/styles/tokens.css';
+@import '../../../../src/styles/editorial.css';
+
+@source '../../../../src';
+@source '../';

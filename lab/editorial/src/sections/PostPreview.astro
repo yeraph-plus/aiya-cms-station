@@ -1,0 +1,249 @@
+---
+/**
+ * 03 · post.html 复刻：满幅封面 + 居中的 440px 标题块 + 作者/分享面板（白环头像）
+ * + 白色正文卡（段距、图注、引文、标签）+ 底部同款面板 + 相关文章 + 评论与表单 + 侧栏。
+ *
+ * 评论区是**静态示意**：站点的真实评论/表单由 `islands/CommentSection` 接管
+ * （含分页、回复、审核与登录态），这里只复刻模板的几何，不另造一套交互。
+ */
+import {
+  ArticleHero,
+  BylinePanel,
+  PromoCard,
+  Rail,
+  RailItem,
+  RailSection,
+  StoryGrid,
+  TagList,
+} from '@/components/editorial';
+import { article, articleTags, railTop, shareTargets, similarPosts } from '../data';
+
+const replies = [
+  {
+    id: 'r1',
+    author: 'Robert Morgan',
+    date: '2017年9月29日 10:12',
+    body: 'Nulla facilisi. Aenean porttitor quis tortor id tempus. Interdum et malesuada fames ac ante ipsum primis in faucibus. Vivamus molestie varius tincidunt.',
+  },
+];
+
+const comments = [
+  {
+    id: 'c1',
+    author: 'Katy Liu',
+    date: '2017年9月29日 09:48',
+    body: '挑那只像落日一样的黄桃，红色、橙色与粉色的皮，用牙齿剥开。把味觉折进未成熟的夏天。',
+    replies,
+  },
+  {
+    id: 'c2',
+    author: 'Katy Liu',
+    date: '2017年9月29日 11:02',
+    body: '挑那只像落日一样的黄桃，红色、橙色与粉色的皮，用牙齿剥开。',
+    replies: [],
+  },
+];
+---
+
+<ArticleHero
+  title={article.title}
+  kicker={article.category}
+  kickerHref="#"
+  image={article.image}
+  headingLevel="h2"
+/>
+
+<div class="mx-auto w-full max-w-shell px-4 lg:px-12">
+  <div class="grid gap-10 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-14">
+    <div class="min-w-0">
+      <div class="mt-10">
+        <BylinePanel
+          author="Katy Liu"
+          authorHref="#"
+          avatar={{ url: '/assets/rail-1.jpg', alt: '' }}
+          date="2017年9月29日 09:48"
+          note="约 8 分钟"
+          shareLabel="分享"
+          share={shareTargets}
+        />
+      </div>
+
+      <div class="ed-article mt-6">
+        <div class="flex flex-col gap-8 text-base leading-8 text-foreground/80">
+          <p>
+            挑那只像落日一样的黄桃，红色、橙色与粉色的皮，用牙齿剥开。把味觉折进未成熟的夏天。 这是
+            avision 正文的原始节奏：16px 字号、1.875 行高、80% 的墨色 —— 中文里它偏长，
+            所以正式页面把正文交给站点既有的正文令牌（`--prose-gap-*`），这段只用来对照比例。
+          </p>
+
+          <figure class="m-0">
+            <img
+              src="/assets/story-1.jpg"
+              alt="插画：窗边的稿纸"
+              loading="lazy"
+              decoding="async"
+              class="w-full rounded-md object-cover"
+            />
+            <figcaption class="mt-2 text-center text-xs italic text-muted-foreground">
+              Lorem Ipsum Dolor Sit Amet
+            </figcaption>
+          </figure>
+
+          <blockquote class="m-0 px-8 py-14">
+            <p class="text-base font-semibold leading-8 text-foreground/80">
+              Aliquam auctor lacus a dapibus pulvinar. Morbi in elit erat. Quisque et augue nec
+              tortor blandit hendrerit eget sit amet sapien. Curabitur at tincidunt metus, quis
+              porta ex.
+            </p>
+            <cite class="mt-5 block text-base font-medium not-italic text-muted-foreground">
+              Robert Morgan
+            </cite>
+          </blockquote>
+
+          <p>
+            Donec orci dolor, pretium in luctus id, consequat vitae nibh. Quisque hendrerit, lorem
+            sit amet mollis malesuada, urna orci volutpat ex, sed scelerisque nunc velit et massa.
+          </p>
+        </div>
+
+        <TagList tags={articleTags} className="mt-10" />
+      </div>
+
+      <div class="mt-8">
+        <BylinePanel
+          author="Katy Liu"
+          authorHref="#"
+          avatar={{ url: '/assets/rail-1.jpg', alt: '' }}
+          date="2017年9月29日 09:48"
+          note="约 8 分钟"
+          shareLabel="分享"
+          share={shareTargets}
+        />
+      </div>
+
+      <StoryGrid stories={similarPosts} columns={3} className="mt-4" />
+
+      <div class="mt-20">
+        <h3 class="text-lg font-bold text-foreground">发表评论</h3>
+        <form class="mt-6 rounded-lg bg-card p-6 sm:p-8">
+          <div class="grid gap-6 sm:grid-cols-2">
+            <label class="block">
+              <span class="sr-only">你的名字</span>
+              <input
+                type="text"
+                name="name"
+                required
+                placeholder="你的名字"
+                class="h-10 w-full border-b border-border bg-transparent text-sm text-foreground transition-colors duration-fast placeholder:text-muted-foreground/70 focus-visible:border-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-blue"
+              />
+            </label>
+            <label class="block">
+              <span class="sr-only">你的邮箱</span>
+              <input
+                type="email"
+                name="email"
+                required
+                placeholder="你的邮箱"
+                class="h-10 w-full border-b border-border bg-transparent text-sm text-foreground transition-colors duration-fast placeholder:text-muted-foreground/70 focus-visible:border-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-blue"
+              />
+            </label>
+          </div>
+          <label class="mt-6 block">
+            <span class="sr-only">你的评论</span>
+            <textarea
+              name="comment"
+              rows="4"
+              required
+              placeholder="你的评论"
+              class="w-full border-b border-border bg-transparent pt-3 text-sm text-foreground transition-colors duration-fast placeholder:text-muted-foreground/70 focus-visible:border-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-blue"
+            ></textarea>
+          </label>
+          <button
+            type="button"
+            class="mt-6 inline-flex h-9 items-center rounded-full bg-ed-accent/10 px-6 text-sm font-medium text-ed-accent-strong transition-colors duration-fast hover:bg-ed-accent hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-blue"
+          >
+            发表评论
+          </button>
+        </form>
+      </div>
+
+      <div class="mt-16">
+        <h3 class="text-lg font-bold text-foreground">
+          评论 <span class="font-medium text-muted-foreground">(12)</span>
+        </h3>
+        <ul class="mt-6 flex flex-col gap-4">
+          {
+            comments.map((comment) => (
+              <li class="rounded-lg bg-card p-6">
+                <div class="flex items-center gap-4">
+                  <img
+                    src="/assets/rail-2.jpg"
+                    alt=""
+                    loading="lazy"
+                    class="size-8 shrink-0 rounded-full object-cover"
+                  />
+                  <p class="min-w-0 text-xs text-muted-foreground">
+                    <a href="#" class="hover:text-foreground">
+                      {comment.author}
+                    </a>
+                    <span aria-hidden="true" class="px-2">
+                      ·
+                    </span>
+                    <span>{comment.date}</span>
+                  </p>
+                  <button
+                    type="button"
+                    class="ms-auto inline-flex h-7 items-center rounded-full bg-ed-accent/10 px-4 text-xs font-medium text-ed-accent-strong transition-colors duration-fast hover:bg-ed-accent hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-blue"
+                  >
+                    回复
+                  </button>
+                </div>
+                <p class="mt-4 text-sm leading-6 text-foreground/80">{comment.body}</p>
+
+                {comment.replies.length > 0 && (
+                  <ul class="mt-4 flex flex-col gap-4 border-t border-border pt-4 ps-10">
+                    {comment.replies.map((reply) => (
+                      <li>
+                        <div class="flex items-center gap-4">
+                          <img
+                            src="/assets/rail-3.jpg"
+                            alt=""
+                            loading="lazy"
+                            class="size-8 shrink-0 rounded-full object-cover"
+                          />
+                          <p class="min-w-0 text-xs text-muted-foreground">
+                            <a href="#" class="hover:text-foreground">
+                              {reply.author}
+                            </a>
+                            <span aria-hidden="true" class="px-2">
+                              ·
+                            </span>
+                            <span>{reply.date}</span>
+                          </p>
+                        </div>
+                        <p class="mt-3 text-sm leading-6 text-foreground/80">{reply.body}</p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+    </div>
+
+    <Rail label="文章侧栏" className="h-fit lg:sticky lg:top-6">
+      <RailSection title="头条">
+        {railTop.slice(0, 3).map((story) => <RailItem story={story} />)}
+      </RailSection>
+
+      <PromoCard
+        href="#"
+        title="梵高躁动的头脑"
+        eyebrow="-15%"
+        image={{ url: '/assets/promo-1.jpg', alt: '广告示意' }}
+      />
+    </Rail>
+  </div>
+</div>

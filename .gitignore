@@ -18,3 +18,8 @@ coverage/
 # Dev-server build artifacts and session scratch scripts
 rich-transformed.mjs
 /tmp-*.py
+
+# Editorial reference preview (lab/editorial has its own Astro config, not a site route)
+/lab/editorial/.dist/
+/lab/editorial/.astro/
+/lab/editorial/node_modules/

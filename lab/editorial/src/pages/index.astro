@@ -1,0 +1,183 @@
+---
+/**
+ * avision 编辑部皮肤 · 实现参考（docs/EDITORIAL.md）
+ *
+ * 独立预览，不属于站点：`lab/editorial` 是一个独立 Astro 项目（自带 src/pages、
+ * public、输出目录与 dev 锁），不进站点 `src/pages`、不参与站点构建与
+ * `npm run verify`。三节分别对照原模板的三张页面：
+ *   01 首页 index.html / 02 分类 category.html / 03 文章 post.html
+ *
+ *   cd lab/editorial && npx astro dev   → http://localhost:4397
+ *
+ * 组合契约：这些组件从 `.astro` 里只接收可序列化数据或其它 React 元素。
+ * 把原生 HTML 当 prop 传进来（旧写法 `action={<span/>}`）会得到 Astro 的
+ * render-template 对象，React 直接抛错并把 SSR 流截断。
+ */
+import '../styles/lab.css';
+import '@/fonts/station-sans/sc/StationSansSC-Regular.min.css';
+import '@/fonts/station-sans/sc/StationSansSC-Medium.min.css';
+import '@/fonts/station-sans/tc/StationSansTC-Regular.min.css';
+import '@/fonts/station-sans/tc/StationSansTC-Medium.min.css';
+import '@/fonts/station-sans/jp/StationSansJP-Regular.min.css';
+import '@/fonts/station-sans/jp/StationSansJP-Medium.min.css';
+import {
+  MetaLine,
+  NewsletterBand,
+  Rail,
+  RailItem,
+  RailSection,
+  StoryGrid,
+} from '@/components/editorial';
+import { railTop, trending } from '../data';
+import CategoryPreview from '../sections/CategoryPreview.astro';
+import HomePreview from '../sections/HomePreview.astro';
+import PostPreview from '../sections/PostPreview.astro';
+---
+
+<!doctype html>
+<html lang="zh-CN" class="theme-editorial">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="description" content="avision 编辑部皮肤的实现参考：首页 / 分类 / 文章三页复刻" />
+    <title>Editorial skin · avision 实现参考</title>
+  </head>
+  <body class="bg-background font-body text-foreground antialiased">
+    <header class="border-b border-border bg-card">
+      <div
+        class="mx-auto flex w-full max-w-shell flex-wrap items-center gap-x-8 gap-y-3 px-4 py-4 lg:px-12"
+      >
+        <a href="/" class="text-xl font-bold uppercase tracking-brand text-foreground">avision</a>
+        <nav aria-label="页面索引" class="flex items-center gap-6 text-sm font-medium">
+          <a
+            href="#home"
+            class="text-muted-foreground transition-colors duration-fast hover:text-ed-warm">首页</a
+          >
+          <a
+            href="#category"
+            class="text-muted-foreground transition-colors duration-fast hover:text-ed-warm">分类</a
+          >
+          <a
+            href="#post"
+            class="text-muted-foreground transition-colors duration-fast hover:text-ed-warm">文章</a
+          >
+        </nav>
+        <p class="ms-auto text-xs text-muted-foreground">
+          实现参考 · 不属于站点（独立 <code class="font-mono">lab/editorial</code> 项目）
+        </p>
+      </div>
+    </header>
+
+    <div class="border-b border-border bg-secondary">
+      <div class="mx-auto w-full max-w-shell px-4 py-6 lg:px-12">
+        <h1 class="text-lg font-bold text-foreground">avision 编辑部皮肤 · 三页复刻</h1>
+        <p class="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+          原模板 <code class="font-mono text-xs">index / category / post</code>
+          三张页面的现代实现：真实 React 组件 + 站点令牌，不含 jQuery / Owl / masonry / YTPlayer。运行方式见
+          <code class="font-mono text-xs">lab/editorial/README.md</code>。
+        </p>
+      </div>
+    </div>
+
+    <main>
+      <section id="home" aria-labelledby="home-title">
+        <div class="mx-auto w-full max-w-shell px-4 pb-4 pt-12 lg:px-12">
+          <h2 id="home-title" class="ed-rule relative inline-block pb-3 text-lg font-bold">
+            01 · 首页 <span class="text-muted-foreground">(index.html)</span>
+          </h2>
+          <p class="mt-3 text-sm text-muted-foreground">
+            满幅封面轮播 · 拼贴信息流 · 视频墙 · 灰色侧栏
+          </p>
+        </div>
+        <HomePreview />
+      </section>
+
+      <section id="category" aria-labelledby="category-title" class="mt-20">
+        <div class="mx-auto w-full max-w-shell px-4 pb-4 pt-12 lg:px-12">
+          <h2 id="category-title" class="ed-rule relative inline-block pb-3 text-lg font-bold">
+            02 · 分类 <span class="text-muted-foreground">(category.html)</span>
+          </h2>
+          <p class="mt-3 text-sm text-muted-foreground">
+            360px 静默封面带（原页面此处无文字）· 面板 + 九卡 · 加载更多
+          </p>
+        </div>
+        <CategoryPreview />
+      </section>
+
+      <section id="post" aria-labelledby="post-title" class="mt-20">
+        <div class="mx-auto w-full max-w-shell px-4 pb-4 pt-12 lg:px-12">
+          <h2 id="post-title" class="ed-rule relative inline-block pb-3 text-lg font-bold">
+            03 · 文章 <span class="text-muted-foreground">(post.html)</span>
+          </h2>
+          <p class="mt-3 text-sm text-muted-foreground">
+            封面标题块 · 署名/分享 · 正文卡（图注/引文/标签）· 评论示意 · 相关文章
+          </p>
+        </div>
+        <PostPreview />
+      </section>
+
+      <section
+        id="dark"
+        aria-labelledby="dark-title"
+        class="dark theme-editorial mt-24 bg-background text-foreground"
+      >
+        <div class="mx-auto w-full max-w-shell px-4 py-16 lg:px-12">
+          <h2 id="dark-title" class="ed-rule relative mb-8 inline-block pb-3 text-lg font-bold">
+            04 · 深色模式
+          </h2>
+          <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
+            <StoryGrid stories={trending.slice(0, 4)} columns={2} />
+            <Rail label="深色侧栏">
+              <RailSection title="头条">
+                {railTop.slice(0, 3).map((story) => <RailItem story={story} />)}
+              </RailSection>
+              <NewsletterBand
+                title="订阅"
+                emailLabel="邮箱地址"
+                placeholder="你的邮箱"
+                submitLabel="订阅"
+              />
+            </Rail>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="bg-ed-shell text-white">
+      <div
+        class="mx-auto grid w-full max-w-shell gap-10 px-4 py-14 lg:grid-cols-[minmax(0,1fr)_22rem] lg:px-12"
+      >
+        <div class="flex flex-col items-start gap-6">
+          <span class="text-xl font-bold uppercase tracking-brand">avision</span>
+          <ul class="flex flex-wrap gap-6 text-sm">
+            {
+              ['Facebook', 'Twitter', 'Pinterest', 'Vimeo', 'Instagram'].map((label) => (
+                <li>
+                  <a
+                    href="#"
+                    class="text-white/50 transition-colors duration-fast hover:text-white"
+                  >
+                    {label}
+                  </a>
+                </li>
+              ))
+            }
+          </ul>
+          <MetaLine
+            note="Copyright © 2026 · 设计语言取自 avision（Colorlib）"
+            onMedia
+            className="mt-4"
+          />
+        </div>
+        <NewsletterBand
+          title="订阅"
+          emailLabel="邮箱地址"
+          placeholder="你的邮箱"
+          submitLabel="订阅"
+          action="#"
+        />
+      </div>
+    </footer>
+  </body>
+</html>

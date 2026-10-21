@@ -1,0 +1,105 @@
+---
+/**
+ * 01 · index.html 复刻：满幅封面轮播 + 「不要错过」拼贴 + 「正在流行」+ 视频墙 +
+ * 「最新文章」四列 + 灰色侧栏。
+ */
+import {
+  EventItem,
+  PillButton,
+  PromoCard,
+  Rail,
+  RailItem,
+  RailSection,
+  SectionHeader,
+  SpotlightHero,
+  StoryGrid,
+  VideoWall,
+} from '@/components/editorial';
+import {
+  dontMiss,
+  events,
+  heroLabels,
+  latest,
+  moreMenu,
+  quickLinks,
+  railTop,
+  railVideos,
+  sectionTags,
+  slides,
+  trending,
+  videos,
+} from '../data';
+---
+
+<SpotlightHero
+  client:load
+  slides={slides}
+  quickLinks={quickLinks}
+  ctaLabel="继续阅读"
+  labels={heroLabels}
+  autoPlayMs={0}
+/>
+
+<div class="mx-auto w-full max-w-shell px-4 py-16 lg:px-12">
+  <div class="grid gap-10 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-14">
+    <div class="flex min-w-0 flex-col gap-20">
+      <section aria-labelledby="home-dont-miss">
+        <SectionHeader id="home-dont-miss" title="不要错过" tags={sectionTags} more={moreMenu} />
+        <StoryGrid stories={dontMiss} featured columns={3} className="mt-8" />
+      </section>
+
+      <section aria-labelledby="home-trending">
+        <SectionHeader
+          id="home-trending"
+          title="正在流行"
+          tags={sectionTags}
+          more={{ label: '更多', href: '#' }}
+        />
+        <StoryGrid stories={trending} columns={3} className="mt-8" />
+      </section>
+
+      <section aria-labelledby="home-videos">
+        <SectionHeader id="home-videos" title="热门视频" />
+        <div class="mt-8">
+          <VideoWall client:visible items={videos} playLabel="播放" />
+        </div>
+      </section>
+
+      <section aria-labelledby="home-latest">
+        <SectionHeader id="home-latest" title="最新文章" />
+        <StoryGrid stories={latest} columns={4} className="mt-8" />
+        <div class="mt-14 flex justify-center">
+          <PillButton>加载更多</PillButton>
+        </div>
+      </section>
+    </div>
+
+    <Rail label="侧栏" className="h-fit lg:sticky lg:top-6">
+      <RailSection title="头条" action={{ label: 'top' }}>
+        {railTop.map((story) => <RailItem story={story} />)}
+      </RailSection>
+
+      <PromoCard
+        href="#"
+        title="梵高躁动的头脑，如何描绘物理学中最复杂的概念"
+        eyebrow="-15%"
+        image={{ url: '/assets/promo-1.jpg', alt: '广告示意' }}
+      />
+
+      <RailSection title="最新视频">
+        {railVideos.map((story) => <RailItem story={story} round />)}
+      </RailSection>
+
+      <PromoCard
+        href="#"
+        title="Turbulent Mind"
+        size="banner"
+        image={{ url: '/assets/promo-2.jpg', alt: '广告示意' }}
+      />
+
+      <RailSection title="未来活动">
+        {events.map((event) => <EventItem {...event} author="编辑部" date="9月29日" />)}
+      </RailSection>
+    </Rail>
+  </div>
+</div>
