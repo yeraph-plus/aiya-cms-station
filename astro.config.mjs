@@ -43,6 +43,14 @@ export default defineConfig({
   // it. The check itself stays on: genuinely cross-site posts still 403,
   // and a browser cannot set X-Forwarded-* cross-site without a CORS
   // preflight this server never answers.
+  //
+  // This switch does NOT vouch for the visitor's address. The same host
+  // validation makes the adapter take `clientAddress` from the first
+  // X-Forwarded-For entry, and `$proxy_add_x_forwarded_for` appends — so that
+  // value is client-chosen. `lib/visitor-ip.ts` therefore refuses a forwarded
+  // resolution and reads the visitor from an edge-overwritten header
+  // (AIYA_CLIENT_IP_HEADER), never from XFF. Keep the two concerns apart: this
+  // block is about URL/CSRF reconstruction, identity is decided there.
   security: {
     allowedDomains: [{}],
     // Astro's own CSP: every script and style the build emits is hashed

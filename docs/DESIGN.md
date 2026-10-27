@@ -28,11 +28,21 @@
   `src/components/ui/`**（shadcn 出厂 12px 在刻度外）。图上元素（广告角标底、
   缩略图删除钮）的黑底白字不属于遮罩体系。
 - **阴影三档**：`shadow-none` 静止面（卡片默认）/ `shadow-sm` 悬浮面（下拉、
-  气泡）/ `shadow-md` 浮出层（toast、返回顶部、灯箱）。新增阴影必须能报出
-  档位。
-- **卡片配方**：`rounded-lg border border-border bg-surface` + 内容内距
-  `p-4`（紧凑 `p-3`）；可点击卡片加 `transition-colors hover:border-body-muted`；
-  `ui/card` 出厂默认已本地化为站点配方（`gap-0 rounded-lg py-0`、去 shadow）。
+  气泡、悬停卡片）/ `shadow-md` 浮出层（toast、返回顶部、灯箱）。新增阴影
+  必须能报出档位。
+- **卡片配方**：`rounded-lg border border-transparent bg-surface` + 内容内距
+  `p-4`（紧凑 `p-3`，列表行 `p-4 sm:p-5`）；静止面**不留可见描边**，靠
+  「白纸浮在灰底 + 6px 圆角 + 间距」分隔（`docs/EDITORIAL.md` §2 的纸面配方）；
+  可点击卡片加 `transition-shadow duration-base hover:shadow-sm`——悬停**抬一档
+  阴影**，不出现描边（`shadow-sm` 档，见上）；需要常态边界的密集面板显式加
+  `border-border`，并说明原因。
+  `ui/card` 出厂默认已本地化为站点配方（`gap-0 rounded-lg py-0`、去 shadow、
+  边框透明但保留 1px 盒），所以去线不会引起任何布局位移。
+- **卡片标题悬停**：标题色一律转向**站点主题色**（`group-hover:text-primary`），
+  与全站链接同源；不用灰度代替主题色。
+- **卡片媒体**：卡片视图 `aspect-[16/10]`（editorial 比例），列表行缩略图
+  `aspect-video`；媒体悬停缩放 `group-hover:scale-[1.04]` 且必须包在
+  `overflow-hidden` 盒内，缩放不得侵入文字列。
 - **正文节奏两档**：文章正文（`prose-content`）的纵向间隔只有两档令牌 ——
   `--prose-gap-text: 0.75rem`（段落、列表项等文本步进）与
   `--prose-gap-block: 1rem`（列表/图片/表格/引用/代码块，以及后端模板零件块：
@@ -96,6 +106,10 @@
   （现余路由进度条循环周期一项）。
 - **断点词汇表**：壳层双壳切换唯一断点 **992px**（`min-[992px]:` /
   `max-[991px]:`）；岛内自适应用标准 `sm:`(640) / `lg:`(1024) / `2xl:`(1536)。
+  **内容驱动的列数走容器查询**，不走视口断点：`PostLoop` 栅格以 `@container`
+  为根，列数为 `@2xl`(672) / `@4xl`(896) / `@6xl`(1152) 三档——190px 壳层侧栏
+  会吃掉所有桌面视口宽度，视口断点会把 1280 下的四列压到 230px 以下；容器查询
+  让卡片实测度量稳定在 210–270px，侧栏折叠也不需要额外断点。
   两条实测禁令：禁用 `lg:` 做壳切换（992–1023px 区间双壳全隐）；禁用
   `min-[1440px]:`（Tailwind v4 实测不生成）。
 - **令牌词汇表映射**：`tokens.css` 的 `@theme inline` 即双词汇表

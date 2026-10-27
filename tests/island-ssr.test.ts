@@ -204,7 +204,7 @@ function loopChips(count: number): LoopChip[] {
 
 /** The bare minimum a FeedCard reads: the tests below need a non-empty list
     so the append sentinel (and the pager) have something to speak about. */
-function loopItem(id: number): PostSummary {
+function loopItem(id: number, overrides: Partial<PostSummary> = {}): PostSummary {
   return {
     id,
     type: 'post',
@@ -216,17 +216,24 @@ function loopItem(id: number): PostSummary {
     author: { name: '', avatar: null },
     metrics: { views: 0, likes: 0, comments: 0, ratingScore: null, ratingCount: null },
     thumbnail: null,
+    ...overrides,
   } as unknown as PostSummary;
 }
 
 function renderLoop(
   chips: LoopChip[],
-  options: { heading?: string; hasNext?: boolean } = {},
+  options: {
+    heading?: string;
+    hasNext?: boolean;
+    item?: Partial<PostSummary>;
+    view?: 'grid' | 'list';
+  } = {},
 ): string {
   return renderToString(
     createElement(PostLoop, {
       endpoint: '/api/feed/posts/',
-      items: [loopItem(1)],
+      items: [loopItem(1, options.item)],
+      defaultView: options.view,
       pagination: { page: 1, totalPages: 3, hasNext: options.hasNext ?? true, hasPrevious: false },
       page: 1,
       query: {},
@@ -276,6 +283,44 @@ describe('the loop mode follows the toolbar', () => {
     const html = renderLoop([], { heading: copy.posts.title });
     expect(html).toContain(copy.common.pagination);
     expect(html).not.toContain(copy.posts.noMore);
+  });
+});
+
+/**
+ * The paper card recipe (DESIGN.md §2 卡片配方): no resting hairline — a
+ * transparent 1px border that only lights up on hover — the 6px radius, the
+ * 16:10 media box that clips the hover zoom, and the editorial 20px grid gap.
+ * Asserted on the SSR markup so a later utility shuffle cannot quietly bring
+ * the boxed look back.
+ */
+describe('the loop card keeps the paper recipe', () => {
+  it('renders the borderless card with 16:10 clipped media and the airy gap', () => {
+    const html = renderLoop([], {
+      heading: copy.posts.title,
+      view: 'grid',
+      item: {
+        thumbnail: { url: '/media/probe.jpg', alt: '封面', width: 320, height: 200 },
+      },
+    });
+    expect(html).toContain('border border-transparent');
+    // Hover is an elevation step, not a hairline: no border colour on hover.
+    expect(html).toContain('hover:shadow-sm');
+    expect(html).not.toContain('hover:border-body-muted');
+    expect(html).toContain('rounded-lg');
+    expect(html).toContain('aspect-[16/10] w-full shrink-0 overflow-hidden');
+    expect(html).toContain('group-hover:scale-[1.04]');
+    expect(html).toContain('grid grid-cols-2 gap-5');
+    // Column count follows the content width, not the viewport (the shell
+    // sidebar already eats 190px of every desktop width).
+    expect(html).toContain('@container');
+    expect(html).toContain('@2xl:grid-cols-3');
+    // The standing heading wears the editorial rule; the sentence voice keeps
+    // the real 500 weight (Station Sans ships no 600/700).
+    expect(html).toContain('after:w-[50px]');
+    expect(html).toContain('font-medium');
+    // Hover text colour is the site theme colour, never a grey substitute.
+    expect(html).toContain('group-hover:text-primary');
+    expect(html).toContain('tabular-nums');
   });
 });
 

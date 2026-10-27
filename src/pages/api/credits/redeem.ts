@@ -10,8 +10,9 @@ import { defineProxy, jsonResponse, readJsonBody } from '@/lib/api-auth';
 export const POST = defineProxy({ auth: 'required' }, async ({ client, request }) => {
   const body = await readJsonBody(request);
   if (body === null || typeof body !== 'object') return jsonResponse({ ok: false }, 400);
-  const payload = body as { code?: unknown; channel?: unknown };
+  const payload = body as { code?: unknown; channel?: unknown; buyer?: unknown };
   const channel = payload.channel === 'afdian' ? 'afdian' : 'redeem';
-  const result = await client.redeemCode(String(payload.code ?? ''), channel);
+  const buyer = channel === 'afdian' ? String(payload.buyer ?? '').trim() : '';
+  const result = await client.redeemCode(String(payload.code ?? ''), channel, buyer || undefined);
   return jsonResponse({ ok: true, grant: result.data });
 });

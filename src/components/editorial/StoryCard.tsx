@@ -62,7 +62,7 @@ function CardShell({
   return (
     <Card
       className={cn(
-        'group h-full gap-0 overflow-hidden p-0 transition-colors duration-fast hover:border-body-muted',
+        'group h-full gap-0 overflow-hidden p-0 transition-shadow duration-fast hover:shadow-sm',
         className,
       )}
     >
@@ -112,7 +112,7 @@ export function StoryCard({ story, variant, eager = false, className }: StoryCar
       >
         {story.image && <Cover image={story.image} ratio="aspect-[16/10]" eager={eager} />}
         <div className="px-6 pt-4">
-          <h3 className="text-lg font-semibold leading-snug text-foreground transition-colors duration-fast group-hover:text-muted-foreground">
+          <h3 className="text-lg font-semibold leading-snug text-foreground transition-colors duration-fast group-hover:text-primary">
             {story.title}
           </h3>
           {story.excerpt && (
@@ -178,7 +178,7 @@ export function StoryCard({ story, variant, eager = false, className }: StoryCar
         }
       >
         <div className="px-6 pb-4 pt-4">
-          <h3 className="text-sm font-medium leading-snug text-foreground transition-colors duration-fast group-hover:text-muted-foreground">
+          <h3 className="text-sm font-medium leading-snug text-foreground transition-colors duration-fast group-hover:text-primary">
             {story.title}
           </h3>
         </div>
@@ -215,7 +215,7 @@ export function StoryCard({ story, variant, eager = false, className }: StoryCar
           )}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="line-clamp-2 text-sm font-medium leading-snug text-foreground transition-colors duration-fast group-hover:text-muted-foreground">
+          <span className="line-clamp-2 text-sm font-medium leading-snug text-foreground transition-colors duration-fast group-hover:text-primary">
             {story.title}
           </span>
           <MetaLine author={story.author} date={story.date} note={story.note} className="mt-1.5" />
@@ -232,7 +232,7 @@ export function StoryCard({ story, variant, eager = false, className }: StoryCar
     >
       {story.image && <Cover image={story.image} ratio="aspect-[4/3]" eager={eager} />}
       <div className="px-6 pt-4">
-        <h3 className="text-base font-semibold leading-snug text-foreground transition-colors duration-fast group-hover:text-muted-foreground">
+        <h3 className="text-base font-semibold leading-snug text-foreground transition-colors duration-fast group-hover:text-primary">
           {story.title}
         </h3>
       </div>

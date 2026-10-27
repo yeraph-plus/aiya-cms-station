@@ -6,11 +6,13 @@ function Card({ className, ...props }: React.ComponentProps<'div'>) {
     <div
       data-slot="card"
       className={cn(
-        // Site-default card face (UX.md §3): the hairline recipe — no gap,
-        // no resting shadow, the 6px-scale lg radius. shadcn's factory
-        // defaults (gap-6 / py-6 / rounded-xl / shadow-sm) fought every
-        // call site; localized 2026-09-25 per the convergence plan.
-        'flex flex-col gap-0 rounded-lg border border-border bg-card py-0 text-card-foreground',
+        // Site-default card face (UX.md §3, DESIGN.md §2): the paper recipe —
+        // no resting shadow, the 6px-scale lg radius, and a transparent border
+        // that only becomes a hairline on hover/focus of a clickable card (the
+        // editorial skin, docs/EDITORIAL.md §2). The border box stays 1px so
+        // removing the line never shifts layout; white-on-grey paper contrast
+        // carries the separation instead.
+        'flex flex-col gap-0 rounded-lg border border-transparent bg-card py-0 text-card-foreground',
         className,
       )}
       {...props}

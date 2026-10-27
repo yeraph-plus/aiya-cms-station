@@ -616,9 +616,9 @@ export function createAiyaClient(options: ClientOptions) {
       request('POST', 'membership/orders', orderCreatedResponseSchema, {
         body: orderCreateSchema.parse(input),
       }),
-    redeemCode: (code: string, channel: 'redeem' | 'afdian' = 'redeem') =>
+    redeemCode: (code: string, channel: 'redeem' | 'afdian' = 'redeem', buyer?: string) =>
       request('POST', 'credits/redeem', creditRedeemResponseSchema, {
-        body: redeemSchema.parse({ code, channel }),
+        body: redeemSchema.parse({ code, channel, buyer }),
       }),
     unlockPost: (id: number, password: string) =>
       request('POST', `content/${id}/unlock`, postUnlockResponseSchema, {

@@ -803,7 +803,7 @@ export function PrevNextNav({ post, locale }: { post: PostDetail; locale: Locale
   const copy = t(locale).posts;
   if (!post.previous && !post.next) return null;
   const card = (item: PostSummary, rel: 'prev' | 'next', label: string) => (
-    <Card className="overflow-hidden transition-colors hover:border-body-muted">
+    <Card className="overflow-hidden transition-shadow duration-base hover:shadow-sm">
       <a href={postRoute(item.type, item.slug)} rel={rel} className="flex items-center gap-3 p-3">
         {item.thumbnail ? (
           <img

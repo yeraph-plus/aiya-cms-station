@@ -96,14 +96,16 @@ describe('editorial components render on the server', () => {
           label: '侧栏',
           children: [
             createElement(RailSection, {
+              key: 'top',
               title: '头条',
               // Plain data, never a node: an Astro page cannot hand a React
               // component an Astro-rendered element (the SSR stream dies).
               action: { label: 'top', href: '/top/' },
               children: [
-                createElement(RailItem, { story }),
-                createElement(RailItem, { story, round: true }),
+                createElement(RailItem, { key: 'a', story }),
+                createElement(RailItem, { key: 'b', story, round: true }),
                 createElement(EventItem, {
+                  key: 'c',
                   href: '/events/1/',
                   title: '活动',
                   day: '13',

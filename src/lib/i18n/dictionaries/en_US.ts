@@ -393,6 +393,10 @@ const en_US: Dictionary = {
     redeemTypeAfdian: 'Afdian order',
     redeemPlaceholder: 'Enter your code',
     redeemAfdianPlaceholder: 'Enter your Afdian order number',
+    redeemBuyerLabel: 'Afdian user ID',
+    redeemBuyerPlaceholder: 'The /u/… part of your Afdian profile URL',
+    redeemBuyerHint:
+      'Needed for an order placed on Afdian directly; the order number alone cannot prove who paid.',
     redeemAction: 'Redeem',
     redeemGranted: (tier: string, cycles: number) =>
       `“${tier}” redeemed — ${cycles} cycles queued.`,

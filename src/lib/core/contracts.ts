@@ -1068,6 +1068,10 @@ export const redeemSchema = z.object({
   /** Site code ("redeem", default) or an Afdian order number ("afdian"). */
   channel: z.enum(['redeem', 'afdian']).default('redeem'),
   code: z.string().min(1).max(64),
+  /** The caller's own Afdian user id. The backend requires it when the
+      order carries no deep-link binding: a bare order number proves
+      nothing about who paid. */
+  buyer: z.string().max(64).optional(),
 });
 export const orderCreateSchema = z.object({
   tierKey: z.string().min(1).max(32),

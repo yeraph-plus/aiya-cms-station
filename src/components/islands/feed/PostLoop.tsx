@@ -336,7 +336,7 @@ function CardInfo({
           above the excerpt; list mode stays a single truncated line led by
           every category name. */}
       <h2
-        className={`flex min-w-0 items-center gap-x-1.5 font-display font-semibold text-foreground group-hover:text-primary ${
+        className={`flex min-w-0 items-center gap-x-1.5 font-display font-medium text-foreground group-hover:text-primary ${
           vertical
             ? 'min-h-12 flex-wrap gap-y-1 text-base'
             : 'text-base flex-nowrap overflow-hidden'
@@ -373,7 +373,7 @@ function CardInfo({
           (card view skips the author — at two-plus columns per row the name
           would eat the line; it stays first in list mode). */}
       <div
-        className={`mt-auto flex flex-nowrap items-center overflow-hidden whitespace-nowrap text-xs text-body-muted ${
+        className={`mt-auto flex flex-nowrap items-center overflow-hidden whitespace-nowrap text-xs tabular-nums text-body-muted ${
           vertical ? 'gap-x-2' : 'gap-x-2 sm:gap-x-3'
         }`}
       >
@@ -508,7 +508,7 @@ function FeedCard({
   const thumbUrl = item.thumbnail?.url ?? null;
   return (
     <Card
-      className={`group overflow-hidden rounded-md transition-colors hover:border-body-muted ${
+      className={`group overflow-hidden rounded-lg transition-shadow duration-base hover:shadow-sm ${
         enter ? 'animate-in fade-in slide-in-from-bottom-2 duration-slow' : ''
       }`}
     >
@@ -524,22 +524,33 @@ function FeedCard({
           vertical ? 'flex h-full flex-col' : 'flex h-full flex-row'
         }
       >
-        {thumbUrl && (
-          <img
-            src={thumbUrl}
-            alt={item.thumbnail?.alt ?? item.title}
-            width={vertical ? 320 : 288}
-            height={vertical ? 180 : 162}
-            className={
-              vertical
-                ? 'aspect-video w-full shrink-0 object-cover'
-                : 'aspect-video w-[120px] shrink-0 self-center object-cover sm:w-[160px] md:w-[200px] lg:w-[240px] 2xl:w-[288px]'
-            }
-            loading="lazy"
-            decoding="async"
-          />
-        )}
-        <div className={`flex min-w-0 flex-1 flex-col gap-1.5 ${vertical ? 'p-3' : 'p-3 sm:p-4'}`}>
+        {thumbUrl &&
+          (vertical ? (
+            // 16:10 (the magazine card ratio) inside a clipping box, so the
+            // hover scale never bleeds into the text column.
+            <div className="aspect-[16/10] w-full shrink-0 overflow-hidden">
+              <img
+                src={thumbUrl}
+                alt={item.thumbnail?.alt ?? item.title}
+                width={320}
+                height={200}
+                className="size-full object-cover transition-transform duration-slow group-hover:scale-[1.04]"
+                loading="lazy"
+                decoding="async"
+              />
+            </div>
+          ) : (
+            <img
+              src={thumbUrl}
+              alt={item.thumbnail?.alt ?? item.title}
+              width={288}
+              height={162}
+              className="aspect-video w-[120px] shrink-0 self-center object-cover sm:w-[160px] md:w-[200px] lg:w-[240px] 2xl:w-[288px]"
+              loading="lazy"
+              decoding="async"
+            />
+          ))}
+        <div className={`flex min-w-0 flex-1 flex-col gap-1.5 ${vertical ? 'p-4' : 'p-4 sm:p-5'}`}>
           <CardInfo item={item} vertical={vertical} locale={locale} />
         </div>
       </a>
@@ -771,8 +782,8 @@ export default function PostLoop({
   // single-column grid degenerated into a wall of aspect-video images with
   // no scan grid.
   const listClass = vertical
-    ? 'grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'
-    : 'flex flex-col gap-3';
+    ? 'grid grid-cols-2 gap-5 @2xl:grid-cols-3 @4xl:grid-cols-4 @6xl:grid-cols-5'
+    : 'flex flex-col gap-4';
 
   /** The one feed GET both pager paths share: query dict + page → the
       parsed envelope, or null when the response is unusable. */
@@ -964,7 +975,13 @@ export default function PostLoop({
   };
 
   return (
-    <div aria-busy={loading}>
+    // `@container`: the column count follows the *content* width, not the
+    // viewport. With the 190px shell sidebar taking a bite out of every
+    // desktop width, viewport breakpoints over-packed the grid (1280px viewport
+    // → 4 columns in a 988px column). Container queries keep the card measure
+    // stable at ~210–270px across 992/1280/1440/1920 and when the sidebar
+    // collapses.
+    <div aria-busy={loading} className="@container">
       {/* Toolbar: the left slot holds the taxonomy chips (filter mode) or,
           for filter-less lists, the standing heading the page passed; it
           scrolls horizontally when it overflows (no visible scrollbar). The
@@ -1007,7 +1024,7 @@ export default function PostLoop({
           </nav>
         )}
         {hasHeading && (
-          <h2 className="flex min-w-0 flex-1 items-center gap-2 font-display text-lg font-semibold text-foreground">
+          <h2 className="relative flex min-w-0 flex-1 items-center gap-2 pb-3 font-display text-lg font-medium text-foreground after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-[50px] after:bg-foreground after:content-['']">
             {headingIcon && (
               <svg
                 viewBox="0 0 24 24"
@@ -1029,7 +1046,7 @@ export default function PostLoop({
         {more && (
           <a
             href={more.href}
-            className="ml-auto shrink-0 text-sm text-body-muted transition-colors hover:text-primary"
+            className="ml-auto shrink-0 text-sm font-medium text-body-muted transition-colors hover:text-primary"
           >
             {more.label} →
           </a>

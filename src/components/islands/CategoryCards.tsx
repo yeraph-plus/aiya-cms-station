@@ -93,7 +93,7 @@ export function CategoryCard({ card, defaultCover, href }: CardProps) {
   );
 
   return (
-    <Card className="group overflow-hidden rounded-md transition-colors hover:border-body-muted">
+    <Card className="group overflow-hidden rounded-lg transition-shadow duration-base hover:shadow-sm">
       {href ? (
         <a href={href} className="block">
           {body}

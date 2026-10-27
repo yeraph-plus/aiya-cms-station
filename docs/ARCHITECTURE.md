@@ -163,9 +163,15 @@ part-button`），剪贴板零件由正文零件的 effect 绑定复制按钮；
   BaseHead 预涂装解析明暗、`banner` 为首页限定装饰、`footer` 备案字段由
   Footer 渲染。菜单图标（`MenuItem.icon`，Lucide 名）设置值优先、URL 形状
   回退；secondary 组即页脚菜单。
-- **部署前提（`AIYA_CLIENT_IP_HEADER`）**：配置该头后，访客地址取自边缘代理
-  盖章的头；边缘**必须先剥离客户端自带的同名头**，否则访客可伪造地址绕过
-  限流与去重。缺省（socket 地址）无此前提。
+- **部署前提（`AIYA_CLIENT_IP_HEADER`）**：访客地址只接受两类可信来源——边缘
+  **覆盖写入**的头（如 `proxy_set_header X-Real-IP $remote_addr`，客户端自带的
+  同名头被替换而非追加），或直连时的 socket 地址。`X-Forwarded-For` 不作为身份
+  来源：node 适配器在 Host 匹配 `security.allowedDomains` 时取它的**第一段**
+  当 `clientAddress`，而 `$proxy_add_x_forwarded_for` 是追加语义，第一段恰好是
+  客户端自己写的值；`lib/visitor-ip.ts` 因此拒绝「与 XFF 第一段相同」的解析
+  结果并返回空，后端随即退回代理地址（安全，但限流退化为单桶）。部署须同时
+  满足三条：边缘写 `X-Real-IP`、`AIYA_CLIENT_IP_HEADER=X-Real-IP`、node 端口
+  不对公网直连——三条缺一条，访客身份就回到不可信或退化状态。
 
 ## 实现契约
 

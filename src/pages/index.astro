@@ -97,7 +97,7 @@ const paged = requested.page > 1;
   <h1 class="sr-only">{page.site.name}</h1>
   {
     page.ok && page.value.length > 0 && (
-      <div class="flex w-full flex-col gap-10">
+      <div class="flex w-full flex-col gap-10 lg:gap-20">
         {page.value.map((entry) => (
           <PostLoop
             client:load

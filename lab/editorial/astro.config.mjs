@@ -19,6 +19,7 @@ import { defineConfig } from 'astro/config';
 
 const labRoot = fileURLToPath(new URL('.', import.meta.url));
 const srcRoot = fileURLToPath(new URL('../../src', import.meta.url));
+const modulesRoot = fileURLToPath(new URL('../../node_modules', import.meta.url));
 
 export default defineConfig({
   srcDir: './src',
@@ -28,9 +29,11 @@ export default defineConfig({
   integrations: [react()],
   vite: {
     plugins: [tailwindcss()],
-    // The preview imports `../../src` (components, tokens, fonts); Vite's dev
-    // server only serves files inside its root unless they are allowed here.
-    server: { fs: { allow: [labRoot, srcRoot] } },
+    // The preview imports `../../src` (components, tokens, fonts) and the React
+    // renderer lives in the repo's `node_modules`; Vite's dev server only serves
+    // files inside its root unless they are allowed here. Without
+    // node_modules the islands' renderer is blocked and nothing hydrates.
+    server: { fs: { allow: [labRoot, srcRoot, modulesRoot] } },
     resolve: { alias: { '@': srcRoot } },
   },
 });

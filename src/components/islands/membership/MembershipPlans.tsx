@@ -271,7 +271,9 @@ export function MembershipPlans({
     // front or the post-success reset() throws and paints the generic
     // error right under the success notice.
     const form = event.currentTarget;
-    const code = String(new FormData(form).get('code') ?? '').trim();
+    const data = new FormData(form);
+    const code = String(data.get('code') ?? '').trim();
+    const buyer = String(data.get('buyer') ?? '').trim();
     if (code === '') return;
     setRedeemBusy(true);
     setRedeemError(null);
@@ -280,7 +282,12 @@ export function MembershipPlans({
       const response = await fetch('/api/credits/redeem/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, channel: redeemChannel }),
+        body: JSON.stringify({
+          code,
+          channel: redeemChannel,
+          // Only the Afdian channel has a buyer to name.
+          ...(redeemChannel === 'afdian' ? { buyer } : {}),
+        }),
       });
       const json = (await response.json().catch(() => null)) as {
         ok?: boolean;
@@ -379,6 +386,21 @@ export function MembershipPlans({
               {copy.redeemAction}
             </Button>
           </FieldGroup>
+          {redeemChannel === 'afdian' && (
+            <Field className="mt-3">
+              <FieldLabel htmlFor="redeem-buyer">{copy.redeemBuyerLabel}</FieldLabel>
+              <Input
+                id="redeem-buyer"
+                name="buyer"
+                autoComplete="off"
+                aria-describedby="redeem-buyer-hint"
+                placeholder={copy.redeemBuyerPlaceholder}
+              />
+              <p id="redeem-buyer-hint" className="mt-1 text-xs text-body-muted">
+                {copy.redeemBuyerHint}
+              </p>
+            </Field>
+          )}
         </form>
         {redeemNotice && (
           <p role="status" className="mt-3 text-sm text-foreground">
