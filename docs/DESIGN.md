@@ -32,7 +32,7 @@
   必须能报出档位。
 - **卡片配方**：`rounded-lg border border-transparent bg-surface` + 内容内距
   `p-4`（紧凑 `p-3`，列表行 `p-4 sm:p-5`）；静止面**不留可见描边**，靠
-  「白纸浮在灰底 + 6px 圆角 + 间距」分隔（`docs/EDITORIAL.md` §2 的纸面配方）；
+  「白纸浮在灰底 + 6px 圆角 + 间距」分隔（纸面配方）；
   可点击卡片加 `transition-shadow duration-base hover:shadow-sm`——悬停**抬一档
   阴影**，不出现描边（`shadow-sm` 档，见上）；需要常态边界的密集面板显式加
   `border-border`，并说明原因。
@@ -40,7 +40,7 @@
   边框透明但保留 1px 盒），所以去线不会引起任何布局位移。
 - **卡片标题悬停**：标题色一律转向**站点主题色**（`group-hover:text-primary`），
   与全站链接同源；不用灰度代替主题色。
-- **卡片媒体**：卡片视图 `aspect-[16/10]`（editorial 比例），列表行缩略图
+- **卡片媒体**：卡片视图 `aspect-[16/10]`（杂志比例），列表行缩略图
   `aspect-video`；媒体悬停缩放 `group-hover:scale-[1.04]` 且必须包在
   `overflow-hidden` 盒内，缩放不得侵入文字列。
 - **正文节奏两档**：文章正文（`prose-content`）的纵向间隔只有两档令牌 ——
@@ -115,19 +115,6 @@
 - **令牌词汇表映射**：`tokens.css` 的 `@theme inline` 即双词汇表
   （shadcn 系 / 原型语义系）的钉死映射（`muted→secondary`、`input→border`
   等）；新增语义色先进原始属性 + `.dark` 覆写，再挂 `@theme`。
-- **编辑部皮肤（editorial，出处 [`EDITORIAL.md`](./EDITORIAL.md)）**：
-  avision 模板提取的可选皮肤 = `.theme-editorial` 作用域（`<html>` 或包裹层）
-  ——它只重指既有语义令牌（`--background`/`--card`/`--secondary`/
-  `--muted-foreground`/`--border` 等）并另加一组 `--ed-*`（rail/tile/shell/
-  shell-deep/accent/accent-strong/warm/ghost/on-shell），**不新增品牌色**：
-  `--primary` 始终由后端主题驱动。配套命名刻度 `text-label`(12) /
-  `text-display-sm`(24) / `text-display-md`(36) / `text-numeral`(40) 与
-  `tracking-kicker`(.1em) / `tracking-brand`(.075em) 仅在
-  `src/components/editorial/` 与参考页 `lab/editorial/`（独立 Astro 项目，
-  不进 `src/pages`、不参与站点构建与 `verify`）使用，是「xl 以上只给首页
-  banner 与详情 h1」这条阶梯的唯一例外口，且只用于封面类元件。皮肤组件
-  （`src/components/editorial/`）不读浏览器全局、不做日期/路由格式化、
-  文案走 props 不进字典；`editorial.css` 只放工具类写不出的合体配方。
 
 ## 3. 防回潮守卫
 
@@ -145,7 +132,3 @@ props/termIconMap）、裸输入 label 钉扎、组件层字面时长禁止（�
 `lib/prose.ts` 组装）。
 
 **新增系统性约定时优先落成守卫用例，而不是口头规范。**
-
-编辑部皮肤另有一份专项守卫 `tests/editorial.test.ts`（皮肤组件 SSR 可渲染、
-`--ed-*` 与 `.theme-editorial` 在场、皮肤不外泄 hex 字面量、字号刻度只走命名
-令牌），与上面十四条并存。

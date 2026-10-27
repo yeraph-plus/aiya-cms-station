@@ -55,17 +55,6 @@
   --color-spoiler-fg: var(--spoiler-fg);
   --color-scrim-modal: var(--scrim-modal);
   --color-scrim-immersive: var(--scrim-immersive);
-  /* Editorial skin accents (docs/EDITORIAL.md): the magazine layer's own
-     names so they never collide with the backend-driven brand primary. */
-  --color-ed-rail: var(--ed-rail);
-  --color-ed-tile: var(--ed-tile);
-  --color-ed-shell: var(--ed-shell);
-  --color-ed-shell-deep: var(--ed-shell-deep);
-  --color-ed-accent: var(--ed-accent);
-  --color-ed-accent-strong: var(--ed-accent-strong);
-  --color-ed-warm: var(--ed-warm);
-  --color-ed-ghost: var(--ed-ghost);
-  --color-ed-on-shell: var(--ed-on-shell);
 }
 :root {
   --background: #f6f6f8;
@@ -115,18 +104,6 @@
      status accents. */
   --scrim-modal: rgb(0 0 0 / 0.5);
   --scrim-immersive: rgb(15 15 20 / 0.85);
-  /* Editorial skin extras (docs/EDITORIAL.md §2): avision's greys, its
-     phosphor accent and the warm hover ink. Only the `ed/` component layer
-     reads these; adopting the skin is a class on <html> or a wrapper. */
-  --ed-rail: #ededed;
-  --ed-tile: #dedede;
-  --ed-shell: #1f1f1f;
-  --ed-shell-deep: #111111;
-  --ed-accent: #2ddf80;
-  --ed-accent-strong: #0f7a44;
-  --ed-warm: #937c6f;
-  --ed-ghost: #b8b8bd;
-  --ed-on-shell: #ffffff;
 }
 
 /* Named scales (DESIGN.md §3 守卫 + §4 词汇表): non-inline @theme so the
@@ -193,73 +170,7 @@
   --focus-blue: #7da2ff;
   --error: #ff7373;
 }
-/* Editorial skin (docs/EDITORIAL.md §2): avision's magazine sheet as an
-   opt-in scope. It re-points the existing semantic tokens plus the `ed`
-   extras above, so every `bg-card` / `text-muted-foreground` /
-   `border-border` call site retheme without touching a utility. Both the
-   document element (`<html class="theme-editorial">`) and a wrapper work —
-   custom properties inherit by DOM proximity, so the `.dark` pair below
-   keeps the sheet readable when the shell is dark. The brand `--primary`
-   stays backend-driven on purpose: the skin never owns the site colour. */
-.theme-editorial {
-  --background: #f7f7f7;
-  --canvas: #f7f7f7;
-  --foreground: #16161a;
-  --ink: #16161a;
-  --card: #ffffff;
-  --surface: #ffffff;
-  --popover: #ffffff;
-  --popover-foreground: #16161a;
-  --secondary: #ededed;
-  --muted-foreground: #6b6b72;
-  --body-muted: #6b6b72;
-  --accent: #f2eae5;
-  --border: #e3e3e3;
-  --hairline: #e3e3e3;
-  --ed-rail: #ededed;
-  --ed-tile: #dedede;
-}
-.dark .theme-editorial,
-.theme-editorial.dark {
-  --background: #131316;
-  --canvas: #131316;
-  --foreground: #efeff1;
-  --ink: #efeff1;
-  --card: #1b1b1f;
-  --surface: #1b1b1f;
-  --popover: #1b1b1f;
-  --popover-foreground: #efeff1;
-  --secondary: #232327;
-  --muted-foreground: #a5a5ad;
-  --body-muted: #a5a5ad;
-  --accent: #2a2320;
-  --border: #2b2b30;
-  --hairline: #2b2b30;
-  --ed-rail: #1d1d21;
-  --ed-tile: #2a2a2f;
-  --ed-shell: #101012;
-  --ed-shell-deep: #0b0b0d;
-  --ed-accent-strong: #4fe39a;
-  --ed-warm: #b79b8a;
-  --ed-ghost: #4a4a52;
-}
-/* Editorial type scale (docs/EDITORIAL.md §2): avision's two voices — an
-   uppercase letter-spaced label face and a display face — expressed with the
-   project's single Station Sans stack. Named so no component invents an
-   arbitrary `text-[…]`: the cover sizes are the only place the app contract's
-   xl ceiling opens up. */
-@theme {
-  --text-label: 0.75rem;
-  --text-label--line-height: 1rem;
-  --text-display-sm: 1.5rem;
-  --text-display-sm--line-height: 1.33;
-  --text-display-md: 2.25rem;
-  --text-display-md--line-height: 1.27;
-  --text-numeral: 2.5rem;
-  --text-numeral--line-height: 1;
-  --tracking-kicker: 0.1em;
-  --tracking-brand: 0.075em;
-}
+
 @theme {
   --font-display:
     'Station Sans SC', 'Station Sans TC', 'Station Sans JP', 'PingFang SC', 'PingFang TC',

@@ -289,7 +289,7 @@ describe('the loop mode follows the toolbar', () => {
 /**
  * The paper card recipe (DESIGN.md §2 卡片配方): no resting hairline — a
  * transparent 1px border that only lights up on hover — the 6px radius, the
- * 16:10 media box that clips the hover zoom, and the editorial 20px grid gap.
+ * 16:10 media box that clips the hover zoom, and the 20px grid gap.
  * Asserted on the SSR markup so a later utility shuffle cannot quietly bring
  * the boxed look back.
  */
@@ -314,7 +314,7 @@ describe('the loop card keeps the paper recipe', () => {
     // sidebar already eats 190px of every desktop width).
     expect(html).toContain('@container');
     expect(html).toContain('@2xl:grid-cols-3');
-    // The standing heading wears the editorial rule; the sentence voice keeps
+    // The standing heading wears the 50px baseline rule; the sentence voice keeps
     // the real 500 weight (Station Sans ships no 600/700).
     expect(html).toContain('after:w-[50px]');
     expect(html).toContain('font-medium');

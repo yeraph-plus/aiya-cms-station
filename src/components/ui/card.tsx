@@ -8,10 +8,9 @@ function Card({ className, ...props }: React.ComponentProps<'div'>) {
       className={cn(
         // Site-default card face (UX.md §3, DESIGN.md §2): the paper recipe —
         // no resting shadow, the 6px-scale lg radius, and a transparent border
-        // that only becomes a hairline on hover/focus of a clickable card (the
-        // editorial skin, docs/EDITORIAL.md §2). The border box stays 1px so
-        // removing the line never shifts layout; white-on-grey paper contrast
-        // carries the separation instead.
+        // that only becomes a hairline on hover/focus of a clickable card. The
+        // border box stays 1px so removing the line never shifts layout;
+        // white-on-grey paper contrast carries the separation instead.
         'flex flex-col gap-0 rounded-lg border border-transparent bg-card py-0 text-card-foreground',
         className,
       )}

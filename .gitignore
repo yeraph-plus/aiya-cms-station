@@ -19,7 +19,4 @@ coverage/
 rich-transformed.mjs
 /tmp-*.py
 
-# Editorial reference preview (lab/editorial has its own Astro config, not a site route)
-/lab/editorial/.dist/
-/lab/editorial/.astro/
-/lab/editorial/node_modules/
+# Editorial reference preview moved out of this repo → ../front-zine (own project)
