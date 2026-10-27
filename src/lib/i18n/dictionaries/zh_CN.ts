@@ -405,6 +405,7 @@ const zh_CN = {
     channelUsdt: 'USDT',
     buyAction: '立即购买',
     afdianAction: '用爱发电',
+    afdianNote: '按爱发电该方案的金额赞助，本站不代收。',
     ledgerEmpty: '还没有积分记录。',
     ledgerIn: '获得',
     ledgerOut: '消耗',

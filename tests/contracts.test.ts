@@ -685,6 +685,10 @@ describe('enum catch defaults (backend-first rollout safety)', () => {
     expect(field(membershipBadgeSchema, 'status').parse('paused')).toBe('inactive');
     expect(field(membershipEntitlementSchema, 'status').parse('paused')).toBe('cancelled');
     expect(field(planChannelsSchema, 'methods').parse(['stripe'])).toEqual([]);
+    // A backend that predates the plan-channel split sends no `channels` at
+    // all: the plan reads as a plain cashier tier, not as unpurchasable.
+    expect(field(tierSchema, 'channels').parse(undefined)).toEqual(['epay']);
+    expect(field(tierSchema, 'channels').parse(['stripe'])).toEqual(['epay']);
     expect(field(creditEntrySchema, 'direction').parse('swap')).toBe('out');
   });
 
@@ -694,6 +698,7 @@ describe('enum catch defaults (backend-first rollout safety)', () => {
       'alipay',
       'usdt',
     ]);
+    expect(field(tierSchema, 'channels').parse(['afdian'])).toEqual(['afdian']);
     expect(field(membershipEntitlementSchema, 'status').parse('active')).toBe('active');
   });
 });

@@ -409,6 +409,7 @@ const en_US: Dictionary = {
     channelUsdt: 'USDT',
     buyAction: 'Buy now',
     afdianAction: 'Support on Afdian',
+    afdianNote: "Paid at the plan's amount on Afdian — this site does not collect it.",
     ledgerEmpty: 'No credit activity yet.',
     ledgerIn: 'Granted',
     ledgerOut: 'Spent',

@@ -403,6 +403,7 @@ const zh_HK: Dictionary = {
     channelUsdt: 'USDT',
     buyAction: '立即購買',
     afdianAction: '用愛發電',
+    afdianNote: '按愛發電該方案的金額贊助，本站不代收。',
     ledgerEmpty: '還沒有積分記錄。',
     ledgerIn: '獲得',
     ledgerOut: '消耗',

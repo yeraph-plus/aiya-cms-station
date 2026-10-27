@@ -703,6 +703,8 @@ export const profileSchema = z.object({
 export const tierSchema = z.object({
   key: z.string().min(1),
   name: wpText(z.string()),
+  /** Per-cycle price on the cashier. An Afdian plan is priced on the
+      platform, so it arrives as 0 and its card shows no price line. */
   price: z.number().nonnegative(),
   cycleDays: z.number().int().min(1),
   creditsPerCycle: count,
@@ -710,6 +712,10 @@ export const tierSchema = z.object({
   enabled: z.boolean(),
   /** Plan-card blurb the membership settings page configures. */
   description: wpText(z.string()),
+  /** Which purchase channels sell this plan: 'epay' (the site cashier) and/or
+      'afdian' (the platform). .catch: a backend without the field yet reads as
+      a plain cashier tier — the v1 behaviour, not a 503. */
+  channels: z.array(z.enum(['epay', 'afdian'])).catch(['epay']),
 });
 export const membershipEntitlementSchema = z.object({
   tierKey: z.string(),
@@ -750,8 +756,9 @@ export const planChannelsSchema = z.object({
   epay: z.boolean(),
   /** Platform-push gateway: activation rides webhooks, not the cashier. */
   afdian: z.boolean(),
-  /** The one tier the Afdian channel rides — the purchase UI offers the
-      channel on that tier's card alone ('' while unbound). */
+  /** Frozen v1 field: no plan is "the Afdian one" any more (the Afdian plans
+      are ordinary rows carrying `channels: ['afdian']`), so the backend always
+      sends ''. Kept only for the additive contract lock — do not read it. */
   afdianTierKey: z.string(),
   /** Enabled channels as a list; new gateways extend without reshaping.
       .catch([]): a gateway the frontend cannot render yet hides the epay

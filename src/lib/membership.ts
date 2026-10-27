@@ -47,12 +47,33 @@ export function activeMembershipTier(
   );
 }
 
-/** Payment methods the cashier can offer, in the contract's own order. */
-export function paymentMethods(channels: {
-  epay: boolean;
-  methods: readonly ('alipay' | 'wxpay' | 'usdt')[];
-}): ('alipay' | 'wxpay' | 'usdt')[] {
-  return channels.epay ? [...channels.methods] : [];
+/**
+ * Payment methods the cashier can offer for one plan, in the contract's own
+ * order. A plan sells through the cashier only when the gateway is live AND
+ * the plan itself names that channel — an Afdian plan has no submit URL here,
+ * so it returns no methods at all and its card never draws a cashier button.
+ */
+export function paymentMethods(
+  channels: {
+    epay: boolean;
+    methods: readonly ('alipay' | 'wxpay' | 'usdt')[];
+  },
+  tier: Pick<Tier, 'channels'>,
+): ('alipay' | 'wxpay' | 'usdt')[] {
+  return channels.epay && tier.channels.includes('epay') ? [...channels.methods] : [];
+}
+
+/** Whether the plan is sold on the Afdian platform (its own button, no price here). */
+export function sellsOnAfdian(
+  channels: { afdian: boolean },
+  tier: Pick<Tier, 'channels'>,
+): boolean {
+  return channels.afdian && tier.channels.includes('afdian');
+}
+
+/** Whether the card shows a price at all: only the cashier's own plans are priced here. */
+export function showsPrice(tier: Pick<Tier, 'channels'>): boolean {
+  return tier.channels.includes('epay');
 }
 
 /** Bare date in the site's timezone (ledger rows read better without a clock). */

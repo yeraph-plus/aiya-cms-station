@@ -5,10 +5,12 @@ import {
   displayDay,
   paymentMethods,
   purchasableTiers,
+  sellsOnAfdian,
+  showsPrice,
 } from '@/lib/membership';
 
 describe('tier selection', () => {
-  const tier = (key: string, enabled: boolean): Tier => ({
+  const tier = (key: string, enabled: boolean, channels: Tier['channels'] = ['epay']): Tier => ({
     key,
     name: key,
     price: 10,
@@ -16,6 +18,7 @@ describe('tier selection', () => {
     creditsPerCycle: 5,
     enabled,
     description: '',
+    channels,
   });
 
   it('hides tiers the backend disabled', () => {
@@ -24,11 +27,32 @@ describe('tier selection', () => {
   });
 
   it('offers no cashier methods when the gateway is off', () => {
-    expect(paymentMethods({ epay: false, methods: ['alipay'] })).toEqual([]);
-    expect(paymentMethods({ epay: true, methods: ['alipay', 'wxpay'] })).toEqual([
+    expect(paymentMethods({ epay: false, methods: ['alipay'] }, tier('a', true))).toEqual([]);
+    expect(paymentMethods({ epay: true, methods: ['alipay', 'wxpay'] }, tier('a', true))).toEqual([
       'alipay',
       'wxpay',
     ]);
+  });
+
+  // An Afdian plan is a platform product: no cashier methods, no price here,
+  // its own jump button. The card is driven by the plan's own channels.
+  it('gives an Afdian-only plan no cashier methods and no price', () => {
+    const afdian = tier('sponsor', true, ['afdian']);
+
+    expect(paymentMethods({ epay: true, methods: ['alipay'] }, afdian)).toEqual([]);
+    expect(showsPrice(afdian)).toBe(false);
+    expect(sellsOnAfdian({ afdian: true }, afdian)).toBe(true);
+  });
+
+  it('keeps an Afdian plan dark while the integration is off', () => {
+    const afdian = tier('sponsor', true, ['afdian']);
+
+    expect(sellsOnAfdian({ afdian: false }, afdian)).toBe(false);
+  });
+
+  it('never offers the Afdian button on a cashier tier', () => {
+    expect(sellsOnAfdian({ afdian: true }, tier('gold', true))).toBe(false);
+    expect(showsPrice(tier('gold', true))).toBe(true);
   });
 });
 

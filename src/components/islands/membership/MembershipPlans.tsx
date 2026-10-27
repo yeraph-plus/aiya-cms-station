@@ -27,7 +27,7 @@ import type { Tier } from '@/lib/core/contracts';
 import { apiErrorCopy } from '@/lib/feedback';
 import EmptyNote from '@/components/islands/EmptyNote';
 import { t, type Locale } from '@/lib/i18n';
-import { paymentMethods, purchasableTiers } from '@/lib/membership';
+import { paymentMethods, purchasableTiers, sellsOnAfdian, showsPrice } from '@/lib/membership';
 
 /**
  * Copy comes from the dictionary the island imports itself — the same shape
@@ -40,8 +40,8 @@ export type MembershipCopy = ReturnType<typeof t>['membership'];
 export interface Channels {
   epay: boolean;
   afdian: boolean;
-  /** The one tier the Afdian channel rides — the button shows on that
-      tier's card alone ('' while unbound). */
+  /** Frozen v1 wire field: the backend always sends '' since the Afdian
+      plans became ordinary rows — never read it. */
   afdianTierKey: string;
   methods: ('alipay' | 'wxpay' | 'usdt')[];
 }
@@ -54,10 +54,16 @@ function money(price: number): string {
 const CYCLE_CHOICES: readonly number[] = [1, 3, 12];
 
 /**
- * One plan card: the (backend-configured) pricing facts up top, a separator,
- * then the interactive half — the payment channel radio and the buy actions.
- * The buyer picks the cycle count (1-12, default 1 — the backend
- * re-validates at order time) and how to pay.
+ * One plan card: the (backend-configured) facts up top, a separator, then the
+ * interactive half — the payment channel radio and the buy actions. The buyer
+ * picks the cycle count (1-12, default 1 — the backend re-validates at order
+ * time) and how to pay.
+ *
+ * A plan names the channels that sell it (`tier.channels`): a cashier plan
+ * gets the price, the cycle picker and the submit button; an Afdian plan has
+ * none of those (the amount and the cycle count live on the platform page) and
+ * only gets the jump button. That is why the card, not a "which tier is the
+ * Afdian one" comparison, drives every action.
  */
 function PlanCard({
   tier,
@@ -77,7 +83,9 @@ function PlanCard({
     onFail: (code?: string) => void,
   ) => void;
 }) {
-  const methods = paymentMethods(channels);
+  const priced = showsPrice(tier);
+  const onAfdian = sellsOnAfdian(channels, tier);
+  const methods = paymentMethods(channels, tier);
   const [method, setMethod] = useState<string>(methods[0] ?? '');
   const [cycles, setCycles] = useState(1);
   const [afdianBusy, setAfdianBusy] = useState(false);
@@ -116,16 +124,19 @@ function PlanCard({
   return (
     <Card>
       <CardHeader className="pt-6 pb-5">
-        {/* The pricing facts: name / the big cycle-inclusive total with the
-            per-cycle small print beside it / the reset cadence on its own
-            line / the configured blurb (line breaks preserved). */}
+        {/* The facts: name / the big cycle-inclusive total with the per-cycle
+            small print beside it (cashier plans only — an Afdian plan states
+            no amount here, the platform owns it) / the reset cadence on its
+            own line / the configured blurb (line breaks preserved). */}
         <CardTitle className="text-base">{tier.name}</CardTitle>
-        <div className="flex items-baseline gap-x-2">
-          <p className="text-3xl font-semibold tracking-tight">
-            {copy.tierPrice(money(tier.price * cycles))}
-          </p>
-          <span className="text-xs text-body-muted">{copy.tierPricePer(money(tier.price))}</span>
-        </div>
+        {priced && (
+          <div className="flex items-baseline gap-x-2">
+            <p className="text-3xl font-semibold tracking-tight">
+              {copy.tierPrice(money(tier.price * cycles))}
+            </p>
+            <span className="text-xs text-body-muted">{copy.tierPricePer(money(tier.price))}</span>
+          </div>
+        )}
         <CardDescription>{copy.tierReset(tier.cycleDays)}</CardDescription>
         {tier.description !== '' && (
           <CardDescription className="mt-4 leading-relaxed whitespace-pre-line">
@@ -152,43 +163,47 @@ function PlanCard({
             ))}
           </RadioGroup>
         ) : (
-          <p className="text-sm text-body-muted">{copy.channelEmpty}</p>
+          <p className="text-sm text-body-muted">{priced ? copy.channelEmpty : copy.afdianNote}</p>
         )}
       </CardContent>
       <CardFooter className="flex-col gap-2 pb-6">
-        <div className="w-full">
-          <p className="text-sm">{copy.cyclesLabel}</p>
-          {/* Compact text pills — the radio dot is sr-only (a card column is
-              ~15rem wide; three dotted pills would wrap). The checked state
-              reads through the primary border/tint/weight instead. */}
-          <RadioGroup
-            value={String(cycles)}
-            onValueChange={(value) => setCycles(Number(value))}
-            className="mt-1.5 flex flex-row flex-wrap gap-1.5"
+        {priced && (
+          <div className="w-full">
+            <p className="text-sm">{copy.cyclesLabel}</p>
+            {/* Compact text pills — the radio dot is sr-only (a card column is
+                ~15rem wide; three dotted pills would wrap). The checked state
+                reads through the primary border/tint/weight instead. */}
+            <RadioGroup
+              value={String(cycles)}
+              onValueChange={(value) => setCycles(Number(value))}
+              className="mt-1.5 flex flex-row flex-wrap gap-1.5"
+            >
+              {CYCLE_CHOICES.map((n) => (
+                <Label
+                  key={n}
+                  className="flex cursor-pointer items-center rounded-md border border-border px-2 py-1.5 text-sm font-normal transition-colors has-[button[data-state=checked]]:border-primary has-[button[data-state=checked]]:bg-primary/10 has-[button[data-state=checked]]:font-medium has-[button[data-state=checked]]:text-primary"
+                >
+                  <RadioGroupItem value={String(n)} className="sr-only" />
+                  {copy.cyclesOption(n)}
+                </Label>
+              ))}
+            </RadioGroup>
+          </div>
+        )}
+        {priced && (
+          <Button
+            type="button"
+            className="w-full"
+            disabled={methods.length === 0}
+            onClick={() => {
+              setError(null);
+              onOrder(tier.key, method, cycles, (code) => setError(message(code)));
+            }}
           >
-            {CYCLE_CHOICES.map((n) => (
-              <Label
-                key={n}
-                className="flex cursor-pointer items-center rounded-md border border-border px-2 py-1.5 text-sm font-normal transition-colors has-[button[data-state=checked]]:border-primary has-[button[data-state=checked]]:bg-primary/10 has-[button[data-state=checked]]:font-medium has-[button[data-state=checked]]:text-primary"
-              >
-                <RadioGroupItem value={String(n)} className="sr-only" />
-                {copy.cyclesOption(n)}
-              </Label>
-            ))}
-          </RadioGroup>
-        </div>
-        <Button
-          type="button"
-          className="w-full"
-          disabled={methods.length === 0}
-          onClick={() => {
-            setError(null);
-            onOrder(tier.key, method, cycles, (code) => setError(message(code)));
-          }}
-        >
-          {copy.buyAction}
-        </Button>
-        {channels.afdian && tier.key === channels.afdianTierKey && (
+            {copy.buyAction}
+          </Button>
+        )}
+        {onAfdian && (
           <Button
             type="button"
             variant="outline"
