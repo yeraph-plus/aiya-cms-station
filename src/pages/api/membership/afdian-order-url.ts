@@ -2,8 +2,10 @@ import { defineProxy, jsonResponse } from '@/lib/api-auth';
 
 /**
  * GET /api/membership/afdian-order-url?tierKey=X: the personalised Afdian
- * deep link. The tier's configured cycles pre-select on the platform page;
- * activation rides Afdian's own webhook, so nothing is queued here.
+ * deep link for one of the site's Afdian plans (X is an Afdian plan key, not
+ * a cashier tier). The amount and the cycle count are the buyer's choice on
+ * the platform page; activation rides Afdian's own webhook, so nothing is
+ * queued here.
  */
 export const GET = defineProxy({ auth: 'required' }, async ({ client, url }) => {
   const tierKey = url.searchParams.get('tierKey') ?? '';

@@ -626,7 +626,7 @@ export function createAiyaClient(options: ClientOptions) {
           .object({ id: z.number().int().min(1), password: z.string().min(1) })
           .parse({ id, password }),
       }),
-    /** Afdian deep link; the tier's configured cycles pre-select there. */
+    /** Afdian deep link for one of the site's Afdian plans (the key, not a cashier tier). */
     afdianOrderUrl: (tierKey: string) =>
       request('GET', 'membership/afdian/order-url', afdianOrderUrlResponseSchema, {
         query: { tierKey },
