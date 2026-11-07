@@ -24,7 +24,7 @@
   },
   "dependencies": {
     "@astrojs/node": "11.1.11",
-    "@astrojs/react": "6.0.5",
+    "@astrojs/react": "7.1.4",
     "@shadcn/react": "^0.3.1",
     "@tailwindcss/vite": "4.3.5",
     "@tiptap/core": "^3.32.0",
@@ -37,7 +37,7 @@
     "astro": "7.4.7",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.5.0",
-    "entities": "^8.1.0",
+    "entities": "^9.0.0",
     "lucide-react": "^1.61.0",
     "lucide-static": "^1.61.0",
     "radix-ui": "^1.8.1",
