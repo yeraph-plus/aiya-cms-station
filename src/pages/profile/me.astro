@@ -93,78 +93,74 @@ const initialTab =
   description={copy.profile.overviewDescription}
   noindex
 >
-  {
-    page.ok && (
-      <>
-        <ProfileCard
-          name={page.value.user.nickname}
-          avatarUrl={
-            page.value.user.avatar.url ? rewriteMediaUrl(page.value.user.avatar.url) : null
-          }
-          roleLabel={copy.shell.roleLabels[page.value.user.role]}
-          bio={page.value.user.description}
-          id={page.value.user.id}
-          registeredAt={page.value.user.registeredAt}
-          locale={page.locale}
-          timezone={page.site.timezone}
-          stats={page.value.user.stats}
-          class="mb-8"
-        >
-          <Fragment slot="actions">
-            {page.value.user.slug && (
-              <a
-                href={`/profile/${page.value.user.slug}/`}
-                class="inline-flex items-center gap-1.5 rounded-md border border-border bg-surface px-4 py-2 text-sm text-foreground hover:border-body-muted"
-              >
-                <Icon name="externalLink" size={14} />
-                {copy.profile.publicProfile}
-              </a>
-            )}
-          </Fragment>
-        </ProfileCard>
+  {page.ok && (
+    <>
+      <ProfileCard
+        name={page.value.user.nickname}
+        avatarUrl={page.value.user.avatar.url ? rewriteMediaUrl(page.value.user.avatar.url) : null}
+        roleLabel={copy.shell.roleLabels[page.value.user.role]}
+        bio={page.value.user.description}
+        id={page.value.user.id}
+        registeredAt={page.value.user.registeredAt}
+        locale={page.locale}
+        timezone={page.site.timezone}
+        stats={page.value.user.stats}
+        class="mb-8"
+      >
+        <Fragment slot="actions">
+          {page.value.user.slug && (
+            <a
+              href={`/profile/${page.value.user.slug}/`}
+              class="inline-flex items-center gap-1.5 rounded-md border border-border bg-surface px-4 py-2 text-sm text-foreground hover:border-body-muted"
+            >
+              <Icon name="externalLink" size={14} />
+              {copy.profile.publicProfile}
+            </a>
+          )}
+        </Fragment>
+      </ProfileCard>
 
-        <UserHub
-          client:load
-          favorites={hubFavorites}
-          following={hubFollowing}
-          followers={hubFollowers}
-          settings={{
-            user: {
-              nickname: page.value.user.nickname,
-              email: page.value.user.email,
-              url: page.value.user.url,
-              description: page.value.user.description,
-              locale: page.value.user.locale,
-              showNsfw: page.value.user.showNsfw,
-              avatarUrl: page.value.user.avatar.url
-                ? rewriteMediaUrl(page.value.user.avatar.url)
-                : null,
-            },
-            copy: settingsCopy(copy),
-            localeOptions: LOCALE_OPTIONS,
-            locale: page.locale,
-          }}
-          tabFavorites={copy.profile.tabFavorites}
-          tabFollowing={copy.profile.tabFollowing}
-          tabFollowers={copy.profile.tabFollowers}
-          tabWallet={copy.profile.tabWallet}
-          tabSettings={copy.profile.tabSettings}
-          wallet={
-            page.ok
-              ? {
-                  locale: page.locale,
-                  timezone: page.site.timezone,
-                  membership: page.value.membership,
-                  entries: page.value.entries,
-                  hasMore: page.value.hasMore,
-                }
-              : null
-          }
-          emptyText={copy.profile.favoritesEmpty}
-          followersEmpty={copy.profile.followersEmpty}
-          initialTab={initialTab}
-        />
-      </>
-    )
-  }
+      <UserHub
+        client:load
+        favorites={hubFavorites}
+        following={hubFollowing}
+        followers={hubFollowers}
+        settings={{
+          user: {
+            nickname: page.value.user.nickname,
+            email: page.value.user.email,
+            url: page.value.user.url,
+            description: page.value.user.description,
+            locale: page.value.user.locale,
+            showNsfw: page.value.user.showNsfw,
+            avatarUrl: page.value.user.avatar.url
+              ? rewriteMediaUrl(page.value.user.avatar.url)
+              : null,
+          },
+          copy: settingsCopy(copy),
+          localeOptions: LOCALE_OPTIONS,
+          locale: page.locale,
+        }}
+        tabFavorites={copy.profile.tabFavorites}
+        tabFollowing={copy.profile.tabFollowing}
+        tabFollowers={copy.profile.tabFollowers}
+        tabWallet={copy.profile.tabWallet}
+        tabSettings={copy.profile.tabSettings}
+        wallet={
+          page.ok
+            ? {
+                locale: page.locale,
+                timezone: page.site.timezone,
+                membership: page.value.membership,
+                entries: page.value.entries,
+                hasMore: page.value.hasMore,
+              }
+            : null
+        }
+        emptyText={copy.profile.favoritesEmpty}
+        followersEmpty={copy.profile.followersEmpty}
+        initialTab={initialTab}
+      />
+    </>
+  )}
 </AppShell>

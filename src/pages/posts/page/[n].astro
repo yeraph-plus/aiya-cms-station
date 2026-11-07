@@ -24,37 +24,35 @@ const copy = t(view.page.locale);
   canonicalPath={view.canonical}
   noindex={view.filtered || view.overRange}
 >
-  {
-    view.page.ok &&
-      (view.overRange ? (
-        <PageState
-          image={view.page.site.defaults.emptyImage}
-          error
-          title={copy.state.notFoundTitle}
-          message={copy.state.notFoundMessage}
-          retry="/posts/"
-          retryLabel={copy.common.retry}
+  {view.page.ok &&
+    (view.overRange ? (
+      <PageState
+        image={view.page.site.defaults.emptyImage}
+        error
+        title={copy.state.notFoundTitle}
+        message={copy.state.notFoundMessage}
+        retry="/posts/"
+        retryLabel={copy.common.retry}
+      />
+    ) : (
+      <>
+        <h1 class="sr-only">{view.listTitle}</h1>
+        <PostLoop
+          client:load
+          endpoint="/api/feed/posts/"
+          items={view.page.value.items}
+          pagination={view.page.value.pagination}
+          page={n}
+          query={{ ...view.filters }}
+          route={{
+            index: '/posts/',
+            pagePattern: '/posts/page/{page}/',
+            carry: ['q', 'category', 'tag', 'sort'],
+          }}
+          emptyText={copy.posts.listEmpty}
+          errorText={copy.state.backendMessage}
+          locale={view.page.locale}
         />
-      ) : (
-        <>
-          <h1 class="sr-only">{view.listTitle}</h1>
-          <PostLoop
-            client:load
-            endpoint="/api/feed/posts/"
-            items={view.page.value.items}
-            pagination={view.page.value.pagination}
-            page={n}
-            query={{ ...view.filters }}
-            route={{
-              index: '/posts/',
-              pagePattern: '/posts/page/{page}/',
-              carry: ['q', 'category', 'tag', 'sort'],
-            }}
-            emptyText={copy.posts.listEmpty}
-            errorText={copy.state.backendMessage}
-            locale={view.page.locale}
-          />
-        </>
-      ))
-  }
+      </>
+    ))}
 </AppShell>

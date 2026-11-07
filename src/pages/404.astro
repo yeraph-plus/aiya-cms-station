@@ -20,15 +20,13 @@ const copy = t(page.locale);
   description={copy.state.notFoundPageMessage}
   noindex
 >
-  {
-    page.ok && (
-      <PageState
-        image={page.site.defaults.emptyImage}
-        title={copy.state.notFoundPageTitle}
-        message={copy.state.notFoundMessage}
-        retry="/"
-        retryLabel={copy.common.backHome}
-      />
-    )
-  }
+  {page.ok && (
+    <PageState
+      image={page.site.defaults.emptyImage}
+      title={copy.state.notFoundPageTitle}
+      message={copy.state.notFoundMessage}
+      retry="/"
+      retryLabel={copy.common.backHome}
+    />
+  )}
 </AppShell>

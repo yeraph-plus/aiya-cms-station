@@ -38,16 +38,14 @@ if (page.ok) setCrumbs(Astro.locals, page.locale, [{ label: copy.channels.title 
   noindex={!page.ok}
 >
   <h1 class="sr-only">{copy.channels.title}</h1>
-  {
-    page.ok && (
-      <ChannelFeed
-        client:load
-        initialGroups={page.value.groups}
-        initialPagination={page.value.pagination}
-        locale={page.locale}
-        timezone={page.site.timezone}
-        showNsfw={softShowNsfw(Astro.cookies)}
-      />
-    )
-  }
+  {page.ok && (
+    <ChannelFeed
+      client:load
+      initialGroups={page.value.groups}
+      initialPagination={page.value.pagination}
+      locale={page.locale}
+      timezone={page.site.timezone}
+      showNsfw={softShowNsfw(Astro.cookies)}
+    />
+  )}
 </AppShell>

@@ -47,14 +47,12 @@ const cards: CategoryCardData[] = page.ok
   canonicalPath="/categories/"
 >
   <h1 class="sr-only">{title}</h1>
-  {
-    page.ok &&
-      (cards.length > 0 ? (
-        <CategoryCards client:idle cards={cards} defaultCover={defaultCover} />
-      ) : (
-        <p class="rounded-lg border border-dashed border-border bg-surface px-6 py-8 text-center text-sm text-body-muted">
-          {copy.categories.empty}
-        </p>
-      ))
-  }
+  {page.ok &&
+    (cards.length > 0 ? (
+      <CategoryCards client:idle cards={cards} defaultCover={defaultCover} />
+    ) : (
+      <p class="rounded-lg border border-dashed border-border bg-surface px-6 py-8 text-center text-sm text-body-muted">
+        {copy.categories.empty}
+      </p>
+    ))}
 </AppShell>

@@ -20,32 +20,30 @@ const typeLabel = contentTypeLabels(copy)[view.type];
 ---
 
 <TermArchive view={view}>
-  {
-    view.page.ok && (
-      <div class="mb-5">
-        <CategoryCard
-          client:idle
-          card={{
-            slug,
-            type: view.type,
-            name: view.name,
-            description: view.description,
-            cover: view.cover ? { ...view.cover, url: rewriteMediaUrl(view.cover.url) } : null,
-            count: view.count,
-            countText: copy.categories.countLabel(view.count),
-            typeLabel,
-            icon: view.icon,
-          }}
-          defaultCover={
-            view.page.site.defaults.thumb
-              ? {
-                  ...view.page.site.defaults.thumb,
-                  url: rewriteMediaUrl(view.page.site.defaults.thumb.url),
-                }
-              : null
-          }
-        />
-      </div>
-    )
-  }
+  {view.page.ok && (
+    <div class="mb-5">
+      <CategoryCard
+        client:idle
+        card={{
+          slug,
+          type: view.type,
+          name: view.name,
+          description: view.description,
+          cover: view.cover ? { ...view.cover, url: rewriteMediaUrl(view.cover.url) } : null,
+          count: view.count,
+          countText: copy.categories.countLabel(view.count),
+          typeLabel,
+          icon: view.icon,
+        }}
+        defaultCover={
+          view.page.site.defaults.thumb
+            ? {
+                ...view.page.site.defaults.thumb,
+                url: rewriteMediaUrl(view.page.site.defaults.thumb.url),
+              }
+            : null
+        }
+      />
+    </div>
+  )}
 </TermArchive>

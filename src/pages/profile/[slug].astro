@@ -44,56 +44,54 @@ const profile = page.ok ? page.value.profile : null;
   canonicalPath={profile ? `/profile/${profile.slug}/` : `/profile/${Astro.params.slug}/`}
   noindex={!page.ok}
 >
-  {
-    page.ok && profile ? (
-      <div class="flex flex-col gap-8">
-        <ProfileCard
-          name={profile.name}
-          avatarUrl={profile.avatar ? rewriteMediaUrl(profile.avatar.url) : null}
-          roleLabel={copy.shell.roleLabels[profile.role]}
-          extraBadge={profile.membership.status === 'active' ? copy.profile.sponsorBadge : ''}
-          bio={profile.bio}
-          id={profile.id}
-          registeredAt={profile.joinedAt}
-          locale={page.locale}
-          timezone={page.site.timezone}
-          stats={profile.stats}
-        >
-          <Fragment slot="actions">
-            <FollowButton
-              client:load
-              userId={profile.id}
-              self={Boolean(page.user && page.user.id === profile.id)}
-              copy={{
-                follow: copy.profile.follow,
-                unfollow: copy.profile.unfollow,
-                loginToFollow: copy.profile.loginToFollow,
-              }}
-            />
-          </Fragment>
-        </ProfileCard>
-
-        <section>
-          <PostLoop
+  {page.ok && profile ? (
+    <div class="flex flex-col gap-8">
+      <ProfileCard
+        name={profile.name}
+        avatarUrl={profile.avatar ? rewriteMediaUrl(profile.avatar.url) : null}
+        roleLabel={copy.shell.roleLabels[profile.role]}
+        extraBadge={profile.membership.status === 'active' ? copy.profile.sponsorBadge : ''}
+        bio={profile.bio}
+        id={profile.id}
+        registeredAt={profile.joinedAt}
+        locale={page.locale}
+        timezone={page.site.timezone}
+        stats={profile.stats}
+      >
+        <Fragment slot="actions">
+          <FollowButton
             client:load
-            endpoint="/api/feed/posts/"
-            items={page.value.posts.map(cloakPostSummaryMedia)}
-            pagination={page.value.postsPagination}
-            page={1}
-            query={{ author: profile.slug, sort }}
-            route={{
-              index: `/profile/${profile.slug}/`,
-              pagePattern: `/profile/${profile.slug}/page/{page}/`,
-              carry: ['sort'],
+            userId={profile.id}
+            self={Boolean(page.user && page.user.id === profile.id)}
+            copy={{
+              follow: copy.profile.follow,
+              unfollow: copy.profile.unfollow,
+              loginToFollow: copy.profile.loginToFollow,
             }}
-            heading={copy.profile.articlesTitle}
-            headingIcon={iconInner('newspaper')}
-            emptyText={copy.profile.articlesEmpty}
-            errorText={copy.state.backendMessage}
-            locale={page.locale}
           />
-        </section>
-      </div>
-    ) : null
-  }
+        </Fragment>
+      </ProfileCard>
+
+      <section>
+        <PostLoop
+          client:load
+          endpoint="/api/feed/posts/"
+          items={page.value.posts.map(cloakPostSummaryMedia)}
+          pagination={page.value.postsPagination}
+          page={1}
+          query={{ author: profile.slug, sort }}
+          route={{
+            index: `/profile/${profile.slug}/`,
+            pagePattern: `/profile/${profile.slug}/page/{page}/`,
+            carry: ['sort'],
+          }}
+          heading={copy.profile.articlesTitle}
+          headingIcon={iconInner('newspaper')}
+          emptyText={copy.profile.articlesEmpty}
+          errorText={copy.state.backendMessage}
+          locale={page.locale}
+        />
+      </section>
+    </div>
+  ) : null}
 </AppShell>

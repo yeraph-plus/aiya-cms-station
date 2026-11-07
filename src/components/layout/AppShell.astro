@@ -148,27 +148,25 @@ const showBanner = bannerUrl !== null && isHome;
   </head>
   <body class="min-h-svh bg-background font-body text-foreground antialiased">
     <style is:inline set:html={brandStyle}></style>
-    <a class="skip-link" href="#main-content">{copy.common.skipToContent}</a>
+    <a class="skip-link" href="#main-content">
+      {copy.common.skipToContent}
+    </a>
     <div id="route-progress" aria-hidden="true"></div>
     <div class="flex min-h-svh">
       <DesktopSidebar site={page.site} menu={page.menu.items} pathname={Astro.url.pathname} />
       <div class="flex min-w-0 flex-1 flex-col">
-        {
-          /* Page top. The settings-driven banner is a homepage-only
+        {/* Page top. The settings-driven banner is a homepage-only
             decoration: its image fills the area as a centered background,
             underlaying the transparent nav row. Every other route — and the
-            homepage without a banner — gets the compact bar height. */
-        }
+            homepage without a banner — gets the compact bar height. */}
         <div class:list={['relative shrink-0 max-[991px]:hidden', showBanner ? 'h-40' : 'h-12']}>
-          {
-            showBanner && (
-              <div
-                aria-hidden="true"
-                class="absolute inset-0 bg-cover bg-center"
-                style={`background-image: url('${bannerUrl}');`}
-              />
-            )
-          }
+          {showBanner && (
+            <div
+              aria-hidden="true"
+              class="absolute inset-0 bg-cover bg-center"
+              style={`background-image: url('${bannerUrl}');`}
+            />
+          )}
           <DesktopHeader
             menuToggleLabel={copy.shell.menuToggle}
             colorModeLabel={copy.shell.colorMode}
@@ -195,27 +193,23 @@ const showBanner = bannerUrl !== null && isHome;
         >
           {page.site.blocks.adsTop.length > 0 && <AdSpace client:load slots={adsTop} />}
           <Breadcrumb />
-          {
-            page.ok ? (
-              <slot />
-            ) : (
-              <PageState
-                image={page.site.defaults.emptyImage}
-                error
-                title={page.error.title}
-                message={page.error.message}
-                retry={canonicalPath ?? '/'}
-                retryLabel={copy.common.retry}
-              />
-            )
-          }
-          {
-            page.site.blocks.adsBottom.length > 0 && (
-              <div class="mt-6">
-                <AdSpace client:visible slots={adsBottom} />
-              </div>
-            )
-          }
+          {page.ok ? (
+            <slot />
+          ) : (
+            <PageState
+              image={page.site.defaults.emptyImage}
+              error
+              title={page.error.title}
+              message={page.error.message}
+              retry={canonicalPath ?? '/'}
+              retryLabel={copy.common.retry}
+            />
+          )}
+          {page.site.blocks.adsBottom.length > 0 && (
+            <div class="mt-6">
+              <AdSpace client:visible slots={adsBottom} />
+            </div>
+          )}
         </main>
         <Footer site={page.site} footerMenu={page.footerMenu.items} />
       </div>
@@ -226,25 +220,19 @@ const showBanner = bannerUrl !== null && isHome;
       menu={page.menu.items}
       pathname={Astro.url.pathname}
     />
-    {
-      /* One triggerless support dialog for the signed-in visitor, shared by
+    {/* One triggerless support dialog for the signed-in visitor, shared by
         both shells: the avatar dropdown's 联系客服 entry and the membership
-        modal's consultation link open it through the `aiya:open-chat` bridge. */
-    }
-    {
-      sessionUser && (
-        <SupportChat
-          client:load
-          user={sessionUser}
-          locale={page.locale}
-          timezone={page.site.timezone}
-        />
-      )
-    }
-    {
-      /* transition:persist keeps the toaster (and its in-flight toasts)
-        alive across ClientRouter swaps instead of being re-mounted. */
-    }
+        modal's consultation link open it through the `aiya:open-chat` bridge. */}
+    {sessionUser && (
+      <SupportChat
+        client:load
+        user={sessionUser}
+        locale={page.locale}
+        timezone={page.site.timezone}
+      />
+    )}
+    {/* transition:persist keeps the toaster (and its in-flight toasts)
+        alive across ClientRouter swaps instead of being re-mounted. */}
     <Toaster client:only="react" transition:persist="toaster" />
     <BackToTop client:load label={copy.shell.backToTop} />
   </body>

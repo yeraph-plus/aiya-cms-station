@@ -44,25 +44,23 @@ const seo = detailSeo(
   ogType="article"
   jsonLd={seo.jsonLd}
 >
-  {
-    page.ok && post && (
-      <PageDetail
-        client:load
-        post={post}
-        termIcons={page.value.termIcons}
-        comments={page.value.comments}
-        commentsPagination={
-          page.value.commentsPagination ?? { page: 1, totalPages: 0, hasNext: false }
-        }
-        downloads={page.value.downloads}
-        settings={page.site.comments}
-        loggedIn={Boolean(page.user)}
-        authorBio={page.value.authorBio}
-        isSelf={Boolean(page.user && page.user.id === page.value.authorId)}
-        locale={page.locale}
-        timezone={page.site.timezone}
-        commentsWindow={page.value.commentsWindow}
-      />
-    )
-  }
+  {page.ok && post && (
+    <PageDetail
+      client:load
+      post={post}
+      termIcons={page.value.termIcons}
+      comments={page.value.comments}
+      commentsPagination={
+        page.value.commentsPagination ?? { page: 1, totalPages: 0, hasNext: false }
+      }
+      downloads={page.value.downloads}
+      settings={page.site.comments}
+      loggedIn={Boolean(page.user)}
+      authorBio={page.value.authorBio}
+      isSelf={Boolean(page.user && page.user.id === page.value.authorId)}
+      locale={page.locale}
+      timezone={page.site.timezone}
+      commentsWindow={page.value.commentsWindow}
+    />
+  )}
 </AppShell>

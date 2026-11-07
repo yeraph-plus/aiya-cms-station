@@ -44,29 +44,27 @@ const seo = detailSeo(
   ogType="article"
   jsonLd={seo.jsonLd}
 >
-  {
-    page.ok && post && (
-      <ResourceDetail
-        client:load
-        post={post}
-        termIcons={page.value.termIcons}
-        comments={page.value.comments}
-        commentsPagination={
-          page.value.commentsPagination ?? { page: 1, totalPages: 0, hasNext: false }
-        }
-        related={page.value.related}
-        downloads={page.value.downloads}
-        threads={page.value.threads}
-        threadsTotal={page.value.threadsTotal}
-        boards={page.value.boards}
-        authorBio={page.value.authorBio}
-        isSelf={Boolean(page.user && page.user.id === page.value.authorId)}
-        settings={page.site.comments}
-        loggedIn={Boolean(page.user)}
-        locale={page.locale}
-        timezone={page.site.timezone}
-        commentsWindow={page.value.commentsWindow}
-      />
-    )
-  }
+  {page.ok && post && (
+    <ResourceDetail
+      client:load
+      post={post}
+      termIcons={page.value.termIcons}
+      comments={page.value.comments}
+      commentsPagination={
+        page.value.commentsPagination ?? { page: 1, totalPages: 0, hasNext: false }
+      }
+      related={page.value.related}
+      downloads={page.value.downloads}
+      threads={page.value.threads}
+      threadsTotal={page.value.threadsTotal}
+      boards={page.value.boards}
+      authorBio={page.value.authorBio}
+      isSelf={Boolean(page.user && page.user.id === page.value.authorId)}
+      settings={page.site.comments}
+      loggedIn={Boolean(page.user)}
+      locale={page.locale}
+      timezone={page.site.timezone}
+      commentsWindow={page.value.commentsWindow}
+    />
+  )}
 </AppShell>

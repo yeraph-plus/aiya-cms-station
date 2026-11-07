@@ -95,40 +95,36 @@ const paged = requested.page > 1;
   jsonLd={jsonLd}
 >
   <h1 class="sr-only">{page.site.name}</h1>
-  {
-    page.ok && page.value.length > 0 && (
-      <div class="flex w-full flex-col gap-10 lg:gap-20">
-        {page.value.map((entry) => (
-          <PostLoop
-            client:load
-            endpoint={
-              entry.section.type === 'resource' ? '/api/feed/resources/' : '/api/feed/posts/'
-            }
-            items={entry.posts.map(cloakPostSummaryMedia)}
-            pagination={entry.pagination}
-            page={entry.page}
-            perPage={entry.section.count}
-            query={
-              entry.section.categories.length > 0
-                ? { category: entry.section.categories.join(',') }
-                : {}
-            }
-            route={{
-              index: '/',
-              pagePattern: homeSectionPagePattern(entry.section.id),
-            }}
-            heading={entry.section.title}
-            headingIcon={entry.section.icon ? iconInner(entry.section.icon) : null}
-            showViewToggle={false}
-            more={{ href: archiveHref(entry.section), label: copy.home.viewAll }}
-            defaultView="grid"
-            stickyView={false}
-            emptyText={copy.posts.listEmpty}
-            errorText={copy.state.backendMessage}
-            locale={page.locale}
-          />
-        ))}
-      </div>
-    )
-  }
+  {page.ok && page.value.length > 0 && (
+    <div class="flex w-full flex-col gap-10 lg:gap-20">
+      {page.value.map((entry) => (
+        <PostLoop
+          client:load
+          endpoint={entry.section.type === 'resource' ? '/api/feed/resources/' : '/api/feed/posts/'}
+          items={entry.posts.map(cloakPostSummaryMedia)}
+          pagination={entry.pagination}
+          page={entry.page}
+          perPage={entry.section.count}
+          query={
+            entry.section.categories.length > 0
+              ? { category: entry.section.categories.join(',') }
+              : {}
+          }
+          route={{
+            index: '/',
+            pagePattern: homeSectionPagePattern(entry.section.id),
+          }}
+          heading={entry.section.title}
+          headingIcon={entry.section.icon ? iconInner(entry.section.icon) : null}
+          showViewToggle={false}
+          more={{ href: archiveHref(entry.section), label: copy.home.viewAll }}
+          defaultView="grid"
+          stickyView={false}
+          emptyText={copy.posts.listEmpty}
+          errorText={copy.state.backendMessage}
+          locale={page.locale}
+        />
+      ))}
+    </div>
+  )}
 </AppShell>

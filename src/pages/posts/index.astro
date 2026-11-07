@@ -84,29 +84,27 @@ const tagGroups = page.ok
   noindex={filtered || !page.ok}
 >
   <h1 class="sr-only">{listTitle}</h1>
-  {
-    page.ok && (
-      <>
-        <PostLoop
-          client:load
-          chips={chips}
-          categoryLabel={copy.posts.category}
-          tagGroups={tagGroups}
-          endpoint="/api/feed/posts/"
-          items={page.value.posts.map(cloakPostSummaryMedia)}
-          pagination={page.value.pagination}
-          page={1}
-          query={{ q, category, tag, sort }}
-          route={{
-            index: '/posts/',
-            pagePattern: '/posts/page/{page}/',
-            carry: ['q', 'category', 'tag', 'sort'],
-          }}
-          emptyText={copy.posts.listEmpty}
-          errorText={copy.state.backendMessage}
-          locale={page.locale}
-        />
-      </>
-    )
-  }
+  {page.ok && (
+    <>
+      <PostLoop
+        client:load
+        chips={chips}
+        categoryLabel={copy.posts.category}
+        tagGroups={tagGroups}
+        endpoint="/api/feed/posts/"
+        items={page.value.posts.map(cloakPostSummaryMedia)}
+        pagination={page.value.pagination}
+        page={1}
+        query={{ q, category, tag, sort }}
+        route={{
+          index: '/posts/',
+          pagePattern: '/posts/page/{page}/',
+          carry: ['q', 'category', 'tag', 'sort'],
+        }}
+        emptyText={copy.posts.listEmpty}
+        errorText={copy.state.backendMessage}
+        locale={page.locale}
+      />
+    </>
+  )}
 </AppShell>

@@ -37,8 +37,7 @@ const subLinkClass = MENU_SUBLINK_TOUCH;
     inert
     aria-hidden="true"
     class="pointer-events-none fixed inset-0 z-20 bg-scrim-modal opacity-0 transition-opacity duration-base group-data-[open]:pointer-events-auto group-data-[open]:opacity-100"
-  >
-  </div>
+  ></div>
   <aside
     id="mobile-menu-drawer"
     inert
@@ -48,69 +47,67 @@ const subLinkClass = MENU_SUBLINK_TOUCH;
   >
     <nav aria-label={siteName} class="flex-1 overflow-y-auto px-3 pb-4">
       <ul class="flex flex-col">
-        {
-          menu.map((item) =>
-            item.children.length > 0 ? (
-              <li>
-                <details open={isActive(item.url)} class="group/details">
-                  <summary
-                    class:list={[
-                      linkClass,
-                      'cursor-pointer list-none pr-12 [&::-webkit-details-marker]:hidden',
-                    ]}
-                  >
-                    <Icon name={menuIconName(item)} size={20} strokeWidth={1.8} />
-                    <span>{item.label}</span>
-                    <Icon
-                      name="chevronRight"
-                      size={16}
-                      strokeWidth={1.8}
-                      class="ml-auto transition-transform duration-base group-open/details:rotate-90"
-                    />
-                  </summary>
-                  <ul class="flex flex-col pl-4">
-                    {item.children.map((child) => (
-                      <li>
-                        <a
-                          href={safeHref(child.url) ?? undefined}
-                          aria-current={isActive(child.url) ? 'page' : undefined}
-                          class:list={[
-                            subLinkClass,
-                            isActive(child.url)
-                              ? 'bg-secondary font-semibold text-primary'
-                              : 'text-body-muted',
-                          ]}
-                        >
-                          {child.label}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                </details>
-              </li>
-            ) : (
-              <li>
-                <a
-                  href={safeHref(item.url) ?? undefined}
-                  title={item.label}
-                  aria-current={isActive(item.url) ? 'page' : undefined}
-                  target={isExternal(item.url) ? '_blank' : undefined}
-                  rel={isExternal(item.url) ? 'noreferrer' : undefined}
+        {menu.map((item) =>
+          item.children.length > 0 ? (
+            <li>
+              <details open={isActive(item.url)} class="group/details">
+                <summary
                   class:list={[
                     linkClass,
-                    'pr-12',
-                    isActive(item.url)
-                      ? 'bg-secondary font-semibold text-primary'
-                      : 'text-foreground',
+                    'cursor-pointer list-none pr-12 [&::-webkit-details-marker]:hidden',
                   ]}
                 >
                   <Icon name={menuIconName(item)} size={20} strokeWidth={1.8} />
                   <span>{item.label}</span>
-                </a>
-              </li>
-            ),
-          )
-        }
+                  <Icon
+                    name="chevronRight"
+                    size={16}
+                    strokeWidth={1.8}
+                    class="ml-auto transition-transform duration-base group-open/details:rotate-90"
+                  />
+                </summary>
+                <ul class="flex flex-col pl-4">
+                  {item.children.map((child) => (
+                    <li>
+                      <a
+                        href={safeHref(child.url) ?? undefined}
+                        aria-current={isActive(child.url) ? 'page' : undefined}
+                        class:list={[
+                          subLinkClass,
+                          isActive(child.url)
+                            ? 'bg-secondary font-semibold text-primary'
+                            : 'text-body-muted',
+                        ]}
+                      >
+                        {child.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            </li>
+          ) : (
+            <li>
+              <a
+                href={safeHref(item.url) ?? undefined}
+                title={item.label}
+                aria-current={isActive(item.url) ? 'page' : undefined}
+                target={isExternal(item.url) ? '_blank' : undefined}
+                rel={isExternal(item.url) ? 'noreferrer' : undefined}
+                class:list={[
+                  linkClass,
+                  'pr-12',
+                  isActive(item.url)
+                    ? 'bg-secondary font-semibold text-primary'
+                    : 'text-foreground',
+                ]}
+              >
+                <Icon name={menuIconName(item)} size={20} strokeWidth={1.8} />
+                <span>{item.label}</span>
+              </a>
+            </li>
+          ),
+        )}
       </ul>
     </nav>
   </aside>

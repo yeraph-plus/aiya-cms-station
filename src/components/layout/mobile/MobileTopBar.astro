@@ -38,33 +38,27 @@ const seed = searchSeed(Astro.url.pathname, Astro.url.searchParams.get('type') ?
       title={siteName}
       class="flex min-w-0 items-center gap-2 rounded-md focus-visible:outline-2 focus-visible:outline-focus-blue"
     >
-      {
-        site.favicon ? (
-          <img
-            src={rewriteMediaUrl(site.favicon.url)}
-            alt=""
-            class="size-8 shrink-0 rounded-md"
-            width={32}
-            height={32}
-          />
-        ) : null
-      }
-      <span
-        class="min-w-0 truncate font-display text-lg font-semibold tracking-tight text-foreground"
-      >
+      {site.favicon ? (
+        <img
+          src={rewriteMediaUrl(site.favicon.url)}
+          alt=""
+          class="size-8 shrink-0 rounded-md"
+          width={32}
+          height={32}
+        />
+      ) : null}
+      <span class="min-w-0 truncate font-display text-lg font-semibold tracking-tight text-foreground">
         {siteName}
       </span>
     </a>
     <div class="flex shrink-0 items-center">
       <MobileSearch client:load locale={locale} value={seed.keyword} scope={seed.scope} />
       <NotificationPopover client:load copy={authCopy} localeTag={localeTag} timezone={timezone} />
-      {
-        /* No support-chat button here by contract: the avatar dropdown's
+      {/* No support-chat button here by contract: the avatar dropdown's
           联系客服 entry (aiya:open-chat bridge) opens the one triggerless
           dialog AppShell mounts for signed-in visitors. The signed-in user
           slot is the credits chip + avatar menu; the membership entry stays
-          in the dropdown. */
-      }
+          in the dropdown. */}
       <UserCenter
         client:load
         variant="mobile"

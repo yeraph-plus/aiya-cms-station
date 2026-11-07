@@ -69,26 +69,24 @@ const chips = [
   noindex={filtered}
 >
   <h1 class="sr-only">{listTitle}</h1>
-  {
-    page.ok && (
-      <PostLoop
-        client:load
-        chips={chips}
-        categoryLabel={copy.pages.category}
-        endpoint="/api/feed/pages/"
-        items={page.value.pages}
-        pagination={page.value.pagination}
-        page={1}
-        query={{ q, category, sort }}
-        route={{
-          index: '/pages/',
-          pagePattern: '/pages/page/{page}/',
-          carry: ['q', 'category', 'sort'],
-        }}
-        emptyText={copy.pages.listEmpty}
-        errorText={copy.state.backendMessage}
-        locale={page.locale}
-      />
-    )
-  }
+  {page.ok && (
+    <PostLoop
+      client:load
+      chips={chips}
+      categoryLabel={copy.pages.category}
+      endpoint="/api/feed/pages/"
+      items={page.value.pages}
+      pagination={page.value.pagination}
+      page={1}
+      query={{ q, category, sort }}
+      route={{
+        index: '/pages/',
+        pagePattern: '/pages/page/{page}/',
+        carry: ['q', 'category', 'sort'],
+      }}
+      emptyText={copy.pages.listEmpty}
+      errorText={copy.state.backendMessage}
+      locale={page.locale}
+    />
+  )}
 </AppShell>

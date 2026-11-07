@@ -35,23 +35,21 @@ const user = page.ok ? page.value.data : null;
   noindex
 >
   <h1 class="sr-only">{copy.settings.title}</h1>
-  {
-    user && (
-      <SettingsPanel
-        client:load
-        locale={page.locale}
-        localeOptions={LOCALE_OPTIONS}
-        user={{
-          nickname: user.nickname,
-          email: user.email,
-          url: user.url,
-          description: user.description,
-          locale: user.locale,
-          showNsfw: user.showNsfw,
-          avatarUrl: user.avatar.url ? rewriteMediaUrl(user.avatar.url) : null,
-        }}
-        copy={settingsCopy(copy)}
-      />
-    )
-  }
+  {user && (
+    <SettingsPanel
+      client:load
+      locale={page.locale}
+      localeOptions={LOCALE_OPTIONS}
+      user={{
+        nickname: user.nickname,
+        email: user.email,
+        url: user.url,
+        description: user.description,
+        locale: user.locale,
+        showNsfw: user.showNsfw,
+        avatarUrl: user.avatar.url ? rewriteMediaUrl(user.avatar.url) : null,
+      }}
+      copy={settingsCopy(copy)}
+    />
+  )}
 </AppShell>

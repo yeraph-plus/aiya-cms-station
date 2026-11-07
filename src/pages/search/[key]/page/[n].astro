@@ -47,40 +47,38 @@ const title = copy.search.pageOf(key, n);
 ---
 
 <AppShell page={page} title={title} description={title} canonicalPath={searchPath(key, n)} noindex>
-  {
-    page.ok ? (
-      showList ? (
-        <>
-          <h1 class="sr-only">{copy.search.title(key)}</h1>
-          <SearchResults
-            key={key}
-            scope={scope}
-            page={n}
-            items={page.value.items}
-            pagination={page.value.pagination}
-            locale={page.locale}
-            errorText={copy.state.backendMessage}
-          />
-        </>
-      ) : (
-        <PageState
-          image={page.site.defaults.emptyImage}
-          error
-          title={copy.state.notFoundTitle}
-          message={copy.state.notFoundMessage}
-          retry={searchPath(key)}
-          retryLabel={copy.common.retry}
+  {page.ok ? (
+    showList ? (
+      <>
+        <h1 class="sr-only">{copy.search.title(key)}</h1>
+        <SearchResults
+          key={key}
+          scope={scope}
+          page={n}
+          items={page.value.items}
+          pagination={page.value.pagination}
+          locale={page.locale}
+          errorText={copy.state.backendMessage}
         />
-      )
+      </>
     ) : (
       <PageState
         image={page.site.defaults.emptyImage}
         error
-        title={page.error.title}
-        message={page.error.message}
-        retry="/"
-        retryLabel={copy.common.backHome}
+        title={copy.state.notFoundTitle}
+        message={copy.state.notFoundMessage}
+        retry={searchPath(key)}
+        retryLabel={copy.common.retry}
       />
     )
-  }
+  ) : (
+    <PageState
+      image={page.site.defaults.emptyImage}
+      error
+      title={page.error.title}
+      message={page.error.message}
+      retry="/"
+      retryLabel={copy.common.backHome}
+    />
+  )}
 </AppShell>

@@ -32,95 +32,85 @@ const subLinkClass = MENU_SUBLINK_COMPACT;
       title={site.name}
       class="flex h-10 items-center gap-2 whitespace-nowrap px-2 text-primary transition-[padding] duration-base group-data-[collapsed]:justify-center group-data-[collapsed]:px-0"
     >
-      {
-        site.favicon ? (
-          <img
-            src={rewriteMediaUrl(site.favicon.url)}
-            alt=""
-            class="h-9 w-9 shrink-0 rounded-md"
-            width={36}
-            height={36}
-          />
-        ) : null
-      }
-      <span
-        class="brand-title min-w-0 overflow-hidden font-display text-xl font-extrabold leading-none tracking-[-0.06em] group-data-[collapsed]:hidden"
-      >
+      {site.favicon ? (
+        <img
+          src={rewriteMediaUrl(site.favicon.url)}
+          alt=""
+          class="h-9 w-9 shrink-0 rounded-md"
+          width={36}
+          height={36}
+        />
+      ) : null}
+      <span class="brand-title min-w-0 overflow-hidden font-display text-xl font-extrabold leading-none tracking-[-0.06em] group-data-[collapsed]:hidden">
         {site.name.toLowerCase()}
       </span>
     </a>
-    <p
-      class="brand-desc mt-1 h-4 overflow-hidden px-2 text-[11px] font-bold leading-4 text-body-muted"
-    >
+    <p class="brand-desc mt-1 h-4 overflow-hidden px-2 text-[11px] font-bold leading-4 text-body-muted">
       {site.description}
     </p>
   </div>
 
   <nav aria-label={site.name} class="flex-1">
     <ul class="flex flex-col">
-      {
-        menu.map((item) =>
-          item.children.length > 0 ? (
-            <li>
-              <details open={isActive(item.url)} class="group/details">
-                <summary
-                  class:list={[
-                    linkClass,
-                    'cursor-pointer list-none [&::-webkit-details-marker]:hidden',
-                  ]}
-                  title={item.label}
-                >
-                  <Icon name={menuIconName(item)} size={20} strokeWidth={1.8} />
-                  <span class="sidebar-collapse-hide">{item.label}</span>
-                  <Icon
-                    name="chevronRight"
-                    size={16}
-                    strokeWidth={1.8}
-                    class="ml-auto transition-transform duration-base group-open/details:rotate-90"
-                  />
-                </summary>
-                <ul class="flex flex-col pl-4">
-                  {item.children.map((child) => (
-                    <li>
-                      <a
-                        href={safeHref(child.url) ?? undefined}
-                        aria-current={isActive(child.url) ? 'page' : undefined}
-                        class:list={[
-                          subLinkClass,
-                          isActive(child.url)
-                            ? 'bg-secondary font-semibold text-primary'
-                            : 'text-body-muted',
-                        ]}
-                      >
-                        {child.label}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </details>
-            </li>
-          ) : (
-            <li>
-              <a
-                href={safeHref(item.url) ?? undefined}
-                title={item.label}
-                aria-current={isActive(item.url) ? 'page' : undefined}
-                target={isExternal(item.url) ? '_blank' : undefined}
-                rel={isExternal(item.url) ? 'noreferrer' : undefined}
+      {menu.map((item) =>
+        item.children.length > 0 ? (
+          <li>
+            <details open={isActive(item.url)} class="group/details">
+              <summary
                 class:list={[
                   linkClass,
-                  isActive(item.url)
-                    ? 'bg-secondary font-semibold text-primary'
-                    : 'text-foreground',
+                  'cursor-pointer list-none [&::-webkit-details-marker]:hidden',
                 ]}
+                title={item.label}
               >
                 <Icon name={menuIconName(item)} size={20} strokeWidth={1.8} />
                 <span class="sidebar-collapse-hide">{item.label}</span>
-              </a>
-            </li>
-          ),
-        )
-      }
+                <Icon
+                  name="chevronRight"
+                  size={16}
+                  strokeWidth={1.8}
+                  class="ml-auto transition-transform duration-base group-open/details:rotate-90"
+                />
+              </summary>
+              <ul class="flex flex-col pl-4">
+                {item.children.map((child) => (
+                  <li>
+                    <a
+                      href={safeHref(child.url) ?? undefined}
+                      aria-current={isActive(child.url) ? 'page' : undefined}
+                      class:list={[
+                        subLinkClass,
+                        isActive(child.url)
+                          ? 'bg-secondary font-semibold text-primary'
+                          : 'text-body-muted',
+                      ]}
+                    >
+                      {child.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          </li>
+        ) : (
+          <li>
+            <a
+              href={safeHref(item.url) ?? undefined}
+              title={item.label}
+              aria-current={isActive(item.url) ? 'page' : undefined}
+              target={isExternal(item.url) ? '_blank' : undefined}
+              rel={isExternal(item.url) ? 'noreferrer' : undefined}
+              class:list={[
+                linkClass,
+                isActive(item.url) ? 'bg-secondary font-semibold text-primary' : 'text-foreground',
+              ]}
+            >
+              <Icon name={menuIconName(item)} size={20} strokeWidth={1.8} />
+              <span class="sidebar-collapse-hide">{item.label}</span>
+            </a>
+          </li>
+        ),
+      )}
     </ul>
   </nav>
 </aside>

@@ -82,42 +82,40 @@ if (page.ok) {
   noindex={filtered || !page.ok}
 >
   <h1 class="sr-only">{listTitle}</h1>
-  {
-    page.ok && (
-      <>
-        <PostLoop
-          client:load
-          chips={[
-            {
-              slug: '',
-              name: copy.resources.all,
-              href: chipHref('/resources/', filters, ''),
-            },
-            ...page.value.categories.map((term) => ({
-              slug: term.slug,
-              name: term.name,
-              count: term.count,
-              icon: term.icon ? iconInner(term.icon) : null,
-              href: chipHref('/resources/', filters, term.slug),
-            })),
-          ]}
-          categoryLabel={copy.resources.category}
-          tagGroups={tagGroups}
-          endpoint="/api/feed/resources/"
-          items={page.value.resources.map(cloakPostSummaryMedia)}
-          pagination={page.value.pagination}
-          page={1}
-          query={{ q, category, tag, sort }}
-          route={{
-            index: '/resources/',
-            pagePattern: '/resources/page/{page}/',
-            carry: ['q', 'category', 'tag', 'sort'],
-          }}
-          emptyText={filtered ? copy.resources.categoryEmpty : copy.resources.listEmpty}
-          errorText={copy.state.backendMessage}
-          locale={page.locale}
-        />
-      </>
-    )
-  }
+  {page.ok && (
+    <>
+      <PostLoop
+        client:load
+        chips={[
+          {
+            slug: '',
+            name: copy.resources.all,
+            href: chipHref('/resources/', filters, ''),
+          },
+          ...page.value.categories.map((term) => ({
+            slug: term.slug,
+            name: term.name,
+            count: term.count,
+            icon: term.icon ? iconInner(term.icon) : null,
+            href: chipHref('/resources/', filters, term.slug),
+          })),
+        ]}
+        categoryLabel={copy.resources.category}
+        tagGroups={tagGroups}
+        endpoint="/api/feed/resources/"
+        items={page.value.resources.map(cloakPostSummaryMedia)}
+        pagination={page.value.pagination}
+        page={1}
+        query={{ q, category, tag, sort }}
+        route={{
+          index: '/resources/',
+          pagePattern: '/resources/page/{page}/',
+          carry: ['q', 'category', 'tag', 'sort'],
+        }}
+        emptyText={filtered ? copy.resources.categoryEmpty : copy.resources.listEmpty}
+        errorText={copy.state.backendMessage}
+        locale={page.locale}
+      />
+    </>
+  )}
 </AppShell>

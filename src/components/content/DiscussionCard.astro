@@ -26,19 +26,17 @@ const activity = discussion.lastReplyAt || discussion.publishedAt;
 const excerpt = htmlToText(discussion.contentHtml, 80) || '…';
 ---
 
-<article
-  class="rounded-lg border border-border bg-surface p-4 transition-colors hover:border-body-muted"
->
+<article class="rounded-lg border border-border bg-surface p-4 transition-colors hover:border-body-muted">
   <div class="flex flex-wrap items-center gap-2">
-    {
-      discussion.board && (
-        <span class="rounded-full bg-secondary px-2 py-0.5 text-xs text-foreground">
-          {discussion.board.name}
-        </span>
-      )
-    }
+    {discussion.board && (
+      <span class="rounded-full bg-secondary px-2 py-0.5 text-xs text-foreground">
+        {discussion.board.name}
+      </span>
+    )}
     <span class="inline-flex items-center gap-1.5 text-xs text-body-muted">
-      <span class:list={['size-1.5 rounded-full', statusDot[discussion.status]]} aria-hidden="true"
+      <span
+        class:list={['size-1.5 rounded-full', statusDot[discussion.status]]}
+        aria-hidden="true"
       ></span>
       {statusLabels[discussion.status]}
     </span>
@@ -48,7 +46,9 @@ const excerpt = htmlToText(discussion.contentHtml, 80) || '…';
   </h2>
   <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-body-muted">
     <span>{discussion.author.name}</span>
-    {discussion.tags.map((tag) => <span>#{tag}</span>)}
+    {discussion.tags.map((tag) => (
+      <span>#{tag}</span>
+    ))}
     {activity && <span>{displayDate(activity, locale, timezone)}</span>}
     <span class="inline-flex items-center gap-1">
       <Icon name="heart" size={13} />

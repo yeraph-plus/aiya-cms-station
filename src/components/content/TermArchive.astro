@@ -32,44 +32,42 @@ const metaDescription = page.ok ? view.description || page.site.description : pa
   noindex={noindex}
   description={metaDescription}
 >
-  {
-    page.ok ? (
-      showList ? (
-        <>
-          {pageNumber === 1 && <h1 class="sr-only">{title}</h1>}
-          <slot />
-          <PostLoop
-            client:load
-            endpoint={feed}
-            items={page.value.items.map(cloakPostSummaryMedia)}
-            pagination={page.value.pagination}
-            page={pageNumber}
-            query={filter}
-            route={{ index: archiveBase, pagePattern, carry: ['sort'] }}
-            emptyText={emptyText}
-            errorText={copy.state.backendMessage}
-            locale={page.locale}
-          />
-        </>
-      ) : (
-        <PageState
-          image={page.site.defaults.emptyImage}
-          error
-          title={copy.state.notFoundTitle}
-          message={copy.state.notFoundMessage}
-          retry={archiveBase}
-          retryLabel={copy.common.retry}
+  {page.ok ? (
+    showList ? (
+      <>
+        {pageNumber === 1 && <h1 class="sr-only">{title}</h1>}
+        <slot />
+        <PostLoop
+          client:load
+          endpoint={feed}
+          items={page.value.items.map(cloakPostSummaryMedia)}
+          pagination={page.value.pagination}
+          page={pageNumber}
+          query={filter}
+          route={{ index: archiveBase, pagePattern, carry: ['sort'] }}
+          emptyText={emptyText}
+          errorText={copy.state.backendMessage}
+          locale={page.locale}
         />
-      )
+      </>
     ) : (
       <PageState
         image={page.site.defaults.emptyImage}
         error
-        title={page.error.title}
-        message={page.error.message}
+        title={copy.state.notFoundTitle}
+        message={copy.state.notFoundMessage}
         retry={archiveBase}
         retryLabel={copy.common.retry}
       />
     )
-  }
+  ) : (
+    <PageState
+      image={page.site.defaults.emptyImage}
+      error
+      title={page.error.title}
+      message={page.error.message}
+      retry={archiveBase}
+      retryLabel={copy.common.retry}
+    />
+  )}
 </AppShell>

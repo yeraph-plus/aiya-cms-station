@@ -24,37 +24,35 @@ const copy = t(view.page.locale);
   canonicalPath={view.canonical}
   noindex={view.filtered || view.overRange}
 >
-  {
-    view.page.ok &&
-      (view.overRange ? (
-        <PageState
-          image={view.page.site.defaults.emptyImage}
-          error
-          title={copy.state.notFoundTitle}
-          message={copy.state.notFoundMessage}
-          retry="/pages/"
-          retryLabel={copy.common.retry}
+  {view.page.ok &&
+    (view.overRange ? (
+      <PageState
+        image={view.page.site.defaults.emptyImage}
+        error
+        title={copy.state.notFoundTitle}
+        message={copy.state.notFoundMessage}
+        retry="/pages/"
+        retryLabel={copy.common.retry}
+      />
+    ) : (
+      <>
+        <h1 class="sr-only">{view.listTitle}</h1>
+        <PostLoop
+          client:load
+          endpoint="/api/feed/pages/"
+          items={view.page.value.items}
+          pagination={view.page.value.pagination}
+          page={n}
+          query={{ q: view.filters.q, category: view.filters.category, sort: view.filters.sort }}
+          route={{
+            index: '/pages/',
+            pagePattern: '/pages/page/{page}/',
+            carry: ['q', 'category', 'sort'],
+          }}
+          emptyText={copy.pages.listEmpty}
+          errorText={copy.state.backendMessage}
+          locale={view.page.locale}
         />
-      ) : (
-        <>
-          <h1 class="sr-only">{view.listTitle}</h1>
-          <PostLoop
-            client:load
-            endpoint="/api/feed/pages/"
-            items={view.page.value.items}
-            pagination={view.page.value.pagination}
-            page={n}
-            query={{ q: view.filters.q, category: view.filters.category, sort: view.filters.sort }}
-            route={{
-              index: '/pages/',
-              pagePattern: '/pages/page/{page}/',
-              carry: ['q', 'category', 'sort'],
-            }}
-            emptyText={copy.pages.listEmpty}
-            errorText={copy.state.backendMessage}
-            locale={view.page.locale}
-          />
-        </>
-      ))
-  }
+      </>
+    ))}
 </AppShell>

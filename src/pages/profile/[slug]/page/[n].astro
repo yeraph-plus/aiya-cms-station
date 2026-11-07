@@ -45,46 +45,46 @@ const showList = page.ok && !overRange;
 
 <AppShell
   page={page}
-  title={page.ok
-    ? `${page.value.profile.name} · ${copy.profile.articlesTitle}`
-    : copy.state.notFoundTitle}
+  title={
+    page.ok
+      ? `${page.value.profile.name} · ${copy.profile.articlesTitle}`
+      : copy.state.notFoundTitle
+  }
   description={page.site.description}
   canonicalPath={`/profile/${slug}/page/${n}/`}
   noindex={overRange}
 >
-  {
-    page.ok &&
-      (showList ? (
-        <>
-          <h1 class="sr-only">{page.value.profile.name}</h1>
-          <PostLoop
-            client:load
-            endpoint="/api/feed/posts/"
-            items={page.value.posts.map(cloakPostSummaryMedia)}
-            pagination={page.value.postsPagination}
-            page={n}
-            query={{ author: slug, sort }}
-            route={{
-              index: `/profile/${slug}/`,
-              pagePattern: `/profile/${slug}/page/{page}/`,
-              carry: ['sort'],
-            }}
-            heading={copy.profile.articlesTitle}
-            headingIcon={iconInner('newspaper')}
-            emptyText={copy.profile.articlesEmpty}
-            errorText={copy.state.backendMessage}
-            locale={page.locale}
-          />
-        </>
-      ) : (
-        <PageState
-          image={page.site.defaults.emptyImage}
-          error
-          title={copy.state.notFoundTitle}
-          message={copy.state.notFoundMessage}
-          retry={`/profile/${slug}/`}
-          retryLabel={copy.common.retry}
+  {page.ok &&
+    (showList ? (
+      <>
+        <h1 class="sr-only">{page.value.profile.name}</h1>
+        <PostLoop
+          client:load
+          endpoint="/api/feed/posts/"
+          items={page.value.posts.map(cloakPostSummaryMedia)}
+          pagination={page.value.postsPagination}
+          page={n}
+          query={{ author: slug, sort }}
+          route={{
+            index: `/profile/${slug}/`,
+            pagePattern: `/profile/${slug}/page/{page}/`,
+            carry: ['sort'],
+          }}
+          heading={copy.profile.articlesTitle}
+          headingIcon={iconInner('newspaper')}
+          emptyText={copy.profile.articlesEmpty}
+          errorText={copy.state.backendMessage}
+          locale={page.locale}
         />
-      ))
-  }
+      </>
+    ) : (
+      <PageState
+        image={page.site.defaults.emptyImage}
+        error
+        title={copy.state.notFoundTitle}
+        message={copy.state.notFoundMessage}
+        retry={`/profile/${slug}/`}
+        retryLabel={copy.common.retry}
+      />
+    ))}
 </AppShell>

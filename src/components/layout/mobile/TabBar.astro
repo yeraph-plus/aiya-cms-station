@@ -32,42 +32,38 @@ const isExternal = isExternalLink;
   class="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] min-[992px]:hidden"
 >
   <ul class="grid grid-cols-5">
-    {
-      visible.map((item) => (
-        <li>
-          <a
-            href={safeHref(item.url) ?? undefined}
-            aria-current={isActive(item.url) ? 'page' : undefined}
-            target={isExternal(item.url) ? '_blank' : undefined}
-            rel={isExternal(item.url) ? 'noreferrer' : undefined}
-            class:list={[
-              'flex min-h-[56px] flex-col items-center justify-center gap-0.5 px-1 py-2 text-xs focus-visible:outline-2 focus-visible:outline-focus-blue',
-              isActive(item.url)
-                ? 'font-medium text-primary'
-                : 'text-body-muted hover:text-foreground',
-            ]}
-          >
-            <Icon name={menuIconName(item)} size={20} strokeWidth={1.8} />
-            <span class="w-full truncate text-center leading-tight">{item.label}</span>
-          </a>
-        </li>
-      ))
-    }
-    {
-      more && (
-        <li>
-          <button
-            type="button"
-            data-drawer-toggle
-            aria-controls="mobile-menu-drawer"
-            aria-expanded="false"
-            class="flex min-h-[56px] w-full flex-col items-center justify-center gap-0.5 px-1 py-2 text-xs text-body-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-focus-blue"
-          >
-            <Icon name="menu" size={20} strokeWidth={1.8} />
-            <span class="leading-tight">{copy.shell.mobileMore}</span>
-          </button>
-        </li>
-      )
-    }
+    {visible.map((item) => (
+      <li>
+        <a
+          href={safeHref(item.url) ?? undefined}
+          aria-current={isActive(item.url) ? 'page' : undefined}
+          target={isExternal(item.url) ? '_blank' : undefined}
+          rel={isExternal(item.url) ? 'noreferrer' : undefined}
+          class:list={[
+            'flex min-h-[56px] flex-col items-center justify-center gap-0.5 px-1 py-2 text-xs focus-visible:outline-2 focus-visible:outline-focus-blue',
+            isActive(item.url)
+              ? 'font-medium text-primary'
+              : 'text-body-muted hover:text-foreground',
+          ]}
+        >
+          <Icon name={menuIconName(item)} size={20} strokeWidth={1.8} />
+          <span class="w-full truncate text-center leading-tight">{item.label}</span>
+        </a>
+      </li>
+    ))}
+    {more && (
+      <li>
+        <button
+          type="button"
+          data-drawer-toggle
+          aria-controls="mobile-menu-drawer"
+          aria-expanded="false"
+          class="flex min-h-[56px] w-full flex-col items-center justify-center gap-0.5 px-1 py-2 text-xs text-body-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-focus-blue"
+        >
+          <Icon name="menu" size={20} strokeWidth={1.8} />
+          <span class="leading-tight">{copy.shell.mobileMore}</span>
+        </button>
+      </li>
+    )}
   </ul>
 </nav>

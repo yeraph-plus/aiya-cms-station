@@ -31,37 +31,35 @@ const copy = t(view.page.locale);
   canonicalPath={view.canonical}
   noindex={view.filtered || view.overRange}
 >
-  {
-    view.page.ok &&
-      (view.overRange ? (
-        <PageState
-          image={view.page.site.defaults.emptyImage}
-          error
-          title={copy.state.notFoundTitle}
-          message={copy.state.notFoundMessage}
-          retry="/resources/"
-          retryLabel={copy.common.retry}
+  {view.page.ok &&
+    (view.overRange ? (
+      <PageState
+        image={view.page.site.defaults.emptyImage}
+        error
+        title={copy.state.notFoundTitle}
+        message={copy.state.notFoundMessage}
+        retry="/resources/"
+        retryLabel={copy.common.retry}
+      />
+    ) : (
+      <>
+        <h1 class="sr-only">{view.listTitle}</h1>
+        <PostLoop
+          client:load
+          endpoint="/api/feed/resources/"
+          items={view.page.value.items}
+          pagination={view.page.value.pagination}
+          page={n}
+          query={{ ...view.filters }}
+          route={{
+            index: '/resources/',
+            pagePattern: '/resources/page/{page}/',
+            carry: ['q', 'category', 'tag', 'sort'],
+          }}
+          emptyText={copy.resources.listEmpty}
+          errorText={copy.state.backendMessage}
+          locale={view.page.locale}
         />
-      ) : (
-        <>
-          <h1 class="sr-only">{view.listTitle}</h1>
-          <PostLoop
-            client:load
-            endpoint="/api/feed/resources/"
-            items={view.page.value.items}
-            pagination={view.page.value.pagination}
-            page={n}
-            query={{ ...view.filters }}
-            route={{
-              index: '/resources/',
-              pagePattern: '/resources/page/{page}/',
-              carry: ['q', 'category', 'tag', 'sort'],
-            }}
-            emptyText={copy.resources.listEmpty}
-            errorText={copy.state.backendMessage}
-            locale={view.page.locale}
-          />
-        </>
-      ))
-  }
+      </>
+    ))}
 </AppShell>

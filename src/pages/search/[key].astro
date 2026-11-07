@@ -48,26 +48,24 @@ if (page.ok) setCrumbs(Astro.locals, page.locale, [{ label: copy.search.title(ke
   noindex
 >
   <h1 class="sr-only">{copy.search.title(key)}</h1>
-  {
-    page.ok ? (
-      <SearchResults
-        key={key}
-        scope={scope}
-        page={1}
-        items={page.value.items}
-        pagination={page.value.pagination}
-        locale={page.locale}
-        errorText={copy.state.backendMessage}
-      />
-    ) : (
-      <PageState
-        image={page.site.defaults.emptyImage}
-        error
-        title={page.error.title}
-        message={page.error.message}
-        retry="/"
-        retryLabel={copy.common.backHome}
-      />
-    )
-  }
+  {page.ok ? (
+    <SearchResults
+      key={key}
+      scope={scope}
+      page={1}
+      items={page.value.items}
+      pagination={page.value.pagination}
+      locale={page.locale}
+      errorText={copy.state.backendMessage}
+    />
+  ) : (
+    <PageState
+      image={page.site.defaults.emptyImage}
+      error
+      title={page.error.title}
+      message={page.error.message}
+      retry="/"
+      retryLabel={copy.common.backHome}
+    />
+  )}
 </AppShell>

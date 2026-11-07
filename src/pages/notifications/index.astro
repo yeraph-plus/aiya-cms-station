@@ -21,20 +21,18 @@ if (page.ok) setCrumbs(Astro.locals, page.locale, [{ label: copy.shell.notificat
   <h1 class="mb-6 font-display text-2xl font-semibold text-foreground">
     {copy.shell.notifications}
   </h1>
-  {
-    page.ok && (
-      <NotificationFeed
-        client:load
-        localeTag={toBcp47(page.locale)}
-        timezone={page.site.timezone}
-        copy={{
-          notifications: copy.shell.notifications,
-          notificationsLoading: copy.shell.notificationsLoading,
-          notificationsEmpty: copy.shell.notificationsEmpty,
-          notificationsError: copy.shell.notificationsError,
-          notificationsLoadMore: copy.shell.notificationsLoadMore,
-        }}
-      />
-    )
-  }
+  {page.ok && (
+    <NotificationFeed
+      client:load
+      localeTag={toBcp47(page.locale)}
+      timezone={page.site.timezone}
+      copy={{
+        notifications: copy.shell.notifications,
+        notificationsLoading: copy.shell.notificationsLoading,
+        notificationsEmpty: copy.shell.notificationsEmpty,
+        notificationsError: copy.shell.notificationsError,
+        notificationsLoadMore: copy.shell.notificationsLoadMore,
+      }}
+    />
+  )}
 </AppShell>

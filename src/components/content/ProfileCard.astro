@@ -53,24 +53,22 @@ const paddedId = String(id).padStart(5, '0');
   ]}
 >
   <div class="absolute -top-16 left-6 size-32">
-    {
-      avatarUrl ? (
-        <img
-          src={avatarUrl}
-          alt={name}
-          width={128}
-          height={128}
-          class="size-32 rounded-full border-4 border-background object-cover shadow-md"
-        />
-      ) : (
-        <span
-          aria-hidden="true"
-          class="flex size-32 items-center justify-center rounded-full border-4 border-background bg-secondary text-4xl font-semibold text-foreground"
-        >
-          {name.slice(0, 1)}
-        </span>
-      )
-    }
+    {avatarUrl ? (
+      <img
+        src={avatarUrl}
+        alt={name}
+        width={128}
+        height={128}
+        class="size-32 rounded-full border-4 border-background object-cover shadow-md"
+      />
+    ) : (
+      <span
+        aria-hidden="true"
+        class="flex size-32 items-center justify-center rounded-full border-4 border-background bg-secondary text-4xl font-semibold text-foreground"
+      >
+        {name.slice(0, 1)}
+      </span>
+    )}
   </div>
 
   <div class="flex flex-col gap-4 sm:flex-row sm:items-center">
@@ -80,13 +78,11 @@ const paddedId = String(id).padStart(5, '0');
         <span class="rounded-full bg-secondary px-2.5 py-0.5 text-xs text-body-muted">
           {roleLabel}
         </span>
-        {
-          extraBadge !== '' && (
-            <span class="rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-primary">
-              {extraBadge}
-            </span>
-          )
-        }
+        {extraBadge !== '' && (
+          <span class="rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-primary">
+            {extraBadge}
+          </span>
+        )}
         <span class="text-xs text-body-muted">ID {paddedId}</span>
         <span class="text-xs text-body-muted">
           {copy.profile.joined}
@@ -102,30 +98,28 @@ const paddedId = String(id).padStart(5, '0');
         {bio !== '' ? bio : copy.profile.bioPlaceholder}
       </p>
     </div>
-    {
-      stats && (
-        <dl class="flex shrink-0 items-center gap-6">
-          <div class="text-center">
-            <dt class="text-xs text-body-muted">{copy.profile.statsPosts}</dt>
-            <dd class="font-display text-lg font-semibold leading-tight text-foreground">
-              {stats.contributions}
-            </dd>
-          </div>
-          <div class="text-center">
-            <dt class="text-xs text-body-muted">{copy.profile.statsFollowers}</dt>
-            <dd class="font-display text-lg font-semibold leading-tight text-foreground">
-              {stats.followers}
-            </dd>
-          </div>
-          <div class="text-center">
-            <dt class="text-xs text-body-muted">{copy.profile.statsFavorited}</dt>
-            <dd class="font-display text-lg font-semibold leading-tight text-foreground">
-              {stats.favorites}
-            </dd>
-          </div>
-        </dl>
-      )
-    }
+    {stats && (
+      <dl class="flex shrink-0 items-center gap-6">
+        <div class="text-center">
+          <dt class="text-xs text-body-muted">{copy.profile.statsPosts}</dt>
+          <dd class="font-display text-lg font-semibold leading-tight text-foreground">
+            {stats.contributions}
+          </dd>
+        </div>
+        <div class="text-center">
+          <dt class="text-xs text-body-muted">{copy.profile.statsFollowers}</dt>
+          <dd class="font-display text-lg font-semibold leading-tight text-foreground">
+            {stats.followers}
+          </dd>
+        </div>
+        <div class="text-center">
+          <dt class="text-xs text-body-muted">{copy.profile.statsFavorited}</dt>
+          <dd class="font-display text-lg font-semibold leading-tight text-foreground">
+            {stats.favorites}
+          </dd>
+        </div>
+      </dl>
+    )}
     <div class="flex shrink-0 items-center gap-2">
       <slot name="actions" />
     </div>
