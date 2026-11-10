@@ -4,9 +4,14 @@ import { KeyRoundIcon, LoaderCircleIcon } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { apiErrorCopy } from '@/lib/feedback';
+import { t, type Locale } from '@/lib/i18n';
 
 export interface UnlockGateProps {
   postId: number;
+  /** The proxy failure's error code renders through the one error-copy exit
+      (UX §1); `labels.failed` stays the fallback line for failures without a code. */
+  locale: Locale;
   /** Post password badge copy rides from the summary; these are the panel strings. */
   labels: {
     title: string;
@@ -27,16 +32,16 @@ export interface UnlockGateProps {
  * detail in the same response, so the panel swaps the body in place and a
  * cold reload simply re-asks (server semantics, mirrored client-side).
  */
-export default function UnlockGate({ postId, labels, onUnlocked }: UnlockGateProps) {
+export default function UnlockGate({ postId, locale, labels, onUnlocked }: UnlockGateProps) {
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = useState<string | null>(null);
 
   const unlock = async (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (busy || password === '') return;
     setBusy(true);
-    setFailed(false);
+    setFailed(null);
     try {
       const response = await fetch(`/api/content/${postId}/unlock/`, {
         method: 'POST',
@@ -45,16 +50,17 @@ export default function UnlockGate({ postId, labels, onUnlocked }: UnlockGatePro
       });
       const json = (await response.json().catch(() => null)) as {
         ok?: boolean;
+        code?: string;
         post?: { content?: { html?: string } };
       } | null;
       const body = json?.post?.content?.html;
       if (json?.ok && typeof body === 'string') {
         onUnlocked(body);
       } else {
-        setFailed(true);
+        setFailed(json?.code ? apiErrorCopy(json.code, locale) : labels.failed);
       }
     } catch {
-      setFailed(true);
+      setFailed(labels.failed);
     } finally {
       setBusy(false);
     }
@@ -72,6 +78,7 @@ export default function UnlockGate({ postId, labels, onUnlocked }: UnlockGatePro
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             placeholder={labels.placeholder}
+            aria-label={labels.placeholder}
             maxLength={255}
             required
           />
@@ -85,7 +92,7 @@ export default function UnlockGate({ postId, labels, onUnlocked }: UnlockGatePro
         </form>
         {failed && (
           <p role="alert" className="text-sm text-error">
-            {labels.failed}
+            {failed}
           </p>
         )}
       </div>

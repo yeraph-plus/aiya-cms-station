@@ -113,7 +113,9 @@ export async function loadDetail(kind: DetailKind, client: AiyaClient, site: Sit
 
   const [comments, related, downloads, threads, boards] = await Promise.all([
     hidden ? Promise.resolve(null) : client.comments(detail.data.id, { page: 1, perPage, order }),
-    client.related(detail.data.id),
+    // The related grid is sidebar content: a failed read renders the empty
+    // state, it must not take the whole detail page down with it.
+    client.related(detail.data.id).catch(() => null),
     client.downloads(detail.data.id).catch(() => null),
     // Bound community threads for the sidebar feedback part; both reads are
     // best-effort — the sidebar renders its empty state when they fail.
@@ -128,7 +130,7 @@ export async function loadDetail(kind: DetailKind, client: AiyaClient, site: Sit
     termIcons: termIconMap(detail.data),
     comments: comments?.data ?? [],
     commentsPagination: comments?.meta.pagination ?? null,
-    related: related.data.map(cloakPostSummaryMedia),
+    related: related?.data.map(cloakPostSummaryMedia) ?? [],
     downloads: downloads?.data.lists ?? null,
     threads: threads?.data.map(cloakDiscussion) ?? [],
     threadsTotal: threads?.meta.pagination.totalItems ?? 0,

@@ -493,6 +493,7 @@ export function ArticleBody({ post, locale }: { post: PostDetail; locale: Locale
       {post.locked && unlocked === null ? (
         <UnlockGate
           postId={post.id}
+          locale={locale}
           onUnlocked={setUnlocked}
           labels={{
             title: copy.posts.lockedTitle,
