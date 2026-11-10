@@ -13,6 +13,7 @@ export const POST = defineProxy({}, async ({ client, params }) => {
   return jsonResponse({
     ok: true,
     likes: result.data.likes,
+    viewerLiked: result.data.viewerLiked,
     already: result.data.already,
   });
 });

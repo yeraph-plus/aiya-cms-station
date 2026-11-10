@@ -771,10 +771,18 @@ export const tiersPayloadSchema = z.object({
 });
 
 // ---------------------------------------------------------------------------
-// Engagement counters (browser-direct, IP-deduplicated backend-side)
+// Engagement counters (same-origin /api proxy; the backend dedupes by the
+// visitor IP+UA hash the reverse-proxy bridge restores)
 // ---------------------------------------------------------------------------
 
-export const likeResultSchema = z.object({ likes: count, already: z.boolean() });
+/** The LikeResponse DTO both like writes answer: the materialized count, the
+    viewer's resulting state and the idempotent re-like mark. The content
+    like is add-only, so a successful write always carries viewerLiked true. */
+export const likeResultSchema = z.object({
+  likes: count,
+  viewerLiked: z.boolean(),
+  already: z.boolean(),
+});
 export const viewResultSchema = z.object({ views: count });
 export const ratingResultSchema = z.object({ score: count, count: count, already: z.boolean() });
 
@@ -895,13 +903,9 @@ export const postUnlockResponseSchema = itemEnvelope(postDetailSchema);
 export const relatedResponseSchema = itemEnvelope(z.array(postSummarySchema));
 export const afdianOrderUrlResponseSchema = itemEnvelope(z.object({ url: httpUrlSchema }));
 export const likeResponseSchema = itemEnvelope(likeResultSchema);
-/** POST/DELETE discussions/{id}/like: the toggle's materialized count plus the viewer's resulting state; `already` marks the idempotent re-like (always false on unlike). */
-export const discussionLikeResultSchema = z.object({
-  likes: count,
-  viewerLiked: z.boolean(),
-  already: z.boolean(),
-});
-export const discussionLikeResponseSchema = itemEnvelope(discussionLikeResultSchema);
+/** POST/DELETE discussions/{id}/like: the same LikeResponse DTO — on unlike
+    `viewerLiked` answers false and `already` stays false. */
+export const discussionLikeResponseSchema = itemEnvelope(likeResultSchema);
 export const viewResponseSchema = itemEnvelope(viewResultSchema);
 export const ratingResponseSchema = itemEnvelope(ratingResultSchema);
 export const creditBalanceResponseSchema = itemEnvelope(creditBalanceSchema);
