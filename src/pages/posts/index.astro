@@ -35,8 +35,6 @@ const copy = t(page.locale);
 if (page.ok) setCrumbs(Astro.locals, page.locale, [{ label: copy.posts.title }]);
 const filtered = isFiltered(filters);
 const listTitle = q !== '' ? copy.posts.searchTitle(q) : copy.posts.title;
-// Category chips filter this same list, so each chip href is the query
-// state the island itself produces — same contract as /resources/.
 // Category chips filter this same list, so their crawlable fallback href is
 // the query state the island itself produces — the path route they used to
 // point at (/posts/category/{slug}/) no longer exists. The crawlable category

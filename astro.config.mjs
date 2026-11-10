@@ -10,7 +10,7 @@ import tailwindcss from '@tailwindcss/vite';
 // already carry their trailing slash.
 //
 // The SSR-dependency bundling is build-only by way of an integration hook:
-// the top-level config must stay a plain object — Astro 7.3.1's loader never
+// the top-level config must stay a plain object — the Astro 7 loader never
 // invokes a function-form default export, and mergeConfig then spreads the
 // function into {}, silently dropping the whole file (dev ran on defaults,
 // output=static). Conditional config goes through astro:config:setup instead,

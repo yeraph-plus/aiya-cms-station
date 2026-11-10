@@ -179,10 +179,9 @@ part-button`），剪贴板零件由正文零件的 effect 绑定复制按钮；
    特性）：评论数/点赞数/登录态头像菜单等可用 `.astro` 服务岛（零 React）。
    当前全页 SSR 时这些组件直接内联渲染；未来某路由开 prerender 时，同一
    组件加 `server:defer` 即变成请求时插槽，组件代码不变。
-2. **prerender 路由缓存延后**到页面全部完成后迭代（届时逐路由开
-   `prerender = true`，配合 WP webhook → `/api/revalidate` 全量重建 + 去抖）。
-   **路由形状纪律现在生效**：分页与分类必须路径化，搜索与账号域保持
-   SSR——query 参数会被静态文件吞掉，严禁把筛选放 query。
+2. **路由形状纪律**：分页与分类必须路径化，搜索与账号域保持
+   SSR——query 参数会被静态文件吞掉，严禁把筛选放 query。（prerender
+   路由缓存的迭代计划见 HISTORY 2026-11-11 批次行。）
 3. **浏览器只接触 Astro 域名**（单源架构）：
    - 计数端点（like/view/rating）走 `/api` 代理，浏览器不直连 WP。
    - **aria2 推送例外（唯一不经 /api 的 fetch）**：下载面板的 RPC 推送
