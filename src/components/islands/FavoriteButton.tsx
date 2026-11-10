@@ -95,7 +95,7 @@ export default function FavoriteButton({
         <LoaderCircleIcon className="size-4 animate-spin" aria-hidden="true" />
       ) : (
         <BookmarkIcon
-          className={`size-4 text-orange-500 ${pop ? 'animate-pop' : ''}`}
+          className={`size-4 text-favorite ${pop ? 'animate-pop' : ''}`}
           fill={favorited ? 'currentColor' : 'none'}
           aria-hidden="true"
           onAnimationEnd={() => setPop(false)}

@@ -122,7 +122,7 @@ export function MetaRow({
       <Avatar
         url={post.author.avatar?.url ?? null}
         name={post.author.name}
-        className="size-[22px] text-[10px] text-body-muted"
+        className="size-[22px] text-2xs text-body-muted"
       />
       <span className="font-medium">{post.author.name}</span>
       <span className={item}>
@@ -1531,7 +1531,7 @@ export function DownloadPanel({
                             <span className="flex flex-col items-start gap-1">
                               <span className="flex items-center gap-2 whitespace-nowrap">
                                 {claimed !== undefined && claimed.code !== null && (
-                                  <span className="rounded bg-muted px-2 py-1 font-mono text-[11px] text-body-muted">
+                                  <span className="rounded bg-muted px-2 py-1 font-mono text-2xs text-body-muted">
                                     {copy.extractionCode} {claimed.code}
                                   </span>
                                 )}

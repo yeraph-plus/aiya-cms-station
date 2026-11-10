@@ -227,12 +227,12 @@ function Stars({ score, label }: { score: number | null; label: string }) {
   return (
     <span className="relative inline-flex" role="img" aria-label={label}>
       {Array.from({ length: full }, (_, i) => (
-        <StarIcon key={`f${i}`} fill="currentColor" className="size-[13px] text-yellow-400" />
+        <StarIcon key={`f${i}`} fill="currentColor" className="size-[13px] text-star" />
       ))}
       {half && (
         <span className="relative inline-flex">
           <StarIcon className="size-[13px] text-body-muted/40" />
-          <svg viewBox="0 0 24 24" className="absolute inset-0 size-[13px] text-yellow-400">
+          <svg viewBox="0 0 24 24" className="absolute inset-0 size-[13px] text-star">
             <defs>
               <linearGradient id={gradId}>
                 <stop offset="50%" stopColor="currentColor" />
@@ -382,7 +382,7 @@ function CardInfo({
             <Avatar
               name={item.author.name}
               url={item.author.avatar?.url ?? null}
-              className="size-4 text-[9px]"
+              className="size-4 text-2xs"
             />
             {item.author.name}
           </span>
@@ -1015,7 +1015,7 @@ export default function PostLoop({
                     <TermIcon icon={chip.icon} size={14} />
                     {chip.name}
                     {chip.count !== undefined && (
-                      <span className="text-[11px] font-normal opacity-70">{chip.count}</span>
+                      <span className="text-2xs font-normal opacity-70">{chip.count}</span>
                     )}
                   </a>
                 </Button>

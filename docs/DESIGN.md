@@ -53,8 +53,9 @@
   内距统一 `0.75rem 1rem`（紧凑档），盒内首/末子元素外边距清零、行内表情
   与网格术语列不得继承外边距。解锁后的正文与正常正文走同一条渲染路径
   （同一个 `PROSE_CLASS`），三处门禁状态的起点与正文一致。
-- **字号阶梯**：xs（元信息）/ sm（正文默认）/ base（详情正文）/ lg（页头
-  标题）；xl 以上仅限首页 banner 与详情 h1。
+- **字号阶梯**：2xs（11px，角标/计数/时间戳等微信息档）/ xs（元信息）/
+  sm（正文默认）/ base（详情正文）/ lg（页头标题）；xl 以上仅限首页 banner
+  与详情 h1。
 - **字体栈**：站点字形 = 自托管 Station Sans——OFL 1.1 的 Noto Sans CJK 派生的三个
   语言族 `Station Sans SC` / `TC` / `JP`，简/繁/日字形由**族**决定，不依赖 `locl`。
   基础栈（`--font-display` 与 `--font-body` 同值）：
@@ -89,7 +90,9 @@
   详情头图与分类卡共用。手写层禁止 `bg-black/*` 与渐变遮罩字面量。
 - **命名容器**：`--container-shell: 1510px`（AppShell/Footer 的
   `max-w-shell`）与 `--container-dialog-sm: 380px`；新增任意 `max-w-[…]`
-  禁止，一律走命名容器。
+  禁止，一律走命名容器。存量豁免（一次性宽度，不升容器令牌）：
+  SearchBox `20rem`、SmiliesPicker `24rem`、SupportChat `85%`、
+  ConfirmPopover `220px`。
 - **动效**：`--transition-duration-fast/base/slow`（120/200/300ms 语义：
   微交互 / 弹出层 / 页面级；Tailwind v4 duration 命名空间，生成
   `duration-fast/base/slow` 工具类，壳层 CSS 以 `var(--transition-duration-*)`
@@ -114,14 +117,18 @@
   `min-[1440px]:`（Tailwind v4 实测不生成）。
 - **令牌词汇表映射**：`tokens.css` 的 `@theme inline` 即双词汇表
   （shadcn 系 / 原型语义系）的钉死映射（`muted→secondary`、`input→border`
-  等）；新增语义色先进原始属性 + `.dark` 覆写，再挂 `@theme`。
+  等）；新增语义色先进原始属性 + `.dark` 覆写，再挂 `@theme`。在册互动
+  语义色：`like`（点赞红）/ `star`（评分星黄）/ `favorite`（收藏橙）——
+  手写层禁用 Tailwind 出厂红/黄/橙调色板类，一律走这三枚令牌。
 
 ## 3. 防回潮守卫
 
-`tests/style-guard.test.ts` 十四条 vitest 常驻执法，是本契约的可执行形态：
+`tests/style-guard.test.ts` 十六条 vitest 常驻执法，是本契约的可执行形态：
 rounded-xl 限 ui/、禁 `min-[1440px]`、vh 上限禁用（一律 svh）、命名容器
-强制、islands 遮罩字面量清零、hex 白名单（gate/500/theme/page.server 的
-零依赖兜底页豁免）、字母头像单方（共享 `islands/Avatar.tsx`）、错误码出口
+强制、islands 遮罩字面量清零、互动语义色强制（出厂红/黄/橙调色板类禁入
+手写层）、字号阶梯强制（任意 `text-[…px]` 禁入手写层）、hex 白名单
+（gate/500/theme/page.server 的零依赖兜底页豁免）、字母头像单方（共享
+`islands/Avatar.tsx`）、错误码出口
 唯一（`lib/feedback`）、lucide-static 服务端独占（岛内图标走
 props/termIconMap）、裸输入 label 钉扎、组件层字面时长禁止（时长走
 `duration-fast/base/slow` 令牌工具类）、字体栈唯一（`font-family` 字面量

@@ -792,7 +792,7 @@ function CommunityFeedInner({
                   </span>
                   <div className="mt-0.5 flex items-center gap-2 text-xs text-body-muted">
                     {thread.board && (
-                      <span className="rounded-full bg-secondary px-1.5 py-px text-[11px] text-body-muted">
+                      <span className="rounded-full bg-secondary px-1.5 py-px text-2xs text-body-muted">
                         {thread.board.name}
                       </span>
                     )}
@@ -821,7 +821,7 @@ function CommunityFeedInner({
               ) : (
                 <div className="px-3 pb-3 sm:px-4 sm:pb-4 sm:pl-[68px]">
                   {thread.title !== '' && (
-                    <h2 className="mt-2 font-display text-[15px] font-semibold leading-snug text-foreground">
+                    <h2 className="mt-2 font-display text-sm font-semibold leading-snug text-foreground">
                       {thread.title}
                     </h2>
                   )}
@@ -876,9 +876,7 @@ function CommunityFeedInner({
                   <button
                     type="button"
                     className={`inline-flex items-center gap-1 rounded-md px-2 py-1.5 tabular-nums transition-colors hover:bg-secondary ${
-                      thread.viewerLiked
-                        ? 'text-red-500 dark:text-red-400'
-                        : 'hover:text-foreground'
+                      thread.viewerLiked ? 'text-like' : 'hover:text-foreground'
                     }`}
                     disabled={likeBusyId === thread.id}
                     aria-pressed={thread.viewerLiked}

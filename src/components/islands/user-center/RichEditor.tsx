@@ -334,7 +334,7 @@ export function AttachmentStrip({
               type="button"
               aria-label={removeLabel}
               onClick={() => onRemove(index)}
-              className="absolute right-0.5 top-0.5 flex size-4.5 items-center justify-center rounded-full bg-black/60 text-[10px] leading-none text-white hover:bg-black/80"
+              className="absolute right-0.5 top-0.5 flex size-4.5 items-center justify-center rounded-full bg-black/60 text-2xs leading-none text-white hover:bg-black/80"
             >
               ×
             </button>

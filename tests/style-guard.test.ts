@@ -94,6 +94,22 @@ describe('style guard', () => {
     );
   });
 
+  it('engagement accents ride the semantic tokens (no factory palette reds/yellows/oranges)', () => {
+    const files = new Map(
+      [...scan(['src/components'], TS_ASTRO)].filter(([f]) => !f.startsWith('src/components/ui/')),
+    );
+    expect(
+      violations(files, /(?:text|bg|border|fill|stroke|ring)-(?:red|yellow|orange)-\d{2,3}/),
+    ).toEqual([]);
+  });
+
+  it('font sizes ride the ladder (no arbitrary px values in the handwritten layers)', () => {
+    const files = new Map(
+      [...scan(['src/components'], TS_ASTRO)].filter(([f]) => !f.startsWith('src/components/ui/')),
+    );
+    expect(violations(files, /text-\[\d+(?:\.\d+)?px\]/)).toEqual([]);
+  });
+
   it('hex colors stay on the dependency-free whitelist (brand colors ride tokens)', () => {
     const hexed = [...scan(SRC, ['.astro', '.tsx'])]
       .filter(([f]) => !HEX_ALLOWLIST.has(f))

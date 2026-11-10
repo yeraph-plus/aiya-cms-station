@@ -416,7 +416,7 @@ function CommentCard({
         <Avatar
           url={comment.author.avatar ? rewriteMediaUrl(comment.author.avatar) : null}
           name={comment.author.name}
-          className="size-[22px] text-[10px]"
+          className="size-[22px] text-2xs"
         />
         <span className="font-medium text-foreground">{comment.author.name}</span>
         {comment.publishedAt && (

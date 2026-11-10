@@ -47,6 +47,9 @@
   --color-body-muted: var(--body-muted);
   --color-focus-blue: var(--focus-blue);
   --color-error: var(--error);
+  --color-like: var(--like);
+  --color-star: var(--star);
+  --color-favorite: var(--favorite);
   --color-status-success: var(--status-success);
   --color-status-warning: var(--status-warning);
   --color-status-info: var(--status-info);
@@ -89,6 +92,12 @@
   --body-muted: #747480;
   --focus-blue: #497eea;
   --error: #b30000;
+  /* Engagement accents (like/star/favorite) — the raw + .dark + @theme
+     recipe of DESIGN.md §2. like carries a dark lift (red-400); star's dark
+     legibility pick is the deeper amber; favorite lifts to orange-400. */
+  --like: #ef4444;
+  --star: #facc15;
+  --favorite: #f97316;
   /* Status ramp: alert severity accents (`<alert level>` in the backend
      Parts markup) plus the clipboard copy confirmation. Deliberately NOT
      redefined under `.dark` — the mid-tones read on both sheets, and the
@@ -169,9 +178,16 @@
   --body-muted: #9b9ba7;
   --focus-blue: #7da2ff;
   --error: #ff7373;
+  --like: #f87171;
+  --star: #eab308;
+  --favorite: #fb923c;
 }
 
 @theme {
+  /* The micro tier of the DESIGN.md §2 size ladder: 11px badges, counts,
+     timestamps — below xs (12px), above nothing. */
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
   --font-display:
     'Station Sans SC', 'Station Sans TC', 'Station Sans JP', 'PingFang SC', 'PingFang TC',
     'Hiragino Sans', 'Microsoft YaHei', 'Microsoft JhengHei', 'Yu Gothic UI', 'Noto Sans CJK SC',

@@ -90,7 +90,7 @@ export default function LikeButton({
       aria-label={`${labels.sr} +${likes}`}
       disabled={busy || liked}
       title={liked ? labels.success : labels.sr}
-      className="text-red-500 hover:text-red-500 dark:text-red-400 dark:hover:text-red-400"
+      className="text-like"
     >
       {busy ? (
         <LoaderCircleIcon className="size-4 animate-spin" aria-hidden="true" />

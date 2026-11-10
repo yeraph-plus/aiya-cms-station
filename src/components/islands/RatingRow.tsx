@@ -119,7 +119,7 @@ export default function RatingRow({
               className="p-0.5 transition-transform first:pl-0 last:pr-0 hover:scale-110 disabled:cursor-default disabled:hover:scale-100"
             >
               <StarIcon
-                className={`size-[18px] ${filled ? 'text-yellow-400 dark:text-yellow-500' : 'text-body-muted/40'}`}
+                className={`size-[18px] ${filled ? 'text-star' : 'text-body-muted/40'}`}
                 fill={filled ? 'currentColor' : 'none'}
                 aria-hidden="true"
               />

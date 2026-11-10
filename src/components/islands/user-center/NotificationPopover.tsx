@@ -169,7 +169,7 @@ export function FeedRow({
         dangerouslySetInnerHTML={{ __html: sanitizeNotificationHtml(item.title) }}
       />
       {valid && (
-        <time dateTime={item.createdAt} className="mt-0.5 block text-[11px] text-body-muted">
+        <time dateTime={item.createdAt} className="mt-0.5 block text-2xs text-body-muted">
           {/* localeTag is the BCP 47 tag the shells convert from page.locale;
               notificationTime degrades a malformed tag instead of throwing
               (a throw inside this row unmounts the whole island). */}

@@ -233,7 +233,7 @@ export default function SupportChat({ user, locale, timezone }: Props) {
                   >
                     {row.body}
                   </div>
-                  <span className="px-1 pt-0.5 text-[11px] text-body-muted">
+                  <span className="px-1 pt-0.5 text-2xs text-body-muted">
                     {displayDate(row.createdAt, locale, timezone)}
                   </span>
                 </li>

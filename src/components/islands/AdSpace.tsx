@@ -65,7 +65,7 @@ export default function AdSpace({ slots }: { slots: AdSlot[] }) {
               loading="lazy"
               decoding="async"
             />
-            <span className="absolute left-2 top-2 flex items-center gap-1 rounded bg-scrim-modal px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100">
+            <span className="absolute left-2 top-2 flex items-center gap-1 rounded bg-scrim-modal px-1.5 py-0.5 text-2xs font-bold uppercase tracking-wider text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100">
               <MegaphoneIcon className="size-3" aria-hidden="true" />
               {slot.label}
             </span>

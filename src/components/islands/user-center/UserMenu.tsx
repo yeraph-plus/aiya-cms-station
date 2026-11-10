@@ -124,13 +124,13 @@ export function UserMenu({
               {user.membershipTierName && (
                 <Badge
                   variant="outline"
-                  className="gap-1 border-primary/30 bg-primary/10 px-1.5 text-[11px] font-normal text-primary"
+                  className="gap-1 border-primary/30 bg-primary/10 px-1.5 text-2xs font-normal text-primary"
                 >
                   <CrownIcon aria-hidden="true" />
                   <span className="max-w-28 truncate">{user.membershipTierName}</span>
                 </Badge>
               )}
-              <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-[11px] text-body-muted">
+              <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-2xs text-body-muted">
                 {user.roleLabel}
               </span>
             </span>
