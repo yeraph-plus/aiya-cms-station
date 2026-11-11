@@ -5,7 +5,7 @@ import { KeyRoundIcon, LoaderCircleIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { apiErrorCopy } from '@/lib/feedback';
-import { t, type Locale } from '@/lib/i18n';
+import type { Locale } from '@/lib/i18n';
 
 export interface UnlockGateProps {
   postId: number;
